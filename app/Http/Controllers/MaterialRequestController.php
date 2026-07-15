@@ -178,4 +178,78 @@ class MaterialRequestController extends Controller
             'data' => $mr->load('items')
         ]);
     }
+
+    // 5. Fungsi untuk Orang Gudang memperbarui data stok fisik
+    public function verifyByGudang(Request $request, $id)
+    {
+        // Validasi input array item untuk mengupdate data Stock On Hand
+        $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|integer',
+            'items.*.stock_on_hand' => 'required|integer|min:0',
+        ]);
+
+        $mr = MaterialRequest::find($id);
+
+        if (!$mr) {
+            return response()->json(['status' => 'error', 'message' => 'Data MR tidak ditemukan'], 404);
+        }
+
+        if ($mr->status_workflow !== 'Approved by Direksi') {
+            return response()->json(['status' => 'error', 'message' => 'Status dokumen tidak valid untuk diverifikasi gudang'], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Update data Stock On Hand untuk masing-masing item barang
+            foreach ($request->items as $itemData) {
+                MaterialRequestItem::where('id', $itemData['id'])
+                    ->where('material_request_id', $id)
+                    ->update(['stock_on_hand' => $itemData['stock_on_hand']]);
+            }
+
+            // Ubah status ke tahap akhir (Siap ditarik Purchasing)
+            $mr->update([
+                'status_workflow' => 'Ready for Purchasing'
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pengecekan stok gudang berhasil disimpan. Dokumen diteruskan ke Purchasing.',
+                'data' => $mr->load('items')
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 'error', 'message' => 'Gagal memperbarui data: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // 6. Fungsi ketika Purchasing selesai menginput/mengimpor data ke Accurate Offline
+    public function completeByPurchasing($id)
+    {
+        $mr = MaterialRequest::find($id);
+
+        if (!$mr) {
+            return response()->json(['status' => 'error', 'message' => 'Data MR tidak ditemukan'], 404);
+        }
+
+        if ($mr->status_workflow !== 'Ready for Purchasing') {
+            return response()->json(['status' => 'error', 'message' => 'Status dokumen tidak valid untuk diproses Purchasing'], 400);
+        }
+
+        // Close alur dokumen secara permanen
+        $mr->update([
+            'status_workflow' => 'Completed in Accurate'
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Material Request selesai diproses dan telah di-input ke Accurate Offline.',
+            'data' => $mr->load('items')
+        ]);
+    }
+
 }

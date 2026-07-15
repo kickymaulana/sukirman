@@ -15,6 +15,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/material-requests/{id}/forward', [MaterialRequestController::class, 'forwardByManager']);
     Route::put('/material-requests/{id}/acknowledge', [MaterialRequestController::class, 'acknowledgeByGM']);
     Route::put('/material-requests/{id}/decision', [MaterialRequestController::class, 'decisionByDireksi']);
+    Route::put('/material-requests/{id}/verify-gudang', [MaterialRequestController::class, 'verifyByGudang']);
+    Route::put('/material-requests/{id}/complete-purchasing', [MaterialRequestController::class, 'completeByPurchasing']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
