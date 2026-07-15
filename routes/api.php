@@ -12,6 +12,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/material-requests', [MaterialRequestController::class, 'store']);
     Route::get('/material-requests', [MaterialRequestController::class, 'index']);
+    Route::get('/material-requests/{id}', [MaterialRequestController::class, 'show']);
     Route::put('/material-requests/{id}/forward', [MaterialRequestController::class, 'forwardByManager']);
     Route::put('/material-requests/{id}/acknowledge', [MaterialRequestController::class, 'acknowledgeByGM']);
     Route::put('/material-requests/{id}/decision', [MaterialRequestController::class, 'decisionByDireksi']);

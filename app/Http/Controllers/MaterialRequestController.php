@@ -252,4 +252,23 @@ class MaterialRequestController extends Controller
         ]);
     }
 
+    // Fungsi untuk mengambil detail 1 data MR beserta semua item barang di dalamnya
+    public function show($id)
+    {
+        // Cari MR berdasarkan ID, sekaligus angkut relasi item barangnya
+        $mr = MaterialRequest::with('items')->find($id);
+
+        if (!$mr) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Data Material Request tidak ditemukan.'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $mr
+        ], 200);
+    }
+
 }
