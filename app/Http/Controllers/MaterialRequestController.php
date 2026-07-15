@@ -119,4 +119,63 @@ class MaterialRequestController extends Controller
             'data' => $mr->load('items')
         ]);
     }
+
+    // 3. Fungsi ketika FM/GM menekan tombol Acknowledge (Mengetahui)
+    public function acknowledgeByGM($id)
+    {
+        $mr = MaterialRequest::find($id);
+
+        if (!$mr) {
+            return response()->json(['status' => 'error', 'message' => 'Data MR tidak ditemukan'], 404);
+        }
+
+        // Pastikan dokumen memang sedang tertahan di level FM/GM
+        if ($mr->status_workflow !== 'Pending FM/GM') {
+            return response()->json(['status' => 'error', 'message' => 'Status dokumen tidak valid untuk di-acknowledge FM/GM'], 400);
+        }
+
+        // Naikkan status ke level Direksi
+        $mr->update([
+            'status_workflow' => 'Pending Direksi'
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Material Request telah diketahui oleh FM/GM dan diteruskan ke Direksi.',
+            'data' => $mr->load('items')
+        ]);
+    }
+
+    // 4. Fungsi Keputusan Akhir oleh Direksi (Approve / Reject)
+    public function decisionByDireksi(Request $request, $id)
+    {
+        $request->validate([
+            'action' => 'required|in:Approve,Reject',
+            'reason' => 'required_if:action,Reject|string|nullable' // Wajib isi alasan kalau menolak
+        ]);
+
+        $mr = MaterialRequest::find($id);
+
+        if (!$mr) {
+            return response()->json(['status' => 'error', 'message' => 'Data MR tidak ditemukan'], 404);
+        }
+
+        if ($mr->status_workflow !== 'Pending Direksi') {
+            return response()->json(['status' => 'error', 'message' => 'Status dokumen tidak valid untuk diproses Direksi'], 400);
+        }
+
+        // Tentukan status akhir berdasarkan aksi Direksi
+        $finalStatus = $request->action === 'Approve' ? 'Approved by Direksi' : 'Rejected by Direksi';
+
+        $mr->update([
+            'status_workflow' => $finalStatus
+            // Jika Anda ingin menampung alasan reject, bisa ditambahkan kolom notes/reason di tabel migrasi
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Keputusan Direksi berhasil disimpan: ' . $finalStatus,
+            'data' => $mr->load('items')
+        ]);
+    }
 }
