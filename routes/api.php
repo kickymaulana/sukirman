@@ -11,6 +11,9 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/material-requests', [MaterialRequestController::class, 'store']);
+    Route::get('/material-requests', [MaterialRequestController::class, 'index']);
+    Route::put('/material-requests/{id}/forward', [MaterialRequestController::class, 'forwardByManager']);
+
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/user', function (Request $request) {

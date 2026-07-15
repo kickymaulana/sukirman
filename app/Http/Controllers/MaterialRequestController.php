@@ -76,4 +76,47 @@ class MaterialRequestController extends Controller
             ], 500);
         }
     }
+
+    // 1. Fungsi untuk mengambil semua data MR (Bisa difilter berdasarkan status workflow)
+    public function index(Request $request)
+    {
+        $status = $request->query('status'); // Misal: ?status=Pending Manager
+
+        $query = MaterialRequest::with('items');
+
+        if ($status) {
+            $query->where('status_workflow', $status);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $query->get()
+        ]);
+    }
+
+    // 2. Fungsi ketika Manager meneruskan MR dan memilih target Direksi
+    public function forwardByManager(Request $request, $id)
+    {
+        $request->validate([
+            'target_direksi' => 'required|string', // Mengambil pilihan nama/role direksi dari dropdown
+        ]);
+
+        $mr = MaterialRequest::find($id);
+
+        if (!$mr) {
+            return response()->json(['status' => 'error', 'message' => 'Data MR tidak ditemukan'], 404);
+        }
+
+        // Update status workflow dan simpan catatan target direksi mana yang dituju
+        $mr->update([
+            'status_workflow' => 'Pending FM/GM',
+            // Anda bisa menambahkan kolom target_direksi di migrasi jika ingin mencatat nama direksinya
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Material Request berhasil diteruskan ke FM/GM dengan target persetujuan ' . $request->target_direksi,
+            'data' => $mr->load('items')
+        ]);
+    }
 }
