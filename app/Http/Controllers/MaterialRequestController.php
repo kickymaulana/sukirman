@@ -2,9 +2,78 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MaterialRequest;
+use App\Models\MaterialRequestItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MaterialRequestController extends Controller
 {
-    //
+    public function store(Request $request)
+    {
+        // 1. Validasi input dari Frontend
+        $request->validate([
+            'type' => 'required|in:Lokal,Import',
+            'factory' => 'required|in:KIM,DALU 1,DALU 2',
+            'allocation' => 'required|in:Project,Proses',
+            'status_pembelian' => 'required|in:Urgent,Normal',
+            'items' => 'required|array|min:1',
+            'items.*.item_name' => 'required|string',
+            'items.*.qty' => 'required|integer|min:1',
+            'items.*.unit' => 'required|string',
+        ]);
+
+        // Gunakan DB Transaction agar jika ada salah satu item gagal tersimpan,
+        // seluruh data dibatalkan otomatis (menghindari data corrupt)
+        DB::beginTransaction();
+
+        try {
+            // 2. Generate Nomor MR Otomatis (Contoh: MR-20260715-0001)
+            $dateCode = now()->format('Ymd');
+            $latestMr = MaterialRequest::where('mr_number', 'like', "MR-{$dateCode}-%")->latest()->first();
+            $nextNumber = $latestMr ? ((int) explode('-', $latestMr->mr_number)[2]) + 1 : 1;
+            $mrNumber = "MR-{$dateCode}-" . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+            // 3. Simpan data Header MR
+            $mr = MaterialRequest::create([
+                'mr_number' => $mrNumber,
+                'user_id' => $request->user()->id, // Diambil otomatis dari user token Sanctum yang aktif
+                'type' => $request->type,
+                'factory' => $request->factory,
+                'allocation' => $request->allocation,
+                'status_pembelian' => $request->status_pembelian,
+                'status_workflow' => 'Pending Manager', // Status awal masuk ke antrean Manager
+            ]);
+
+            // 4. Simpan semua Item Barang di dalam perulangan loop
+            foreach ($request->items as $item) {
+                $mr->items()->create([
+                    'item_code' => $item['item_code'] ?? null,
+                    'item_name' => $item['item_name'],
+                    'specification' => $item['specification'] ?? null,
+                    'qty' => $item['qty'],
+                    'unit' => $item['unit'],
+                    'item_status' => $item['item_status'] ?? 'Normal',
+                    'monthly_usage' => $item['monthly_usage'] ?? 0,
+                    'stock_on_hand' => $item['stock_on_hand'] ?? 0,
+                    'purpose' => $item['purpose'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Material Request berhasil diajukan dengan nomor ' . $mrNumber,
+                'data' => $mr->load('items')
+            ], 210);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menyimpan data: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
