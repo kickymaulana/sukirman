@@ -12,7 +12,15 @@ import '@varlet/ui/es/style';
 import { Themes, StyleProvider } from '@varlet/ui';
 StyleProvider(Themes.md3Light);
 
-const app = createApp(App);
+createInertiaApp({
+    // Secara default, plugin @inertiajs/vite akan mencari komponen di folder:
+    // resources/js/Pages/ atau resources/js/pages/
 
-app.use(Varlet);
-app.mount('#app');
+    withApp(app) {
+        // Daftarkan Varlet secara global agar bisa dipakai di seluruh halaman Inertia
+        app.use(Varlet);
+    },
+});
+
+
+
