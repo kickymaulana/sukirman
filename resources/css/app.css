@@ -7,3 +7,13 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* ==========================================================================
+   Tambahkan CSS Varlet di bawah ini agar theme-switching bekerja dengan baik
+   ========================================================================== */
+body {
+  transition: background-color .25s, color .25s;
+  color: var(--color-text);
+  background-color: var(--color-body);
+  color-scheme: var(--color-scheme);
+}
