@@ -13,7 +13,7 @@
     "paths": {
       "@/*": ["resources/js/*"]
     },
-    "types": ["@varlet/ui/types"]
+    "types": ["@varlet/ui/types", "vite/client"]
   },
   "include": [
     "resources/js/**/*.ts",
