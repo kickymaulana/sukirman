@@ -17,12 +17,16 @@ export default defineConfig({
             ],
         }),
         vue(),
-        inertia(),
+        inertia({ ssr: false }),
         tailwindcss(),
     ],
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },
+    },
+    // TAMBAHKAN BLOK INI:
+    optimizeDeps: {
+        include: ['@varlet/ui'],
     },
 });

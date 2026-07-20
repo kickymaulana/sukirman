@@ -8,9 +8,6 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
-/* ==========================================================================
-   Tambahkan CSS Varlet di bawah ini agar theme-switching bekerja dengan baik
-   ========================================================================== */
 body {
   transition: background-color .25s, color .25s;
   color: var(--color-text);
