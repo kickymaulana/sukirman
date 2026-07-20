@@ -158,33 +158,30 @@ const handleSubmit = (valid: boolean | null) => {
 
 .brand-section {
   text-align: center;
-  margin-top: 16px;
-  margin-bottom: 40px;
+  margin-top: 8px;
+  margin-bottom: 24px;
 }
 
 .logo-avatar {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  background-color: var(--color-primary-container);
-  margin-bottom: 16px;
   overflow: hidden;
+  margin-bottom: -12px;
 }
 
 .lottie-box {
-  width: 80px;
-  height: 80px;
+  width: 180px;
+  height: 180px;
 }
 
 .app-title {
   font-size: 26px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
   color: var(--color-primary);
+  position: relative;
 }
 
 .app-subtitle {
