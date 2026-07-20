@@ -27,6 +27,6 @@ export default defineConfig({
     },
     // TAMBAHKAN BLOK INI:
     optimizeDeps: {
-        include: ['@varlet/ui'],
+        include: ['@varlet/ui', 'lottie-web'],
     },
 });

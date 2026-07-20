@@ -3,54 +3,58 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
+use Illuminate\Http\RedirectResponse;
 
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    /**
+     * Menampilkan halaman login.
+     */
+    public function showLogin(): Response
     {
-        // 1. Validasi input dari Frontend Flet
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-            'device_name' => 'required', // Contoh: 'Windows Client', 'Android App'
+        return Inertia::render('Auth/Login');
+    }
+
+    /**
+     * Menangani request autentikasi masuk.
+     */
+    public function login(Request $request): RedirectResponse
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'string', 'email'],
+            'password' => ['required', 'string'],
+        ], [
+            'email.required' => 'Email tidak boleh kosong.',
+            'email.email' => 'Format email tidak valid.',
+            'password.required' => 'Password tidak boleh kosong.',
         ]);
 
-        // 2. Cari user berdasarkan email
-        $user = User::where('email', $request->email)->first();
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            $request->session()->regenerate();
 
-        // 3. Validasi kecocokan user dan password
-        if (! $user || ! Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['Kredensial yang Anda masukkan salah.'],
-            ]);
+            // Redirect ke halaman dashboard atau home setelah berhasil login
+            return redirect()->intended(route('dashboard'));
         }
 
-        // 4. Buat token baru menggunakan Sanctum
-        $token = $user->createToken($request->device_name)->plainTextToken;
-
-        // 5. Kembalikan response json
-        return response()->json([
-            'status' => 'success',
-            'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-            ]
+        throw ValidationException::withMessages([
+            'email' => 'Email atau password yang Anda masukkan salah.',
         ]);
     }
 
-    public function logout(Request $request)
+    /**
+     * Menangani request keluar (logout).
+     */
+    public function logout(Request $request): RedirectResponse
     {
-        // Menghapus token yang sedang digunakan untuk login saat ini
-        $request->user()->currentAccessToken()->delete();
+        Auth::logout();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Berhasil logout dan token telah dihapus.'
-        ]);
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
     }
 }

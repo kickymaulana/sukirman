@@ -17,6 +17,7 @@
         "@inertiajs/vite": "^3.6.1",
         "@inertiajs/vue3": "^3.6.1",
         "@varlet/ui": "^3.19.3",
-        "@vitejs/plugin-vue": "^6.0.8"
+        "@vitejs/plugin-vue": "^6.0.8",
+        "lottie-web": "^5.13.0"
     }
 }
