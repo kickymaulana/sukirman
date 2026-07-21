@@ -20,20 +20,17 @@ const loginForm = ref<FormInstance | null>(null)
 const lottieContainer = ref<HTMLElement | null>(null)
 let lottieInstance: any = null
 
-// 2. Lifecycle Hooks
 onMounted(() => {
   if (lottieContainer.value) {
-    const sharedUrl = page.props.app_url as string | undefined
-    const baseUrl = sharedUrl || (window.location.origin + '/sukirman/public/')
+    // Ambil origin domain secara bersih (misal: https://sukirman.gotechdynamics.com)
+    const origin = window.location.origin
 
     lottieInstance = lottie.loadAnimation({
       container: lottieContainer.value,
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      path: baseUrl.endsWith('/')
-        ? `${baseUrl}assets/lottie/purple_check.json`
-        : `${baseUrl}/assets/lottie/purple_check.json`
+      path: `${origin}/assets/lottie/purple_check.json`
     })
   }
 })

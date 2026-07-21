@@ -6,9 +6,9 @@
 
     @routes
     @vite('resources/js/app.ts')
-    <x-inertia::head />
+    @inertiaHead
 </head>
 <body class="antialiased">
-    <x-inertia::app />
+    @inertia
 </body>
 </html>
