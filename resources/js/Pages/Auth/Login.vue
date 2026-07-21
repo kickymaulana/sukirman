@@ -20,10 +20,9 @@ const loginForm = ref<FormInstance | null>(null)
 const lottieContainer = ref<HTMLElement | null>(null)
 let lottieInstance: any = null
 
-// 2. Lifecycle Hooks (Hanya satu onMounted yang dinamis dan aman)
+// 2. Lifecycle Hooks
 onMounted(() => {
   if (lottieContainer.value) {
-    // Mengambil app_url dari shared props, jika tidak ada (undefined), gunakan fallback otomatis dari browser window
     const sharedUrl = page.props.app_url as string | undefined
     const baseUrl = sharedUrl || (window.location.origin + '/sukirman/public/')
 
@@ -32,16 +31,14 @@ onMounted(() => {
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      // Memastikan format path aman dari double slash (//) atau subfolder apache
       path: baseUrl.endsWith('/')
-        ? `${baseUrl}assets/lottie/login-animation.json`
-        : `${baseUrl}/assets/lottie/login-animation.json`
+        ? `${baseUrl}assets/lottie/purple_check.json`
+        : `${baseUrl}/assets/lottie/purple_check.json`
     })
   }
 })
 
 onBeforeUnmount(() => {
-  // Hancurkan instance lottie saat halaman ditinggalkan agar hemat memori HP
   if (lottieInstance) {
     lottieInstance.destroy()
   }
@@ -63,7 +60,6 @@ const handleSubmit = (valid: boolean | null) => {
   <div class="android-layout">
     <div class="android-content">
       <div class="brand-section">
-        <!-- Logo Avatar menggunakan div biasa sebagai wadah Lottie -->
         <div class="logo-avatar">
           <div ref="lottieContainer" class="lottie-box"></div>
         </div>
@@ -146,6 +142,9 @@ const handleSubmit = (valid: boolean | null) => {
   background-color: #fafafa;
   font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #212121;
+
+  /* Menyuntikkan kelengkungan bulat penuh ke semua komponen input di dalamnya */
+  --field-decorator-line-border-radius: 100px;
 }
 
 .android-content {
@@ -192,9 +191,29 @@ const handleSubmit = (valid: boolean | null) => {
   line-height: 1.4;
 }
 
+/* Penyesuaian jarak Ikon agar seimbang di dalam input kapsul */
 .input-icon {
-  margin-right: 8px;
+  margin-left: 6px;
+  margin-right: 6px;
   color: #616161;
+}
+
+/*
+  PERBAIKAN UTAMA:
+  Menyeimbangkan padding horizontal pembungkus input Varlet
+  agar lebarnya sejajar sempurna dengan tombol block.
+*/
+:deep(.var-field-decorator__outlined) {
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+}
+
+/*
+  Memaksa tinggi garis input agar sepadan dengan
+  tinggi komponen tombol berskala besar (size="large").
+*/
+:deep(.var-field-decorator__controller) {
+  min-height: 44px !important;
 }
 
 .remember-me-row {
@@ -214,7 +233,7 @@ const handleSubmit = (valid: boolean | null) => {
 .submit-btn {
   border-radius: 100px !important;
   font-weight: bold;
-  letter-spacing: 1px;
+  height: 44px; /* Disamakan dengan tinggi controller input */
 }
 
 .android-footer {
