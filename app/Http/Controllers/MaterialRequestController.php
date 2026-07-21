@@ -12,18 +12,33 @@ use Illuminate\Http\RedirectResponse;
 
 class MaterialRequestController extends Controller
 {
-    /**
-     * Menampilkan daftar usulan Material Request (Index).
-     */
+
     public function index(Request $request): Response
     {
-        $materialRequests = MaterialRequest::with('items')
-            ->where('user_id', auth()->id())
-            ->latest()
-            ->paginate(10);
+        $search = $request->input('search');
+
+        $query = MaterialRequest::with('items')
+            ->where('user_id', auth()->id());
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('mr_number', 'like', "%{$search}%")
+                  ->orWhere('factory', 'like', "%{$search}%")
+                  ->orWhere('type', 'like', "%{$search}%")
+                  ->orWhereHas('items', function ($itemQuery) use ($search) {
+                      $itemQuery->where('item_name', 'like', "%{$search}%")
+                                ->orWhere('item_code', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $materialRequests = $query->latest()->paginate(10)->withQueryString();
 
         return Inertia::render('MaterialRequest/Index', [
             'requests' => $materialRequests,
+            'filters'  => [
+                'search' => $search ?? '',
+            ],
         ]);
     }
 

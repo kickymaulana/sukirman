@@ -65,7 +65,7 @@ const handleSubmit = () => {
 }
 
 const goBack = () => {
-  router.get(route('dashboard'))
+  router.get(route('material-requests.index'))
 }
 </script>
 
