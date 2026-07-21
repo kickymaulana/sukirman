@@ -1,16 +1,26 @@
 import '../css/app.css';
 
-// Gunakan entry point style resmi dari Varlet
+// 1. Tambahkan ini agar komponen bisa diklik/digeser pakai mouse di Laptop/Desktop
+import '@varlet/touch-emulator';
+
+// 2. Entry point style resmi dari Varlet
 import '@varlet/ui/es/style';
 
 import { createInertiaApp } from '@inertiajs/vue3';
-import Varlet from '@varlet/ui';
-import { Themes, StyleProvider } from '@varlet/ui';
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { createApp, h } from 'vue';
+import Varlet, { Themes, StyleProvider } from '@varlet/ui';
 
+// Set tema awal ke Material Design 3 Light
 StyleProvider(Themes.md3Light);
 
 createInertiaApp({
-    withApp(app) {
-        app.use(Varlet);
+    title: (title) => `${title} - App`,
+    resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
+    setup({ el, App, props, plugin }) {
+        createApp({ render: () => h(App, props) })
+            .use(plugin)
+            .use(Varlet) // Mendaftarkan seluruh komponen Varlet secara global
+            .mount(el);
     },
 });
