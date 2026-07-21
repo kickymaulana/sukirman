@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useForm, usePage } from '@inertiajs/vue3'
+import { useForm, usePage, router } from '@inertiajs/vue3'
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { Form } from '@varlet/ui'
 import lottie from 'lottie-web'
@@ -47,7 +47,7 @@ onBeforeUnmount(() => {
 // 3. Form Submission Handler
 const handleSubmit = (valid: boolean | null) => {
   if (valid) {
-    form.post('/login', {
+    form.post(route('login'), {
       onFinish: () => {
         form.reset('password')
       },

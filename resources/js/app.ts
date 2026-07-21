@@ -11,6 +11,9 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
 import Varlet, { Themes, StyleProvider } from '@varlet/ui';
 
+// 💡 IMPORT ZiggyVue DI SINI
+import { ZiggyVue } from 'ziggy-js';
+
 // Set tema awal ke Material Design 3 Light
 StyleProvider(Themes.md3Light);
 
@@ -20,7 +23,8 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         createApp({ render: () => h(App, props) })
             .use(plugin)
-            .use(Varlet) // Mendaftarkan seluruh komponen Varlet secara global
+            .use(Varlet)
+            .use(ZiggyVue) // Now ZiggyVue is properly imported!
             .mount(el);
     },
 });
