@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { useForm, usePage, router } from '@inertiajs/vue3'
+import { useForm, router } from '@inertiajs/vue3'
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { Form } from '@varlet/ui'
+import { Snackbar } from '@varlet/ui' // 💡 1. Import Snackbar dari Varlet
 import lottie from 'lottie-web'
 
-// 1. Definisikan Tipe dan State Hooks Pendukung
 type FormInstance = InstanceType<typeof Form>
-const page = usePage()
 
 const form = useForm({
   email: '',
@@ -15,14 +14,11 @@ const form = useForm({
 })
 
 const loginForm = ref<FormInstance | null>(null)
-
-// Ref untuk elemen HTML wadah animasi Lottie
 const lottieContainer = ref<HTMLElement | null>(null)
 let lottieInstance: any = null
 
 onMounted(() => {
   if (lottieContainer.value) {
-    // Ambil origin domain secara bersih (misal: https://sukirman.gotechdynamics.com)
     const origin = window.location.origin
 
     lottieInstance = lottie.loadAnimation({
@@ -41,10 +37,20 @@ onBeforeUnmount(() => {
   }
 })
 
-// 3. Form Submission Handler
+// 💡 2. Updated Form Submission Handler
 const handleSubmit = (valid: boolean | null) => {
   if (valid) {
     form.post(route('login'), {
+      onError: (errors) => {
+        // Tampilkan Toast / Snackbar merah saat ada error validasi dari controller
+        if (errors.email) {
+          Snackbar.error(errors.email)
+        } else if (errors.password) {
+          Snackbar.error(errors.password)
+        } else {
+          Snackbar.error('Gagal masuk. Periksa kembali kredensial Anda.')
+        }
+      },
       onFinish: () => {
         form.reset('password')
       },
@@ -79,6 +85,7 @@ const handleSubmit = (valid: boolean | null) => {
               (v) => /.+@.+\..+/.test(v) || 'Format email harus valid'
             ]"
             clearable
+            @input="form.clearErrors('email')"
           >
             <template #prepend-icon>
               <var-icon class="input-icon" name="email" />
@@ -94,6 +101,7 @@ const handleSubmit = (valid: boolean | null) => {
             :error-message="form.errors.password"
             :rules="[(v) => !!v || 'Password tidak boleh kosong']"
             clearable
+            @input="form.clearErrors('password')"
           >
             <template #prepend-icon>
               <var-icon class="input-icon" name="lock" />
@@ -139,8 +147,6 @@ const handleSubmit = (valid: boolean | null) => {
   background-color: #fafafa;
   font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #212121;
-
-  /* Menyuntikkan kelengkungan bulat penuh ke semua komponen input di dalamnya */
   --field-decorator-line-border-radius: 100px;
 }
 
@@ -188,27 +194,17 @@ const handleSubmit = (valid: boolean | null) => {
   line-height: 1.4;
 }
 
-/* Penyesuaian jarak Ikon agar seimbang di dalam input kapsul */
 .input-icon {
   margin-left: 6px;
   margin-right: 6px;
   color: #616161;
 }
 
-/*
-  PERBAIKAN UTAMA:
-  Menyeimbangkan padding horizontal pembungkus input Varlet
-  agar lebarnya sejajar sempurna dengan tombol block.
-*/
 :deep(.var-field-decorator__outlined) {
   padding-left: 20px !important;
   padding-right: 20px !important;
 }
 
-/*
-  Memaksa tinggi garis input agar sepadan dengan
-  tinggi komponen tombol berskala besar (size="large").
-*/
 :deep(.var-field-decorator__controller) {
   min-height: 44px !important;
 }
@@ -230,7 +226,7 @@ const handleSubmit = (valid: boolean | null) => {
 .submit-btn {
   border-radius: 100px !important;
   font-weight: bold;
-  height: 44px; /* Disamakan dengan tinggi controller input */
+  height: 44px;
 }
 
 .android-footer {
