@@ -68,11 +68,9 @@ const handleLogout = () => {
   router.post(route('logout'))
 }
 
-// Handler saat tombol FAB (+) di tengah diklik
+// Di dalam <script setup lang="ts"> Dashboard.vue
 const handleAddRequest = () => {
-  // Contoh: Navigasi ke halaman form tambah usulan
-  // router.get(route('request.create'))
-  console.log('Buka form usulan baru')
+  router.get(route('material-requests.create'))
 }
 </script>
 

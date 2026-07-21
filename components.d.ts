@@ -11,15 +11,19 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    VarAppBar: typeof import('@varlet/ui')['_AppBarComponent']
     VarAvatar: typeof import('@varlet/ui')['_AvatarComponent']
     VarBottomNavigation: typeof import('@varlet/ui')['_BottomNavigationComponent']
     VarBottomNavigationItem: typeof import('@varlet/ui')['_BottomNavigationItemComponent']
     VarButton: typeof import('@varlet/ui')['_ButtonComponent']
     VarCheckbox: typeof import('@varlet/ui')['_CheckboxComponent']
     VarChip: typeof import('@varlet/ui')['_ChipComponent']
+    VarDivider: typeof import('@varlet/ui')['_DividerComponent']
     VarForm: typeof import('@varlet/ui')['_FormComponent']
     VarIcon: typeof import('@varlet/ui')['_IconComponent']
     VarInput: typeof import('@varlet/ui')['_InputComponent']
+    VarOption: typeof import('@varlet/ui')['_OptionComponent']
+    VarSelect: typeof import('@varlet/ui')['_SelectComponent']
     VarSpace: typeof import('@varlet/ui')['_SpaceComponent']
   }
 }

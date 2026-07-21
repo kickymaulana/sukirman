@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\MaterialRequestController;
 
 Route::get('/', function () {
     return Inertia::render('Home', [
@@ -26,6 +27,9 @@ Route::middleware('auth')->group(function () {
             ],
         ]);
     })->name('dashboard');
+    Route::get('/material-requests', [MaterialRequestController::class, 'index'])->name('material-requests.index');
+    Route::get('/material-requests/create', [MaterialRequestController::class, 'create'])->name('material-requests.create');
+    Route::post('/material-requests', [MaterialRequestController::class, 'store'])->name('material-requests.store');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
