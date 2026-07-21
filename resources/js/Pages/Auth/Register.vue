@@ -1,58 +1,31 @@
 <script setup lang="ts">
-import { useForm, router, Link } from '@inertiajs/vue3'
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useForm, Link } from '@inertiajs/vue3'
+import { ref } from 'vue'
 import type { Form } from '@varlet/ui'
-import { Snackbar } from '@varlet/ui' // 💡 1. Import Snackbar dari Varlet
-import lottie from 'lottie-web'
+import { Snackbar } from '@varlet/ui'
 
 type FormInstance = InstanceType<typeof Form>
 
 const form = useForm({
+  name: '',
   email: '',
   password: '',
-  remember: false,
+  password_confirmation: '',
 })
 
-const loginForm = ref<FormInstance | null>(null)
-const lottieContainer = ref<HTMLElement | null>(null)
-let lottieInstance: any = null
+const registerForm = ref<FormInstance | null>(null)
 
-onMounted(() => {
-  if (lottieContainer.value) {
-    const origin = window.location.origin
-
-    lottieInstance = lottie.loadAnimation({
-      container: lottieContainer.value,
-      renderer: 'svg',
-      loop: true,
-      autoplay: true,
-      path: `${origin}/assets/lottie/purple_check.json`
-    })
-  }
-})
-
-onBeforeUnmount(() => {
-  if (lottieInstance) {
-    lottieInstance.destroy()
-  }
-})
-
-// 💡 2. Updated Form Submission Handler
 const handleSubmit = (valid: boolean | null) => {
   if (valid) {
-    form.post(route('login'), {
+    form.post(route('register'), {
       onError: (errors) => {
-        // Tampilkan Toast / Snackbar merah saat ada error validasi dari controller
-        if (errors.email) {
-          Snackbar.error(errors.email)
-        } else if (errors.password) {
-          Snackbar.error(errors.password)
-        } else {
-          Snackbar.error('Gagal masuk. Periksa kembali kredensial Anda.')
+        const firstError = Object.values(errors)[0]
+        if (firstError) {
+          Snackbar.error(firstError)
         }
       },
       onFinish: () => {
-        form.reset('password')
+        form.reset('password', 'password_confirmation')
       },
     })
   }
@@ -63,16 +36,31 @@ const handleSubmit = (valid: boolean | null) => {
   <div class="android-layout">
     <div class="android-content">
       <div class="brand-section">
-        <div class="logo-avatar">
-          <div ref="lottieContainer" class="lottie-box"></div>
-        </div>
-        <h1 class="app-title">SUKIRMAN</h1>
-        <p class="app-subtitle">Sistem Usulan Kebutuhan Barang Internal Manajemen</p>
+        <h1 class="app-title">BUAT AKUN</h1>
+        <p class="app-subtitle">Daftarkan diri Anda untuk mengakses sistem SUKIRMAN</p>
       </div>
 
-      <var-form ref="loginForm" @submit="handleSubmit">
-        <var-space direction="column" :size="['24px', 0]">
+      <var-form ref="registerForm" @submit="handleSubmit">
+        <var-space direction="column" :size="['20px', 0]">
 
+          <!-- Nama Lengkap -->
+          <var-input
+            v-model="form.name"
+            variant="outlined"
+            type="text"
+            placeholder="Nama Lengkap"
+            :disabled="form.processing"
+            :error-message="form.errors.name"
+            :rules="[(v) => !!v || 'Nama lengkap tidak boleh kosong']"
+            clearable
+            @input="form.clearErrors('name')"
+          >
+            <template #prepend-icon>
+              <var-icon class="input-icon" name="account" />
+            </template>
+          </var-input>
+
+          <!-- Email -->
           <var-input
             v-model="form.email"
             variant="outlined"
@@ -92,14 +80,18 @@ const handleSubmit = (valid: boolean | null) => {
             </template>
           </var-input>
 
+          <!-- Password -->
           <var-input
             v-model="form.password"
             variant="outlined"
             type="password"
-            placeholder="Password"
+            placeholder="Password (Min. 8 Karakter)"
             :disabled="form.processing"
             :error-message="form.errors.password"
-            :rules="[(v) => !!v || 'Password tidak boleh kosong']"
+            :rules="[
+              (v) => !!v || 'Password tidak boleh kosong',
+              (v) => (v && v.length >= 8) || 'Password minimal 8 karakter'
+            ]"
             clearable
             @input="form.clearErrors('password')"
           >
@@ -108,11 +100,25 @@ const handleSubmit = (valid: boolean | null) => {
             </template>
           </var-input>
 
-          <div class="remember-me-row">
-            <var-checkbox v-model="form.remember" :disabled="form.processing">
-              <span class="remember-text">Ingat akun saya di perangkat ini</span>
-            </var-checkbox>
-          </div>
+          <!-- Konfirmasi Password -->
+          <var-input
+            v-model="form.password_confirmation"
+            variant="outlined"
+            type="password"
+            placeholder="Konfirmasi Password"
+            :disabled="form.processing"
+            :error-message="form.errors.password_confirmation"
+            :rules="[
+              (v) => !!v || 'Konfirmasi password tidak boleh kosong',
+              (v) => v === form.password || 'Konfirmasi password tidak sesuai'
+            ]"
+            clearable
+            @input="form.clearErrors('password_confirmation')"
+          >
+            <template #prepend-icon>
+              <var-icon class="input-icon" name="checkbox-marked-circle-outline" />
+            </template>
+          </var-input>
 
           <div class="action-section">
             <var-button
@@ -125,15 +131,14 @@ const handleSubmit = (valid: boolean | null) => {
               loading-type="wave"
               class="submit-btn"
             >
-              MASUK
+              DAFTAR SEKARANG
             </var-button>
           </div>
 
-          <!-- Di dalam Login.vue, tepat setelah div class="action-section" -->
-            <div class="register-link-container">
-              <span>Belum memiliki akun? </span>
-              <Link :href="route('register')" class="register-link">Daftar sekarang</Link>
-            </div>
+          <div class="login-link-container">
+            <span>Sudah memiliki akun? </span>
+            <Link :href="route('login')" class="login-link">Masuk di sini</Link>
+          </div>
 
         </var-space>
       </var-form>
@@ -158,7 +163,7 @@ const handleSubmit = (valid: boolean | null) => {
 
 .android-content {
   flex: 1;
-  padding: 32px 24px;
+  padding: 40px 24px 24px 24px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -166,30 +171,15 @@ const handleSubmit = (valid: boolean | null) => {
 
 .brand-section {
   text-align: center;
-  margin-top: 8px;
-  margin-bottom: 24px;
-}
-
-.logo-avatar {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  margin-bottom: -12px;
-}
-
-.lottie-box {
-  width: 180px;
-  height: 180px;
+  margin-bottom: 28px;
 }
 
 .app-title {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  margin: 0 0 4px 0;
+  margin: 0 0 6px 0;
   color: var(--color-primary);
-  position: relative;
 }
 
 .app-subtitle {
@@ -215,24 +205,27 @@ const handleSubmit = (valid: boolean | null) => {
   min-height: 44px !important;
 }
 
-.remember-me-row {
-  margin-top: -8px;
-  padding-left: 2px;
-}
-
-.remember-text {
-  font-size: 14px;
-  color: #424242;
-}
-
 .action-section {
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .submit-btn {
   border-radius: 100px !important;
   font-weight: bold;
   height: 44px;
+}
+
+.login-link-container {
+  text-align: center;
+  font-size: 13px;
+  color: #616161;
+  margin-top: 8px;
+}
+
+.login-link {
+  color: var(--color-primary);
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .android-footer {
@@ -245,18 +238,5 @@ const handleSubmit = (valid: boolean | null) => {
   font-size: 11px;
   color: #9e9e9e;
   letter-spacing: 0.5px;
-}
-
-  .register-link-container {
-  text-align: center;
-  font-size: 13px;
-  color: #616161;
-  margin-top: 12px;
-}
-
-.register-link {
-  color: var(--color-primary);
-  font-weight: 700;
-  text-decoration: none;
 }
 </style>
