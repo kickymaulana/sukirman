@@ -34,14 +34,12 @@ const form = useForm({
   ] as RequestItem[],
 })
 
-// Opsi Pilihan Dropdown
 const typeOptions = ['Lokal', 'Import']
 const factoryOptions = ['KIM', 'DALU 1', 'DALU 2']
 const allocationOptions = ['Project', 'Proses']
 const urgencyOptions = ['Normal', 'Urgent']
 const itemStatusOptions = ['Normal', 'Urgent', 'New', 'Replace']
 
-// Fungsi Dinamis Tambah & Hapus Item Barang
 const addItem = () => {
   form.items.push({
     item_code: '',
@@ -75,30 +73,18 @@ const goBack = () => {
   <Head title="Buat Material Request - SUKIRMAN" />
 
   <div class="android-layout">
-    <var-app-bar>
-    <template #left>
-      <var-button round text @click="goBack">
-        <var-icon name="arrow-left" :size="24" />
-      </var-button>
-      <span>testing</span>
-    </template>
-
-    <template #right>
-      <var-button round text>
-        <var-icon name="magnify" :size="24" />
-      </var-button>
-      <var-button round text>
-        <var-icon name="heart" :size="24" />
-      </var-button>
-      <var-button round text>
-        <var-icon name="dots-vertical" :size="24" />
-      </var-button>
-    </template>
-  </var-app-bar>
+    <!-- AppBar dengan title di tengah dan tombol back di kiri -->
+    <var-app-bar title="Buat Material Request (E-MR)" title-position="center">
+      <template #left>
+        <var-button round text @click="goBack">
+          <var-icon name="arrow-left" :size="24" />
+        </var-button>
+      </template>
+    </var-app-bar>
 
     <!-- Main Content Form -->
     <main class="android-content">
-      <var-form @submit="handleSubmit">
+      <var-form id="mrForm" @submit="handleSubmit">
         <var-space direction="column" :size="['16px', 0]">
 
           <!-- Section 1: Informasi Header MR -->
@@ -210,23 +196,24 @@ const goBack = () => {
             </var-space>
           </div>
 
-          <!-- Submit Button -->
-          <div class="action-section">
-            <var-button
-              block
-              type="primary"
-              native-type="submit"
-              size="large"
-              :loading="form.processing"
-              class="submit-btn"
-            >
-              KIRIM E-MR
-            </var-button>
-          </div>
-
         </var-space>
       </var-form>
     </main>
+
+    <!-- Fixed Action Bar di bagian bawah layar -->
+    <div class="fixed-bottom-bar">
+      <var-button
+        block
+        type="primary"
+        size="large"
+        form="mrForm"
+        native-type="submit"
+        :loading="form.processing"
+        class="submit-btn"
+      >
+        KIRIM E-MR
+      </var-button>
+    </div>
   </div>
 </template>
 
@@ -241,26 +228,10 @@ const goBack = () => {
   overflow: hidden;
 }
 
-.top-app-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.page-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0;
-  color: #0f172a;
-}
-
 .android-content {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 20px 40px 20px;
+  padding: 16px 20px 90px 20px; /* Padding bottom 90px agar tidak terpotong oleh fixed-bottom-bar */
 }
 
 .form-card, .item-card {
@@ -319,8 +290,17 @@ const goBack = () => {
   gap: 12px;
 }
 
-.action-section {
-  margin-top: 12px;
+/* Container tombol fixed di bawah */
+.fixed-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 20px;
+  background-color: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+  z-index: 100;
 }
 
 .submit-btn {

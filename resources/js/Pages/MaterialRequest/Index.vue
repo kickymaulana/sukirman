@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 
 interface RequestItem {
   id: number
@@ -38,34 +38,30 @@ const getWorkflowColor = (status: string) => {
 const goBack = () => {
   router.get(route('dashboard'))
 }
+
+const goToCreate = () => {
+  router.get(route('material-requests.create'))
+}
 </script>
 
 <template>
   <Head title="Daftar Material Request - SUKIRMAN" />
 
   <div class="android-layout">
+    <!-- App Bar dengan Judul di Tengah -->
+    <var-app-bar title="Daftar Material Request" title-position="center">
+      <template #left>
+        <var-button round text @click="goBack">
+          <var-icon name="arrow-left" :size="24" />
+        </var-button>
+      </template>
 
-    <var-app-bar>
-    <template #left>
-      <var-button round text @click="goBack">
-        <var-icon name="arrow-left" :size="24" />
-      </var-button>
-      <span>testing</span>
-    </template>
-
-    <template #right>
-      <var-button round text>
-        <var-icon name="magnify" :size="24" />
-      </var-button>
-      <var-button round text>
-        <var-icon name="heart" :size="24" />
-      </var-button>
-      <var-button round text>
-        <var-icon name="dots-vertical" :size="24" />
-      </var-button>
-    </template>
-  </var-app-bar>
-
+      <template #right>
+        <var-button round text>
+          <var-icon name="magnify" :size="24" />
+        </var-button>
+      </template>
+    </var-app-bar>
 
     <main class="android-content">
       <div v-if="requests.data.length === 0" class="empty-state">
@@ -102,6 +98,16 @@ const goBack = () => {
         </div>
       </div>
     </main>
+
+    <!-- Floating Action Button (FAB) Kanan Bawah untuk Tambah Usulan -->
+    <var-button
+      type="primary"
+      fab
+      class="fab-add-btn"
+      @click="goToCreate"
+    >
+      <var-icon name="plus" :size="28" />
+    </var-button>
   </div>
 </template>
 
@@ -114,28 +120,13 @@ const goBack = () => {
   font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #1e293b;
   overflow: hidden;
-}
-
-.top-app-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.page-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0;
-  color: #0f172a;
+  position: relative;
 }
 
 .android-content {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 20px 40px 20px;
+  padding: 16px 20px 80px 20px; /* Padding ekstra di bawah agar tidak tertutup FAB */
 }
 
 .empty-state {
@@ -205,5 +196,14 @@ const goBack = () => {
   font-weight: 600;
   display: inline-block;
   margin-top: 4px;
+}
+
+/* Floating Action Button di Kanan Bawah */
+.fab-add-btn {
+  position: fixed !important;
+  right: 20px;
+  bottom: 24px;
+  z-index: 99;
+  box-shadow: 0 4px 12px rgba(98, 0, 238, 0.3) !important;
 }
 </style>
