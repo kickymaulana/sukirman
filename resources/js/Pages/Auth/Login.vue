@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useForm, router, Link } from '@inertiajs/vue3'
+import { useForm, usePage, Link } from '@inertiajs/vue3'
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { Form } from '@varlet/ui'
 import { Snackbar } from '@varlet/ui' // 💡 1. Import Snackbar dari Varlet
@@ -13,20 +13,21 @@ const form = useForm({
   remember: false,
 })
 
-const loginForm = ref<FormInstance | null>(null)
+const page = usePage()
 const lottieContainer = ref<HTMLElement | null>(null)
 let lottieInstance: any = null
 
 onMounted(() => {
   if (lottieContainer.value) {
-    const origin = window.location.origin
+    const baseUrl = (page.props.app_url as string) || window.location.origin
+    const cleanBaseUrl = baseUrl.replace(/\/$/, '')
 
     lottieInstance = lottie.loadAnimation({
       container: lottieContainer.value,
       renderer: 'svg',
       loop: true,
       autoplay: true,
-      path: `${origin}/assets/lottie/purple_check.json`
+      path: `${cleanBaseUrl}/assets/lottie/purple_check.json`
     })
   }
 })
