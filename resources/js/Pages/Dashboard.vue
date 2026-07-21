@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 
-// Interface & State tetap seperti punya kamu
-interface SummaryCard {
-  title: string
-  count: number
-  icon: string
-  color: string
-  bgColor: string
+// Interface Data
+interface SummaryCount {
+  pending: number
+  processing: number
+  approved: number
+  rejected: number
 }
 
 interface RecentRequest {
@@ -17,50 +16,40 @@ interface RecentRequest {
   title: string
   category: string
   date: string
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Processing'
+  status: string
 }
 
-defineProps<{
+// Props dari DashboardController
+const props = defineProps<{
   user?: {
     name: string
-    role?: string
+    email?: string
   }
+  summary?: SummaryCount
+  recentRequests?: RecentRequest[]
 }>()
 
-// Bottom Navigation Active State
+// Bottom Navigation Active State (0: Beranda, 1: Riwayat, 2: Notifikasi, 3: Profil)
 const activeTab = ref(0)
 
-const summaryData = ref<SummaryCard[]>([
-  { title: 'Menunggu', count: 5, icon: 'time-out', color: '#f59e0b', bgColor: '#fef3c7' },
-  { title: 'Diproses', count: 3, icon: 'cog-outline', color: '#3b82f6', bgColor: '#dbeafe' },
-  { title: 'Disetujui', count: 12, icon: 'checkbox-marked-circle-outline', color: '#10b981', bgColor: '#d1fae5' },
-  { title: 'Ditolak', count: 1, icon: 'close-circle-outline', color: '#ef4444', bgColor: '#fee2e2' },
+// Format data statistik dari props
+const summaryData = computed(() => [
+  { title: 'Menunggu', count: props.summary?.pending ?? 0, icon: 'time-out', color: '#f59e0b', bgColor: '#fef3c7' },
+  { title: 'Diproses', count: props.summary?.processing ?? 0, icon: 'cog-outline', color: '#3b82f6', bgColor: '#dbeafe' },
+  { title: 'Disetujui', count: props.summary?.approved ?? 0, icon: 'checkbox-marked-circle-outline', color: '#10b981', bgColor: '#d1fae5' },
+  { title: 'Ditolak', count: props.summary?.rejected ?? 0, icon: 'close-circle-outline', color: '#ef4444', bgColor: '#fee2e2' },
 ])
 
-const recentRequests = ref<RecentRequest[]>([
-  { id: 1, code: 'REQ-2026-004', title: 'Pengadaan Tonner Printer HP 85A', category: 'ATK & IT', date: '21 Jul 2026', status: 'Pending' },
-  { id: 2, code: 'REQ-2026-003', title: 'Kabel UTP Cat6 1 Roll (305m)', category: 'Infrastruktur', date: '19 Jul 2026', status: 'Processing' },
-  { id: 3, code: 'REQ-2026-002', title: 'Sapu Lidi & Cairan Pembersih', category: 'Kebersihan', date: '15 Jul 2026', status: 'Approved' },
-  { id: 4, code: 'REQ-2026-001', title: 'Kursi Kerja Ergonomis Staff', category: 'Inventaris', date: '10 Jul 2026', status: 'Rejected' },
-])
-
-const getStatusBadgeType = (status: RecentRequest['status']) => {
+// Mapping Badge Varlet berdasarkan workflow
+const getStatusBadgeType = (status: string) => {
   switch (status) {
-    case 'Approved': return 'success'
-    case 'Pending': return 'warning'
-    case 'Processing': return 'info'
+    case 'Fully Approved': return 'success'
+    case 'Pending Manager': return 'warning'
+    case 'Pending FM/GM':
+    case 'Pending Direksi':
+    case 'Verifikasi Gudang': return 'info'
     case 'Rejected': return 'danger'
     default: return 'default'
-  }
-}
-
-const getStatusLabel = (status: RecentRequest['status']) => {
-  switch (status) {
-    case 'Approved': return 'Disetujui'
-    case 'Pending': return 'Menunggu'
-    case 'Processing': return 'Diproses'
-    case 'Rejected': return 'Ditolak'
-    default: return status
   }
 }
 
@@ -68,9 +57,15 @@ const handleLogout = () => {
   router.post(route('logout'))
 }
 
-// Di dalam <script setup lang="ts"> Dashboard.vue
 const handleAddRequest = () => {
   router.get(route('material-requests.create'))
+}
+
+// Handler Navigasi Tab BottomBar
+const handleTabChange = (index: number) => {
+  if (index === 1) {
+    router.get(route('material-requests.index'))
+  }
 }
 </script>
 
@@ -78,10 +73,10 @@ const handleAddRequest = () => {
   <Head title="Dashboard - SUKIRMAN" />
 
   <div class="android-layout">
-    <!-- Header & Content tetap sama -->
+    <!-- Header -->
     <header class="top-app-bar">
       <div class="user-greeting">
-        <var-avatar src="https://varletjs.org/cat.jpg" size="mini" />
+        <var-avatar src="https://varletjs.org/cat.jpg" size="small" round />
         <div class="user-info">
           <span class="greeting-subtitle">Halo, Selamat Datang 👋</span>
           <h2 class="user-name">{{ user?.name || 'Kicky Maulana' }}</h2>
@@ -149,16 +144,23 @@ const handleAddRequest = () => {
       <!-- Request List -->
       <div class="section-header space-between">
         <h3 class="section-title">Usulan Terakhir</h3>
-        <Link href="#" class="see-all-link">Lihat Semua</Link>
+        <Link :href="route('material-requests.index')" class="see-all-link">Lihat Semua</Link>
       </div>
 
-      <div class="request-list">
+      <!-- State Jika Belum Ada Data -->
+      <div v-if="!recentRequests || recentRequests.length === 0" class="empty-card">
+        <var-icon name="text-box-remove-outline" :size="48" color="#cbd5e1" />
+        <p>Belum ada pengajuan Material Request.</p>
+      </div>
+
+      <!-- List Request dari Database -->
+      <div v-else class="request-list">
         <div v-for="item in recentRequests" :key="item.id" class="request-card">
           <div class="request-main">
             <div class="request-header">
               <span class="request-code">{{ item.code }}</span>
               <var-chip :type="getStatusBadgeType(item.status)" size="small" round>
-                {{ getStatusLabel(item.status) }}
+                {{ item.status }}
               </var-chip>
             </div>
             <h4 class="request-item-title">{{ item.title }}</h4>
@@ -173,10 +175,11 @@ const handleAddRequest = () => {
       </div>
     </main>
 
-    <!-- 💡 IMPLEMENTASI NATIVE VARLET BOTTOM NAVIGATION DENGAN FAB -->
+    <!-- Bottom Navigation -->
     <var-bottom-navigation
       v-model:active="activeTab"
       class="bottom-nav-fixed"
+      @change="handleTabChange"
       @fab-click="handleAddRequest"
     >
       <var-bottom-navigation-item label="Beranda" icon="home-outline" />
@@ -184,7 +187,6 @@ const handleAddRequest = () => {
       <var-bottom-navigation-item label="Notifikasi" icon="bell-outline" badge />
       <var-bottom-navigation-item label="Profil" icon="account-circle" />
 
-      <!-- Slot Fab Resmi Varlet -->
       <template #fab>
         <var-icon name="plus" :size="28" />
       </template>
@@ -193,8 +195,16 @@ const handleAddRequest = () => {
 </template>
 
 <style scoped>
+.android-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f8fafc;
+  font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1e293b;
+  overflow: hidden;
+}
 
-/* Header & Main Styling */
 .top-app-bar {
   display: flex;
   align-items: center;
@@ -212,6 +222,14 @@ const handleAddRequest = () => {
 .greeting-subtitle { font-size: 11px; color: #64748b; font-weight: 500; }
 .user-name { font-size: 16px; font-weight: 700; margin: 0; color: #0f172a; }
 
+.android-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 100px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
 
 .welcome-card {
   background: linear-gradient(135deg, var(--color-primary, #6200ee), #8b5cf6);
@@ -285,6 +303,16 @@ const handleAddRequest = () => {
 .bg-green { background-color: #10b981; }
 .bg-orange { background-color: #f59e0b; }
 
+.empty-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  border: 1px dashed #cbd5e1;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
 .request-list { display: flex; flex-direction: column; gap: 12px; }
 .request-card {
   background: #ffffff;
@@ -299,35 +327,12 @@ const handleAddRequest = () => {
 .request-footer { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #94a3b8; }
 .request-category { display: flex; align-items: center; gap: 4px; }
 
-
-/* 1. Kunci layout utama agar tingginya pas seukuran layar */
-.android-layout {
-  display: flex;
-  flex-direction: column;
-  height: 100vh; /* Gunakan height 100vh, bukan min-height */
-  background-color: #f8fafc;
-  font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #1e293b;
-  overflow: hidden; /* Mencegah seluruh layar ter-scroll secara global */
-}
-
-/* 2. Buat area konten utama (main) yang bisa di-scroll secara independen */
-.android-content {
-  flex: 1;
-  overflow-y: auto; /* Scroll hanya terjadi di dalam area konten ini */
-  padding: 16px 20px 100px 20px; /* Tambah padding bawah agar item paling bawah tidak tertutup nav */
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-/* 3. Paksa Bottom Navigation melayang diam di paling bawah viewport */
 .bottom-nav-fixed {
   position: fixed !important;
   bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  z-index: 999 !important; /* Pastikan selalu berada di atas konten lain */
+  z-index: 999 !important;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06) !important;
   border-top: 1px solid #f1f5f9;
 }
