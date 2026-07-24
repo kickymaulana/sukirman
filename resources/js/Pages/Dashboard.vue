@@ -90,6 +90,8 @@ const handleTabChange = (index: number) => {
     router.get(route('material-requests.index'))
   } else if (index === 2) {
     router.get(route('notifications.index'))
+  } else if (index === 3) {
+    router.get(route('profile.index'))
   }
 }
 </script>
@@ -108,11 +110,7 @@ const handleTabChange = (index: number) => {
         </div>
       </div>
 
-      <div class="header-actions">
-        <var-button round transparent @click="handleLogout">
-          <var-icon name="logout" :size="22" color="#424242" />
-        </var-button>
-      </div>
+      <div class="header-actions"></div>
     </header>
 
     <main class="android-content">

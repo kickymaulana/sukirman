@@ -93,6 +93,12 @@ Route::middleware('auth')->group(function () {
         return response()->json(['ok' => true]);
     })->name('notifications.read-all');
 
+    // Profile
+    Route::get('/profile', function () {
+        $user = auth()->user()->load('roles');
+        return Inertia::render('Profile/Index', ['user' => $user]);
+    })->name('profile.index');
+
     // Auth Actions
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
