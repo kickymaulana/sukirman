@@ -178,7 +178,8 @@ const handleTabChange = (index: number) => {
     <!-- Bottom Navigation -->
     <var-bottom-navigation
       v-model:active="activeTab"
-      class="bottom-nav-fixed"
+      fixed
+      placeholder
       @change="handleTabChange"
       @fab-click="handleAddRequest"
     >
@@ -327,13 +328,5 @@ const handleTabChange = (index: number) => {
 .request-footer { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #94a3b8; }
 .request-category { display: flex; align-items: center; gap: 4px; }
 
-.bottom-nav-fixed {
-  position: fixed !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  z-index: 999 !important;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06) !important;
-  border-top: 1px solid #f1f5f9;
-}
+
 </style>
