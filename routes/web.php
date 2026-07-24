@@ -35,31 +35,31 @@ Route::middleware('auth')->group(function () {
     // ==================== APPROVAL WORKFLOW ====================
 
     // Manager: Forward
-    Route::middleware('role:manager')->group(function () {
+    Route::middleware('role:Manager')->group(function () {
         Route::get('/approval/manager', [MaterialRequestController::class, 'managerIndex'])->name('approval.manager');
         Route::post('/approval/manager/{id}/forward', [MaterialRequestController::class, 'forward'])->name('approval.forward');
     });
 
     // FM/GM: Acknowledge
-    Route::middleware('role:fm/gm')->group(function () {
+    Route::middleware('role:FM/GM')->group(function () {
         Route::get('/approval/fmgm', [MaterialRequestController::class, 'fmGmIndex'])->name('approval.fmgm');
         Route::post('/approval/fmgm/{id}/acknowledge', [MaterialRequestController::class, 'acknowledge'])->name('approval.acknowledge');
     });
 
     // Direksi: Decision
-    Route::middleware('role:direksi')->group(function () {
+    Route::middleware('role:Direksi')->group(function () {
         Route::get('/approval/direksi', [MaterialRequestController::class, 'direksiIndex'])->name('approval.direksi');
         Route::post('/approval/direksi/{id}/decision', [MaterialRequestController::class, 'decision'])->name('approval.decision');
     });
 
     // Gudang: Verifikasi
-    Route::middleware('role:gudang')->group(function () {
+    Route::middleware('role:Gudang')->group(function () {
         Route::get('/approval/gudang', [MaterialRequestController::class, 'gudangIndex'])->name('approval.gudang');
         Route::post('/approval/gudang/{id}/verify', [MaterialRequestController::class, 'verifyGudang'])->name('approval.verify-gudang');
     });
 
     // Purchasing: Export
-    Route::middleware('role:purchasing')->group(function () {
+    Route::middleware('role:Purchasing')->group(function () {
         Route::get('/approval/purchasing', [MaterialRequestController::class, 'purchasingIndex'])->name('approval.purchasing');
         Route::get('/approval/purchasing/export', [MaterialRequestController::class, 'exportExcel'])->name('approval.export');
     });

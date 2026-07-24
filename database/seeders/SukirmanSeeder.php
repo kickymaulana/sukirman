@@ -22,16 +22,16 @@ class SukirmanSeeder extends Seeder
         ])->delete();
 
         $users = [
-            ['nama' => 'Cayaha Dewi Br Surbakti', 'nik' => 'K040002', 'role' => 'direksi'],
-            ['nama' => 'Parinton Silaen', 'nik' => '200064', 'role' => 'fm/gm'],
-            ['nama' => 'Irawan', 'nik' => 'K030006', 'role' => 'manager'],
-            ['nama' => 'Yohanes Paulus', 'nik' => '2D25177', 'role' => 'fm/gm'],
-            ['nama' => 'Jamal Mirdad Purba', 'nik' => 'K130025', 'role' => 'supervisor'],
-            ['nama' => 'Sri Lestari', 'nik' => 'D250071', 'role' => 'purchasing'],
-            ['nama' => 'Saut Maruli segala', 'nik' => 'D110010', 'role' => 'manager'],
+            ['nama' => 'Cayaha Dewi Br Surbakti', 'nik' => 'K040002', 'role' => 'Direksi'],
+            ['nama' => 'Parinton Silaen', 'nik' => '200064', 'role' => 'FM/GM'],
+            ['nama' => 'Irawan', 'nik' => 'K030006', 'role' => 'Manager'],
+            ['nama' => 'Yohanes Paulus', 'nik' => '2D25177', 'role' => 'FM/GM'],
+            ['nama' => 'Jamal Mirdad Purba', 'nik' => 'K130025', 'role' => 'Supervisor'],
+            ['nama' => 'Sri Lestari', 'nik' => 'D250071', 'role' => 'Purchasing'],
+            ['nama' => 'Saut Maruli segala', 'nik' => 'D110010', 'role' => 'Manager'],
             ['nama' => 'Kicky Maulana', 'nik' => 'D260065', 'role' => 'admin'],
-            ['nama' => 'Fahmi Razali Saragih', 'nik' => 'K190695', 'role' => 'gudang'],
-            ['nama' => 'Ridwan', 'nik' => 'K080003', 'role' => 'direksi'],
+            ['nama' => 'Fahmi Razali Saragih', 'nik' => 'K190695', 'role' => 'Gudang'],
+            ['nama' => 'Ridwan', 'nik' => 'K080003', 'role' => 'Direksi'],
         ];
 
         $createdUsers = [];
@@ -60,11 +60,11 @@ class SukirmanSeeder extends Seeder
         $this->command->info('');
         $this->command->info('⏳ Membuat 50 data MR...');
 
-        $supervisors = User::role('supervisor')->get();
-        $managers = User::role('manager')->get();
-        $direksis = User::role('direksi')->get();
-        $fmGms = User::role('fm/gm')->get();
-        $gudangs = User::role('gudang')->get();
+        $supervisors = User::role('Supervisor')->get();
+        $managers = User::role('Manager')->get();
+        $direksis = User::role('Direksi')->get();
+        $fmGms = User::role('FM/GM')->get();
+        $gudangs = User::role('Gudang')->get();
 
         $factories = ['KIM', 'DALU 1', 'DALU 2'];
         $types = ['Lokal', 'Import'];

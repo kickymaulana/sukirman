@@ -26,14 +26,14 @@ const logLabel = (action: string) => {
 // Determine available actions
 const actions = computed(() => {
     const a: { label: string; type: string; action: string }[] = []
-    if (role === 'manager' && mr.status_workflow === 'Pending Manager') a.push({ label: 'Forward ke Direksi', type: 'forward', action: '' })
-    if (role === 'fm/gm' && mr.status_workflow === 'Pending FM/GM') a.push({ label: 'Acknowledge', type: 'acknowledge', action: '' })
-    if (role === 'direksi' && mr.status_workflow === 'Pending Direksi' && mr.direksi_id === pp.auth?.user?.id) {
+    if (role === 'Manager' && mr.status_workflow === 'Pending Manager') a.push({ label: 'Forward ke Direksi', type: 'forward', action: '' })
+    if (role === 'FM/GM' && mr.status_workflow === 'Pending FM/GM') a.push({ label: 'Acknowledge', type: 'acknowledge', action: '' })
+    if (role === 'Direksi' && mr.status_workflow === 'Pending Direksi' && mr.direksi_id === pp.auth?.user?.id) {
         a.push({ label: 'Approve', type: 'approve', action: '' })
         a.push({ label: 'Reject', type: 'reject', action: '' })
         a.push({ label: 'Revision', type: 'revision', action: '' })
     }
-    if (role === 'gudang' && mr.status_workflow === 'Verifikasi Gudang') {
+    if (role === 'Gudang' && mr.status_workflow === 'Verifikasi Gudang') {
         a.push({ label: 'Stok Tersedia', type: 'stock_yes', action: '' })
         a.push({ label: 'Stok Tidak Ada', type: 'stock_no', action: '' })
     }

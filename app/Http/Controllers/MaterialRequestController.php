@@ -153,7 +153,7 @@ class MaterialRequestController extends Controller
         ]);
 
         // Notifikasi ke user FM/GM
-        $fmGmUsers = User::role('fm/gm')->get();
+        $fmGmUsers = User::role('FM/GM')->get();
         Notification::send($fmGmUsers, new MrNotification($mr, "MR {$mr->mr_number} menunggu acknowledge Anda"));
 
         return redirect()->route('approval.manager')->with('success', 'MR diteruskan ke FM/GM');
@@ -242,7 +242,7 @@ class MaterialRequestController extends Controller
 
         // Notifikasi
         if ($request->action === 'approve') {
-            $gudangUsers = User::role('gudang')->get();
+            $gudangUsers = User::role('Gudang')->get();
             Notification::send($gudangUsers, new MrNotification($mr, "MR {$mr->mr_number} disetujui, perlu verifikasi gudang"));
         } elseif ($request->action === 'reject') {
             $mr->user->notify(new MrNotification($mr, "MR {$mr->mr_number} ditolak: {$request->notes}"));
@@ -287,7 +287,7 @@ class MaterialRequestController extends Controller
         if ($request->action === 'tersedia') {
             $mr->user->notify(new MrNotification($mr, "MR {$mr->mr_number} — barang tersedia di gudang"));
         } else {
-            $purchasingUsers = User::role('purchasing')->get();
+            $purchasingUsers = User::role('Purchasing')->get();
             Notification::send($purchasingUsers, new MrNotification($mr, "MR {$mr->mr_number} — stok tidak ada, perlu pembelian"));
         }
 
@@ -364,7 +364,7 @@ class MaterialRequestController extends Controller
 
         // Data pendukung untuk action
         $direksiUsers = collect();
-        if ($role === 'manager' && $mr->status_workflow === 'Pending Manager') {
+        if ($role\ === 'Manager' && $mr->status_workflow === 'Pending Manager') {
             $direksiUsers = User::role('direksi')->get(['id', 'name']);
         }
 

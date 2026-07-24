@@ -151,7 +151,7 @@ const handleTabChange = (index: number) => {
       </div>
 
       <!-- Approval Card (untuk approver) -->
-      <div v-if="user?.role && ['manager','fm/gm','direksi','gudang','purchasing'].includes(user.role)" class="approval-card" @click="goApproval()">
+      <div v-if="user?.role && ['Manager','FM/GM','Direksi','Gudang','Purchasing'].includes(user.role)" class="approval-card" @click="goApproval()">
         <div class="approval-icon"><var-icon name="clipboard-check" :size="28" color="#4f46e5" /></div>
         <div class="approval-text">
           <span class="approval-title">Approval {{ user.role }}</span>
