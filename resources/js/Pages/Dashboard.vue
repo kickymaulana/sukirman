@@ -142,6 +142,17 @@ const handleTabChange = (index: number) => {
         </div>
       </div>
 
+      <!-- Admin Card (terpisah) -->
+      <div v-if="user?.role === 'admin'" class="admin-card" @click="router.get(baseUrl + '/admin/users')">
+        <div class="admin-icon">👥</div>
+        <div class="admin-text">
+          <span class="admin-title">Kelola User</span>
+          <span class="admin-count">{{ pending_count ?? 0 }} user baru menunggu</span>
+        </div>
+        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
+      </div>
+
+      <!-- Approval Card (untuk approver) -->
       <div v-if="user?.role && ['manager','fm/gm','direksi','gudang','purchasing'].includes(user.role)" class="approval-card" @click="goApproval()">
         <div class="approval-icon"><var-icon name="clipboard-check" :size="28" color="#4f46e5" /></div>
         <div class="approval-text">
@@ -337,6 +348,15 @@ const handleTabChange = (index: number) => {
 .request-item-title { margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #0f172a; }
 .request-footer { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #94a3b8; }
 .request-category { display: flex; align-items: center; gap: 4px; }
+
+.admin-card {
+  display:flex;align-items:center;gap:14px;background:#fef3c7;border-radius:16px;padding:16px;
+  border:2px solid #fde68a;cursor:pointer;margin-bottom:12px;
+}
+.admin-icon { font-size:32px; }
+.admin-text { flex:1;display:flex;flex-direction:column; }
+.admin-title { font-size:14px;font-weight:700;color:#92400e; }
+.admin-count { font-size:12px;color:#b45309; }
 
 .approval-card {
   display:flex;align-items:center;gap:14px;background:#eef2ff;border-radius:16px;padding:16px;

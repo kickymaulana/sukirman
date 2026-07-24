@@ -80,7 +80,10 @@ class AuthController extends Controller
                 'email' => $ssoUser['email'] ?? $nik . '@sso',
                 'password' => Hash::make(Str::random(32)),
             ]);
-            $user->assignRole('Supervisor');
+        }
+
+        if (!$user->is_approved) {
+            return redirect()->route('login')->withErrors(['message' => 'Akun Anda belum diaktifkan. Silakan hubungi Admin.']);
         }
 
         Auth::login($user);

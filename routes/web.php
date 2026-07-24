@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MaterialRequestController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Admin\AdminUserController;
 use Inertia\Inertia;
 
 // 💡 Redirect root '/' langsung ke dashboard (nanti otomatis ke login jika belum auth)
@@ -61,6 +62,15 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:purchasing')->group(function () {
         Route::get('/approval/purchasing', [MaterialRequestController::class, 'purchasingIndex'])->name('approval.purchasing');
         Route::get('/approval/purchasing/export', [MaterialRequestController::class, 'exportExcel'])->name('approval.export');
+    });
+
+        // Admin Panel
+    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users');
+        Route::get('/users/{id}', [AdminUserController::class, 'show'])->name('users.show');
+        Route::post('/users/{id}/approve', [AdminUserController::class, 'approve'])->name('users.approve');
+        Route::post('/users/{id}/role', [AdminUserController::class, 'assignRole'])->name('users.role');
+        Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->name('users.destroy');
     });
 
     // Notifications

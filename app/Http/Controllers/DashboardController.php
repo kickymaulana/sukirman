@@ -6,6 +6,7 @@ use App\Models\MaterialRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\User;
 
 class DashboardController extends Controller
 {
@@ -51,7 +52,9 @@ class DashboardController extends Controller
 
         $pendingCount = null;
         $role = $roles->first();
-        if (in_array($role, ['manager', 'Manager'])) {
+        if (in_array($role, ['admin', 'Admin'])) {
+            $pendingCount = User::where('is_approved', false)->count();
+        } elseif (in_array($role, ['manager', 'Manager'])) {
             $pendingCount = MaterialRequest::where('status_workflow', 'Pending Manager')->count();
         } elseif (in_array($role, ['fm/gm', 'FM/GM'])) {
             $pendingCount = MaterialRequest::where('status_workflow', 'Pending FM/GM')->count();
