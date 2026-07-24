@@ -364,7 +364,7 @@ class MaterialRequestController extends Controller
 
         // Data pendukung untuk action
         $direksiUsers = collect();
-        if ($role\ === 'Manager' && $mr->status_workflow === 'Pending Manager') {
+        if ($role === 'Manager' && $mr->status_workflow === 'Pending Manager') {
             $direksiUsers = User::role('direksi')->get(['id', 'name']);
         }
 
