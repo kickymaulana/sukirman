@@ -14,3 +14,19 @@ body {
   background-color: var(--color-body);
   color-scheme: var(--color-scheme);
 }
+
+/* Android-style slide transition */
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-enter-from {
+  transform: translateX(30px);
+  opacity: 0;
+}
+
+.slide-leave-to {
+  transform: translateX(-30px);
+  opacity: 0;
+}
