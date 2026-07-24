@@ -35,13 +35,33 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $notifications = [];
+        $unreadCount = 0;
+
+        if ($user) {
+            $unreadCount = $user->unreadNotifications()->count();
+            $notifications = $user->unreadNotifications()->latest()->take(10)->get()->map(function ($n) {
+                $data = $n->data;
+                return [
+                    'id' => $n->id,
+                    'message' => $data['message'] ?? '',
+                    'mr_id' => $data['mr_id'] ?? null,
+                    'mr_number' => $data['mr_number'] ?? '',
+                    'time' => $n->created_at->diffForHumans(),
+                ];
+            });
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
-            // 💡 Tambahkan ini agar JS tahu URL dasar aplikasi dari .env
             'app_url' => config('app.url'),
-            ];
+            'csrf_token' => csrf_token(),
+            'notifications' => $notifications,
+            'unread_count' => $unreadCount,
+        ];
     }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Head, Link, router } from '@inertiajs/vue3'
+import { Head, Link, router, usePage } from '@inertiajs/vue3'
 
 // Interface Data
 interface SummaryCount {
@@ -24,7 +24,9 @@ const props = defineProps<{
   user?: {
     name: string
     email?: string
+    role?: string
   }
+  pending_count?: number | null
   summary?: SummaryCount
   recentRequests?: RecentRequest[]
 }>()
@@ -53,6 +55,9 @@ const getStatusBadgeType = (status: string) => {
   }
 }
 
+const notifList = ref((usePage().props as any).notifications || [])
+const unreadCount = ref((usePage().props as any).unread_count || 0)
+
 const handleLogout = () => {
   router.post(route('logout'))
 }
@@ -61,10 +66,21 @@ const handleAddRequest = () => {
   router.get(route('material-requests.create'))
 }
 
-// Handler Navigasi Tab BottomBar
+const approvalRoute = () => {
+  const r = props.user?.role
+  if (r === 'Manager') return route('approval.manager')
+  if (r === 'FM/GM') return route('approval.fmgm')
+  if (r === 'Direksi') return route('approval.direksi')
+  if (r === 'Gudang') return route('approval.gudang')
+  if (r === 'Purchasing') return route('approval.purchasing')
+  return '#'
+}
+
 const handleTabChange = (index: number) => {
   if (index === 1) {
     router.get(route('material-requests.index'))
+  } else if (index === 2) {
+    router.get(route('notifications.index'))
   }
 }
 </script>
@@ -141,6 +157,16 @@ const handleTabChange = (index: number) => {
         </div>
       </div>
 
+      <!-- Approval Card untuk Approver -->
+      <div v-if="user?.role && ['manager','fm/gm','direksi','gudang','purchasing'].includes(user.role)" class="approval-card" @click="router.get(approvalRoute())">
+        <div class="approval-icon"><var-icon name="clipboard-check" :size="28" color="#4f46e5" /></div>
+        <div class="approval-text">
+          <span class="approval-title">Approval {{ user.role }}</span>
+          <span class="approval-count">{{ pending_count ?? 0 }} MR menunggu</span>
+        </div>
+        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
+      </div>
+
       <!-- Request List -->
       <div class="section-header space-between">
         <h3 class="section-title">Usulan Terakhir</h3>
@@ -185,7 +211,7 @@ const handleTabChange = (index: number) => {
     >
       <var-bottom-navigation-item label="Beranda" icon="home-outline" />
       <var-bottom-navigation-item label="Riwayat" icon="history" />
-      <var-bottom-navigation-item label="Notifikasi" icon="bell-outline" badge />
+      <var-bottom-navigation-item label="Notifikasi" icon="bell-outline" :badge="{ value: unreadCount, max: 99 }" />
       <var-bottom-navigation-item label="Profil" icon="account-circle" />
 
       <template #fab>
@@ -328,5 +354,27 @@ const handleTabChange = (index: number) => {
 .request-footer { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #94a3b8; }
 .request-category { display: flex; align-items: center; gap: 4px; }
 
+.approval-card {
+  display:flex;align-items:center;gap:14px;background:#eef2ff;border-radius:16px;padding:16px;
+  border:2px solid #c7d2fe;cursor:pointer;margin-bottom:12px;
+}
+.approval-icon { width:44px;height:44px;border-radius:12px;background:#e0e7ff;display:flex;align-items:center;justify-content:center; }
+.approval-text { flex:1;display:flex;flex-direction:column; }
+.approval-title { font-size:14px;font-weight:700;color:#4f46e5; }
+.approval-count { font-size:12px;color:#6366f1; }
 
+.notif-badge {
+  position:absolute;top:-2px;right:-4px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;
+  min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;
+}
+.notif-dropdown {
+  position:absolute;top:44px;right:0;width:320px;max-height:400px;background:#fff;border-radius:16px;
+  box-shadow:0 8px 30px rgba(0,0,0,0.12);z-index:999;overflow-y:auto;border:1px solid #f1f5f9;
+}
+.notif-header { padding:14px 16px;font-size:14px;font-weight:700;border-bottom:1px solid #f1f5f9; }
+.notif-empty { padding:24px;text-align:center;color:#94a3b8;font-size:13px; }
+.notif-item { padding:12px 16px;border-bottom:1px solid #f8fafc;cursor:pointer; }
+.notif-item:hover { background:#f8fafc; }
+.notif-msg { margin:0;font-size:13px;color:#0f172a; }
+.notif-time { font-size:11px;color:#94a3b8; }
 </style>

@@ -46,11 +46,30 @@ class DashboardController extends Controller
                 ];
             });
 
+        $user = auth()->user();
+        $roles = $user->getRoleNames();
+
+        $pendingCount = null;
+        $role = $roles->first();
+        if (in_array($role, ['manager', 'Manager'])) {
+            $pendingCount = MaterialRequest::where('status_workflow', 'Pending Manager')->count();
+        } elseif (in_array($role, ['fm/gm', 'FM/GM'])) {
+            $pendingCount = MaterialRequest::where('status_workflow', 'Pending FM/GM')->count();
+        } elseif (in_array($role, ['direksi', 'Direksi'])) {
+            $pendingCount = MaterialRequest::where('status_workflow', 'Pending Direksi')->where('direksi_id', $user->id)->count();
+        } elseif (in_array($role, ['gudang', 'Gudang'])) {
+            $pendingCount = MaterialRequest::where('status_workflow', 'Verifikasi Gudang')->count();
+        } elseif (in_array($role, ['purchasing', 'Purchasing'])) {
+            $pendingCount = MaterialRequest::whereIn('status_workflow', ['Fully Approved', 'Purchasing'])->count();
+        }
+
         return Inertia::render('Dashboard', [
             'user' => [
-                'name'  => auth()->user()->name,
-                'email' => auth()->user()->email,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'role'  => $role,
             ],
+            'pending_count' => $pendingCount,
             'summary' => $summary,
             'recentRequests' => $recentRequests,
         ]);

@@ -251,6 +251,11 @@ const goToCreate = () => {
                 </ul>
                 <span v-if="mr.items.length > 3" class="more-items">+{{ mr.items.length - 3 }} item lainnya</span>
               </div>
+
+              <!-- Tombol Edit untuk status Revision -->
+              <button v-if="mr.status_workflow === 'Revision'" class="revision-btn" @click="router.get(route('material-requests.revision-edit', mr.id))">
+                ✏️ Perbaiki & Kirim Ulang
+              </button>
             </div>
           </div>
         </var-list>
@@ -373,4 +378,10 @@ const goToCreate = () => {
   z-index: 99;
   box-shadow: 0 4px 12px rgba(98, 0, 238, 0.3) !important;
 }
+.revision-btn {
+  display:block;width:100%;margin-top:8px;padding:8px;border-radius:10px;
+  background:#fef3c7;border:1px solid #f59e0b;color:#92400e;font-weight:700;font-size:13px;
+  cursor:pointer;transition:background 0.2s;font-family:inherit;
+}
+.revision-btn:hover { background:#fde68a; }
 </style>
