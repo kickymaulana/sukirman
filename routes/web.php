@@ -11,13 +11,10 @@ Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 
-// Guest Routes (Hanya untuk user yang belum login)
-Route::middleware('guest')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
-});
+// SSO Login
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::get('/auth/sso', [AuthController::class, 'redirectSso'])->name('sso.redirect');
+Route::get('/callback', [AuthController::class, 'callbackSso'])->name('sso.callback');
 
 // Authenticated Routes (Harus login)
 Route::middleware('auth')->group(function () {

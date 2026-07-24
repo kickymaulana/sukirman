@@ -5,103 +5,95 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
-use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
 
 class AuthController extends Controller
 {
-    /**
-     * Menampilkan halaman login.
-     */
-    public function showLogin(): Response
+    public function showLogin()
     {
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
         return Inertia::render('Auth/Login');
     }
 
-    /**
-     * Menampilkan halaman register.
-     */
-    public function showRegister(): Response
+    public function redirectSso()
     {
-        return Inertia::render('Auth/Register');
+        $query = http_build_query([
+            'client_id' => config('services.sso.client_id'),
+            'redirect_uri' => route('sso.callback'),
+            'response_type' => 'code',
+            'scope' => '',
+        ]);
+        return redirect(config('services.sso.base_url') . '/oauth/authorize?' . $query);
     }
 
-    /**
-     * Menangani pendaftaran pengguna baru.
-     */
-    public function register(Request $request): RedirectResponse
+    public function callbackSso(Request $request)
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ], [
-            'name.required' => 'Nama lengkap wajib diisi.',
-            'email.required' => 'Alamat email wajib diisi.',
-            'email.email' => 'Format email tidak valid.',
-            'email.unique' => 'Email ini sudah terdaftar.',
-            'password.required' => 'Password wajib diisi.',
-            'password.min' => 'Password minimal 8 karakter.',
-            'password.confirmed' => 'Konfirmasi password tidak cocok.',
-        ]);
+        $code = $request->query('code');
+        if (!$code) {
+            return redirect()->route('login')->withErrors(['message' => 'Gagal autentikasi SSO']);
+        }
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-        ]);
+        $verifySsl = app()->environment('local') ? false : true;
 
-        // Default role jika menggunakan Spatie Permission (misal: Supervisor / Creator)
-        if (class_exists(\Spatie\Permission\Models\Role::class) && \Spatie\Permission\Models\Role::where('name', 'Supervisor')->exists()) {
+        $tokenRes = Http::withOptions(['verify' => $verifySsl])->asForm()->post(
+            config('services.sso.base_url') . '/oauth/token',
+            [
+                'grant_type' => 'authorization_code',
+                'client_id' => config('services.sso.client_id'),
+                'client_secret' => config('services.sso.client_secret'),
+                'redirect_uri' => route('sso.callback'),
+                'code' => $code,
+            ]
+        );
+
+        if ($tokenRes->failed()) {
+            return redirect()->route('login')->withErrors(['message' => 'Gagal mendapatkan token SSO']);
+        }
+
+        $accessToken = $tokenRes->json('access_token');
+
+        $userRes = Http::withOptions(['verify' => $verifySsl])
+            ->withToken($accessToken)
+            ->get(config('services.sso.base_url') . '/api/user');
+
+        if ($userRes->failed()) {
+            return redirect()->route('login')->withErrors(['message' => 'Gagal mengambil data user']);
+        }
+
+        $ssoUser = $userRes->json();
+        $nik = $ssoUser['nik'] ?? null;
+
+        if (!$nik) {
+            return redirect()->route('login')->withErrors(['message' => 'Data NIK tidak ditemukan']);
+        }
+
+        $user = User::where('nik', $nik)->first();
+        if (!$user) {
+            $user = User::create([
+                'nik' => $nik,
+                'name' => $ssoUser['name'] ?? 'User ' . $nik,
+                'email' => $ssoUser['email'] ?? $nik . '@sso',
+                'password' => Hash::make(Str::random(32)),
+            ]);
             $user->assignRole('Supervisor');
         }
 
-        // Langsung login setelah berhasil mendaftar
         Auth::login($user);
-
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard')->with('success', 'Akun berhasil dibuat!');
+        return redirect()->intended(route('dashboard'));
     }
 
-    /**
-     * Menangani request autentikasi masuk.
-     */
-    public function login(Request $request): RedirectResponse
-    {
-        $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-        ], [
-            'email.required' => 'Email tidak boleh kosong.',
-            'email.email' => 'Format email tidak valid.',
-            'password.required' => 'Password tidak boleh kosong.',
-        ]);
-
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            $request->session()->regenerate();
-
-            return redirect()->intended(route('dashboard'));
-        }
-
-        throw ValidationException::withMessages([
-            'email' => 'Email atau password yang Anda masukkan salah.',
-        ]);
-    }
-
-    /**
-     * Menangani request keluar (logout).
-     */
-    public function logout(Request $request): RedirectResponse
+    public function logout(Request $request)
     {
         Auth::logout();
-
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
         return redirect()->route('login');
     }
 }

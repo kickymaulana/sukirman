@@ -1,19 +1,13 @@
 <script setup lang="ts">
-import { useForm, usePage, Link } from '@inertiajs/vue3'
+import { usePage, Head } from '@inertiajs/vue3'
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import type { Form } from '@varlet/ui'
-import { Snackbar } from '@varlet/ui' // 💡 1. Import Snackbar dari Varlet
+import { Snackbar } from '@varlet/ui'
 import lottie from 'lottie-web'
 
-type FormInstance = InstanceType<typeof Form>
-
-const form = useForm({
-  email: '',
-  password: '',
-  remember: false,
-})
-
 const page = usePage()
+const errors = (page.props as any)?.errors
+const ssoUrl = (page.props as any).app_url + '/auth/sso'
+
 const lottieContainer = ref<HTMLElement | null>(null)
 let lottieInstance: any = null
 
@@ -21,7 +15,6 @@ onMounted(() => {
   if (lottieContainer.value) {
     const baseUrl = (page.props.app_url as string) || window.location.origin
     const cleanBaseUrl = baseUrl.replace(/\/$/, '')
-
     lottieInstance = lottie.loadAnimation({
       container: lottieContainer.value,
       renderer: 'svg',
@@ -30,37 +23,17 @@ onMounted(() => {
       path: `${cleanBaseUrl}/assets/lottie/purple_check.json`
     })
   }
+  if (errors?.message) Snackbar.error(errors.message)
 })
 
 onBeforeUnmount(() => {
-  if (lottieInstance) {
-    lottieInstance.destroy()
-  }
+  if (lottieInstance) lottieInstance.destroy()
 })
-
-// 💡 2. Updated Form Submission Handler
-const handleSubmit = (valid: boolean | null) => {
-  if (valid) {
-    form.post(route('login'), {
-      onError: (errors) => {
-        // Tampilkan Toast / Snackbar merah saat ada error validasi dari controller
-        if (errors.email) {
-          Snackbar.error(errors.email)
-        } else if (errors.password) {
-          Snackbar.error(errors.password)
-        } else {
-          Snackbar.error('Gagal masuk. Periksa kembali kredensial Anda.')
-        }
-      },
-      onFinish: () => {
-        form.reset('password')
-      },
-    })
-  }
-}
 </script>
 
 <template>
+  <Head title="SUKIRMAN - Masuk" />
+
   <div class="android-layout">
     <div class="android-content">
       <div class="brand-section">
@@ -71,73 +44,20 @@ const handleSubmit = (valid: boolean | null) => {
         <p class="app-subtitle">Sistem Usulan Kebutuhan Barang Internal Manajemen</p>
       </div>
 
-      <var-form ref="loginForm" @submit="handleSubmit">
-        <var-space direction="column" :size="['24px', 0]">
+      <div class="benefits-box">
+        <div class="benefit">✅ Ajukan kebutuhan barang</div>
+        <div class="benefit">✅ Pantau status approval real-time</div>
+        <div class="benefit">✅ Proses cepat tanpa kertas</div>
+      </div>
 
-          <var-input
-            v-model="form.email"
-            variant="outlined"
-            type="text"
-            placeholder="Alamat Email"
-            :disabled="form.processing"
-            :error-message="form.errors.email"
-            :rules="[
-              (v) => !!v || 'Email tidak boleh kosong',
-              (v) => /.+@.+\..+/.test(v) || 'Format email harus valid'
-            ]"
-            clearable
-            @input="form.clearErrors('email')"
-          >
-            <template #prepend-icon>
-              <var-icon class="input-icon" name="email" />
-            </template>
-          </var-input>
+      <a :href="ssoUrl" class="sso-btn">
+        <var-icon name="shield-account" :size="22" />
+        Masuk dengan SSO Perusahaan
+      </a>
 
-          <var-input
-            v-model="form.password"
-            variant="outlined"
-            type="password"
-            placeholder="Password"
-            :disabled="form.processing"
-            :error-message="form.errors.password"
-            :rules="[(v) => !!v || 'Password tidak boleh kosong']"
-            clearable
-            @input="form.clearErrors('password')"
-          >
-            <template #prepend-icon>
-              <var-icon class="input-icon" name="lock" />
-            </template>
-          </var-input>
-
-          <div class="remember-me-row">
-            <var-checkbox v-model="form.remember" :disabled="form.processing">
-              <span class="remember-text">Ingat akun saya di perangkat ini</span>
-            </var-checkbox>
-          </div>
-
-          <div class="action-section">
-            <var-button
-              block
-              type="primary"
-              native-type="submit"
-              size="large"
-              :elevation="2"
-              :loading="form.processing"
-              loading-type="wave"
-              class="submit-btn"
-            >
-              MASUK
-            </var-button>
-          </div>
-
-          <!-- Di dalam Login.vue, tepat setelah div class="action-section" -->
-            <div class="register-link-container">
-              <span>Belum memiliki akun? </span>
-              <Link :href="route('register')" class="register-link">Daftar sekarang</Link>
-            </div>
-
-        </var-space>
-      </var-form>
+      <p class="sso-info">
+        Gunakan NIK & Password SSO yang terdaftar
+      </p>
     </div>
 
     <div class="android-footer">
@@ -151,23 +71,22 @@ const handleSubmit = (valid: boolean | null) => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #fafafa;
+  background: #f8fafc;
   font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #212121;
-  --field-decorator-line-border-radius: 100px;
+  color: #1e293b;
 }
 
 .android-content {
   flex: 1;
-  padding: 32px 24px;
+  padding: 40px 24px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center;
+  align-items: center;
 }
 
 .brand-section {
   text-align: center;
-  margin-top: 8px;
   margin-bottom: 24px;
 }
 
@@ -176,64 +95,79 @@ const handleSubmit = (valid: boolean | null) => {
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  margin-bottom: -12px;
 }
 
 .lottie-box {
-  width: 180px;
-  height: 180px;
+  width: 160px;
+  height: 160px;
 }
 
 .app-title {
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  margin: 0 0 4px 0;
-  color: var(--color-primary);
-  position: relative;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  margin: 0 0 6px 0;
+  color: #4f46e5;
 }
 
 .app-subtitle {
   font-size: 13px;
-  color: #757575;
+  color: #64748b;
   margin: 0 auto;
   max-width: 280px;
   line-height: 1.4;
 }
 
-.input-icon {
-  margin-left: 6px;
-  margin-right: 6px;
-  color: #616161;
+.benefits-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px 20px;
+  width: 100%;
+  max-width: 340px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 }
 
-:deep(.var-field-decorator__outlined) {
-  padding-left: 20px !important;
-  padding-right: 20px !important;
+.benefit {
+  font-size: 13px;
+  color: #475569;
 }
 
-:deep(.var-field-decorator__controller) {
-  min-height: 44px !important;
+.sso-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 340px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  border: none;
+  border-radius: 100px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(79,70,229,0.25);
+  margin-bottom: 16px;
 }
 
-.remember-me-row {
-  margin-top: -8px;
-  padding-left: 2px;
+.sso-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(79,70,229,0.35);
 }
 
-.remember-text {
-  font-size: 14px;
-  color: #424242;
-}
-
-.action-section {
-  margin-top: 16px;
-}
-
-.submit-btn {
-  border-radius: 100px !important;
-  font-weight: bold;
-  height: 44px;
+.sso-info {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+  text-align: center;
 }
 
 .android-footer {
@@ -244,20 +178,7 @@ const handleSubmit = (valid: boolean | null) => {
 .android-footer p {
   margin: 0;
   font-size: 11px;
-  color: #9e9e9e;
+  color: #94a3b8;
   letter-spacing: 0.5px;
-}
-
-  .register-link-container {
-  text-align: center;
-  font-size: 13px;
-  color: #616161;
-  margin-top: 12px;
-}
-
-.register-link {
-  color: var(--color-primary);
-  font-weight: 700;
-  text-decoration: none;
 }
 </style>
