@@ -55,6 +55,15 @@ const getStatusBadgeType = (status: string) => {
   }
 }
 
+const baseUrl = (usePage().props as any).app_url || ''
+const routerInertia = router
+
+const goApproval = () => {
+  const r = props.user?.role?.toLowerCase()
+  const routes: any = { manager: '/approval/manager', 'fm/gm': '/approval/fmgm', direksi: '/approval/direksi', gudang: '/approval/gudang', purchasing: '/approval/purchasing' }
+  const path = routes[r]
+  if (path) routerInertia.get(baseUrl + path)
+}
 const notifList = ref((usePage().props as any).notifications || [])
 const unreadCount = ref((usePage().props as any).unread_count || 0)
 
@@ -67,12 +76,12 @@ const handleAddRequest = () => {
 }
 
 const approvalRoute = () => {
-  const r = props.user?.role
-  if (r === 'Manager') return route('approval.manager')
-  if (r === 'FM/GM') return route('approval.fmgm')
-  if (r === 'Direksi') return route('approval.direksi')
-  if (r === 'Gudang') return route('approval.gudang')
-  if (r === 'Purchasing') return route('approval.purchasing')
+  const r = props.user?.role?.toLowerCase()
+  if (r === 'manager') return '/approval/manager'
+  if (r === 'fm/gm') return '/approval/fmgm'
+  if (r === 'direksi') return '/approval/direksi'
+  if (r === 'gudang') return '/approval/gudang'
+  if (r === 'purchasing') return '/approval/purchasing'
   return '#'
 }
 
@@ -133,32 +142,7 @@ const handleTabChange = (index: number) => {
         </div>
       </div>
 
-      <!-- Kategori Scroll -->
-      <div class="section-header">
-        <h3 class="section-title">Kategori Kebutuhan</h3>
-      </div>
-
-      <div class="category-scroll">
-        <div class="category-item">
-          <div class="cat-icon bg-purple"><var-icon name="laptop" /></div>
-          <span>IT & Elektronik</span>
-        </div>
-        <div class="category-item">
-          <div class="cat-icon bg-blue"><var-icon name="file-document-outline" /></div>
-          <span>ATK</span>
-        </div>
-        <div class="category-item">
-          <div class="cat-icon bg-green"><var-icon name="account-group-outline" /></div>
-          <span>Peralatan</span>
-        </div>
-        <div class="category-item">
-          <div class="cat-icon bg-orange"><var-icon name="package-variant-closed" /></div>
-          <span>Umum</span>
-        </div>
-      </div>
-
-      <!-- Approval Card untuk Approver -->
-      <div v-if="user?.role && ['manager','fm/gm','direksi','gudang','purchasing'].includes(user.role)" class="approval-card" @click="router.get(approvalRoute())">
+      <div v-if="user?.role && ['manager','fm/gm','direksi','gudang','purchasing'].includes(user.role)" class="approval-card" @click="goApproval()">
         <div class="approval-icon"><var-icon name="clipboard-check" :size="28" color="#4f46e5" /></div>
         <div class="approval-text">
           <span class="approval-title">Approval {{ user.role }}</span>
