@@ -190,6 +190,23 @@ const goBack = () => {
                 />
               </div>
 
+              <div class="grid-2-col">
+                <var-input
+                  v-model.number="item.monthly_usage"
+                  type="number"
+                  variant="outlined"
+                  placeholder="Pemakaian / Bulan"
+                  :min="0"
+                />
+                <var-input
+                  v-model.number="item.stock_on_hand"
+                  type="number"
+                  variant="outlined"
+                  placeholder="Stock On Hand"
+                  :min="0"
+                />
+              </div>
+
               <var-input
                 v-model="item.specification"
                 variant="outlined"

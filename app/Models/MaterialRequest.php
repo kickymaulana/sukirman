@@ -13,6 +13,7 @@ class MaterialRequest extends Model
         'mr_number',
         'user_id',
         'manager_id',
+        'fm_gm_id',
         'direksi_id',
         'type',
         'factory',
@@ -30,6 +31,11 @@ class MaterialRequest extends Model
     public function manager()
     {
         return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    public function fmGm()
+    {
+        return $this->belongsTo(User::class, 'fm_gm_id');
     }
 
     public function direksi()

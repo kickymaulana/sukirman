@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
 
-const props = defineProps<{ mr: any; userRole: string; direksiUsers: { id: number; name: string }[] }>()
+const props = defineProps<{ mr: any; userRole: string; direksiUsers: { id: number; name: string }[]; fmGmUsers?: { id: number; name: string; nik: string }[] }>()
 const page = usePage()
 const pp = page.props as any
 const baseUrl = pp.app_url || ''
@@ -14,6 +14,7 @@ const role = (props.userRole || '').toLowerCase()
 
 // Dialog state
 const showForward = ref(false); const selectedDireksi = ref(''); const forwardNotes = ref('')
+const showFmGm = ref(false); const selectedFmGm = ref('')
 const showAction = ref(false); const actionType = ref(''); const actionNotes = ref('')
 
 const back = () => router.get(route('dashboard'))
@@ -51,8 +52,10 @@ const confirmAction = async () => {
     const body: any = {}
 
     if (actionType.value === 'manager_lanjut') {
+        if (!selectedFmGm.value) { Snackbar.warning('Pilih FM/GM tujuan'); return }
         url = `${baseUrl}/approval/manager/${mr.id}/forward`
         body.action = 'lanjut'
+        body.fm_gm_id = selectedFmGm.value
     } else if (actionType.value === 'manager_tolak') {
         url = `${baseUrl}/approval/manager/${mr.id}/forward`
         body.action = 'tolak'
@@ -89,7 +92,7 @@ const confirmAction = async () => {
 
 const doAction = (type: string) => {
     if (type === 'fmgm_forward') { showForward.value = true; return }
-    if (type === 'manager_lanjut') { actionType.value = type; confirmAction(); return }
+    if (type === 'manager_lanjut') { showFmGm.value = true; return }
     if (['manager_tolak', 'fmgm_tolak', 'stock_yes', 'stock_no'].includes(type)) { actionType.value = type; confirmAction(); return }
     actionType.value = type; showAction.value = true
 }
@@ -149,10 +152,17 @@ const doAction = (type: string) => {
 
         <!-- Forward Dialog (FM/GM ke Direksi) -->
         <var-dialog :show="showForward" title="Forward ke Direksi" @confirm="actionType='fmgm_forward';confirmAction()" @close="showForward=false" @cancel="showForward=false" confirm-button-text="Kirim" cancel-button-text="Batal">
-            <var-select v-model="selectedDireksi" placeholder="Pilih Direksi" style="margin-bottom:12px">
+            <var-select v-model="selectedDireksi" placeholder="Ketik & Pilih Direksi" filterable style="margin-bottom:12px">
                 <var-option v-for="d in direksiUsers" :key="d.id" :label="d.name" :value="d.id" />
             </var-select>
             <var-input v-model="forwardNotes" placeholder="Catatan (opsional)" />
+        </var-dialog>
+
+        <!-- FM/GM Dialog (Manager pilih FM/GM) -->
+        <var-dialog :show="showFmGm" title="Lanjut ke FM/GM" @confirm="actionType='manager_lanjut';confirmAction()" @close="showFmGm=false" @cancel="showFmGm=false" confirm-button-text="Kirim" cancel-button-text="Batal">
+            <var-select v-model="selectedFmGm" placeholder="Ketik & Pilih FM/GM" filterable style="margin-bottom:12px">
+                <var-option v-for="f in (fmGmUsers || [])" :key="f.id" :label="f.name + ' (' + f.nik + ')'" :value="f.id" />
+            </var-select>
         </var-dialog>
 
         <!-- Tolak / Revision Dialog -->

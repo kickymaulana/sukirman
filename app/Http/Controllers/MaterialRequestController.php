@@ -88,7 +88,14 @@ class MaterialRequestController extends Controller
         ]);
 
         DB::transaction(function () use ($validated) {
-            $mrNumber = 'MR-' . date('YmdHis');
+            // Format pendek: MR010508 (jam) — pastikan unik dengan menambahkan suffix bila dobel
+            $base = 'MR' . date('His');
+            $mrNumber = $base;
+            $suffix = 0;
+            while (MaterialRequest::where('mr_number', $mrNumber)->exists()) {
+                $suffix++;
+                $mrNumber = $base . $suffix;
+            }
 
             $mr = MaterialRequest::create([
                 'mr_number' => $mrNumber,
@@ -141,6 +148,7 @@ class MaterialRequestController extends Controller
         $mr = MaterialRequest::findOrFail($id);
         $request->validate([
             'action' => 'required|in:tolak,lanjut',
+            'fm_gm_id' => 'required_if:action,lanjut|exists:users,id',
             'notes' => 'nullable|string',
         ]);
 
@@ -162,6 +170,7 @@ class MaterialRequestController extends Controller
 
         $mr->update([
             'manager_id' => auth()->id(),
+            'fm_gm_id' => $request->fm_gm_id,
             'status_workflow' => 'Pending FM/GM',
         ]);
 
@@ -173,8 +182,10 @@ class MaterialRequestController extends Controller
             'notes' => $request->notes,
         ]);
 
-        $fmGmUsers = User::role('FM/GM')->get();
-        Notification::send($fmGmUsers, new MrNotification($mr, "MR {$mr->mr_number} menunggu review FM/GM"));
+        $fmGmUser = User::find($request->fm_gm_id);
+        if ($fmGmUser) {
+            $fmGmUser->notify(new MrNotification($mr, "MR {$mr->mr_number} menunggu review Anda"));
+        }
 
         return redirect()->route('approval.manager')->with('success', 'MR diteruskan ke FM/GM');
     }
@@ -185,6 +196,7 @@ class MaterialRequestController extends Controller
     {
         $requests = MaterialRequest::with(['user', 'items', 'manager'])
             ->where('status_workflow', 'Pending FM/GM')
+            ->where('fm_gm_id', auth()->id())
             ->latest()->paginate(10);
 
         return Inertia::render('Approval/FmGm', [
@@ -402,16 +414,21 @@ class MaterialRequestController extends Controller
         $user = auth()->user();
         $role = $user->getRoleNames()->first();
 
-        // Data pendukung untuk action (FM/GM pilih Direksi)
+        // Data pendukung untuk action
         $direksiUsers = collect();
+        $fmGmUsers = collect();
         if (strtolower($role) === 'fm/gm' && $mr->status_workflow === 'Pending FM/GM') {
             $direksiUsers = User::role('Direksi')->get(['id', 'name']);
+        }
+        if (strtolower($role) === 'manager' && $mr->status_workflow === 'Pending Manager') {
+            $fmGmUsers = User::role('FM/GM')->get(['id', 'name', 'nik']);
         }
 
         return Inertia::render('Approval/MrDetail', [
             'mr' => $mr,
             'userRole' => $role,
             'direksiUsers' => $direksiUsers,
+            'fmGmUsers' => $fmGmUsers,
         ]);
     }
 
