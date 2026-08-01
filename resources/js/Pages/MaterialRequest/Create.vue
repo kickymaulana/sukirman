@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Head, useForm, router } from '@inertiajs/vue3'
+import { Snackbar } from '@varlet/ui'
 
 interface RequestItem {
   item_code: string
@@ -64,7 +65,12 @@ const removeItem = (index: number) => {
 }
 
 const handleSubmit = () => {
-  form.post(route('material-requests.store'))
+  form.post(route('material-requests.store'), {
+    onError: (errors) => {
+      const first = Object.values(errors)[0]
+      if (first) Snackbar.error(first)
+    },
+  })
 }
 
 const goBack = () => {
