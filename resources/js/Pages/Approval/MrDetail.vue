@@ -126,10 +126,19 @@ const doAction = (type: string) => {
             <!-- Items -->
             <div class="card">
                 <div class="lbl">Barang ({{ mr.items?.length }})</div>
-                <div v-for="item in mr.items" :key="item.id" class="item-row">
-                    <span class="iname">{{ item.item_name }} <em v-if="item.specification">({{ item.specification }})</em></span>
-                    <span class="iqty">{{ item.qty }} {{ item.unit }}</span>
-                    <span v-if="item.purpose" class="ipurpose">{{ item.purpose }}</span>
+                <div v-for="item in mr.items" :key="item.id" class="item-detail-card">
+                    <div class="item-detail-header">
+                        <span class="item-detail-name">{{ item.item_name }}</span>
+                        <var-chip v-if="item.item_status" size="mini" type="info">{{ item.item_status }}</var-chip>
+                    </div>
+                    <div v-if="item.item_code" class="item-detail-code">Kode: {{ item.item_code }}</div>
+                    <div v-if="item.specification" class="item-detail-spec">{{ item.specification }}</div>
+                    <div class="item-detail-grid">
+                        <div class="item-detail-box"><span class="item-detail-label">Jumlah</span><span class="item-detail-value">{{ item.qty }} {{ item.unit }}</span></div>
+                        <div class="item-detail-box"><span class="item-detail-label">Pemakaian / Bulan</span><span class="item-detail-value">{{ item.monthly_usage ?? 0 }}</span></div>
+                        <div class="item-detail-box"><span class="item-detail-label">Stock On Hand</span><span class="item-detail-value">{{ item.stock_on_hand ?? 0 }}</span></div>
+                    </div>
+                    <div v-if="item.purpose" class="item-detail-purpose">Keperluan: {{ item.purpose }}</div>
                 </div>
             </div>
 
@@ -179,8 +188,16 @@ const doAction = (type: string) => {
 .lbl { font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px; }
 .info-grid { display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:13px;color:#475569; }
 .revision-box { margin-top:8px;padding:10px;background:#fef3c7;border-radius:8px;font-size:12px;color:#92400e; }
-.item-row { display:flex;flex-wrap:wrap;gap:4px 12px;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:13px; }
-.iname { flex:1;font-weight:500; } .iqty { color:#4f46e5;font-weight:600; } .ipurpose { width:100%;font-size:11px;color:#94a3b8; }
+.item-detail-card { background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px; }
+.item-detail-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:4px; }
+.item-detail-name { font-size:14px;font-weight:700;color:#0f172a; }
+.item-detail-code { font-size:11px;color:#64748b;font-family:monospace;margin-bottom:2px; }
+.item-detail-spec { font-size:12px;color:#475569;font-style:italic;margin-bottom:8px; }
+.item-detail-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px; }
+.item-detail-box { background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;text-align:center; }
+.item-detail-label { display:block;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.3px; }
+.item-detail-value { display:block;font-size:14px;font-weight:700;color:#4f46e5; }
+.item-detail-purpose { font-size:12px;color:#64748b; }
 .actions { display:flex;flex-direction:column;gap:8px; }
 .log-row { display:flex;gap:10px;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:12px; }
 .lr { font-weight:700;color:#4f46e5;min-width:60px; }
