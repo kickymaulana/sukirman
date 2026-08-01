@@ -14,11 +14,14 @@ interface RequestItem {
   purpose: string
 }
 
+const props = defineProps<{ managers: { id: number; name: string; nik: string }[] }>()
+
 const form = useForm({
   type: 'Lokal',
   factory: 'KIM',
   allocation: 'Proses',
   status_pembelian: 'Normal',
+  manager_id: '',
   items: [
     {
       item_code: '',
@@ -119,6 +122,13 @@ const goBack = () => {
                   <var-option v-for="opt in urgencyOptions" :key="opt" :label="opt" :value="opt" />
                 </var-select>
               </div>
+
+              <div class="field-group">
+                <label class="field-label">Manager Tujuan <span class="required">*</span></label>
+                <var-select v-model="form.manager_id" variant="outlined" placeholder="Ketik & Pilih Manager" filterable :error-message="form.errors.manager_id">
+                  <var-option v-for="m in managers" :key="m.id" :label="m.name + ' (' + m.nik + ')'" :value="m.id" />
+                </var-select>
+              </div>
             </var-space>
           </div>
 
@@ -135,13 +145,13 @@ const goBack = () => {
               <span class="item-index-badge">Item #{{ index + 1 }}</span>
               <var-button
                 v-if="form.items.length > 1"
-                round
-                transparent
+                text
                 type="danger"
                 size="small"
                 @click="removeItem(index)"
+                class="remove-item-btn"
               >
-                <var-icon name="delete-outline" :size="20" />
+                <var-icon name="trash-can-outline" :size="18" />
               </var-button>
             </div>
 

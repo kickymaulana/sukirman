@@ -52,7 +52,10 @@ class MaterialRequestController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('MaterialRequest/Create');
+        $managers = User::role('Manager')->get(['id', 'name', 'nik']);
+        return Inertia::render('MaterialRequest/Create', [
+            'managers' => $managers,
+        ]);
     }
 
     /**
@@ -65,6 +68,7 @@ class MaterialRequestController extends Controller
             'factory' => ['required', 'in:KIM,DALU 1,DALU 2'],
             'allocation' => ['required', 'in:Project,Proses'],
             'status_pembelian' => ['required', 'in:Urgent,Normal'],
+            'manager_id' => ['required', 'exists:users,id'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.item_code' => ['nullable', 'string', 'max:50'],
             'items.*.item_name' => ['required', 'string', 'max:255'],
@@ -76,6 +80,7 @@ class MaterialRequestController extends Controller
             'items.*.stock_on_hand' => ['nullable', 'integer', 'min:0'],
             'items.*.purpose' => ['nullable', 'string'],
         ], [
+            'manager_id.required' => 'Pilih Manager tujuan terlebih dahulu.',
             'items.required' => 'Minimal harus menambahkan 1 item barang.',
             'items.*.item_name.required' => 'Nama barang wajib diisi.',
             'items.*.qty.required' => 'Jumlah (Qty) wajib diisi.',
@@ -83,17 +88,17 @@ class MaterialRequestController extends Controller
         ]);
 
         DB::transaction(function () use ($validated) {
-            // Auto generate MR Number: MR-YmdHis (misal: MR-20260721143000)
             $mrNumber = 'MR-' . date('YmdHis');
 
             $mr = MaterialRequest::create([
                 'mr_number' => $mrNumber,
                 'user_id' => auth()->id(),
+                'manager_id' => $validated['manager_id'],
                 'type' => $validated['type'],
                 'factory' => $validated['factory'],
                 'allocation' => $validated['allocation'],
                 'status_pembelian' => $validated['status_pembelian'],
-                'status_workflow' => 'Pending Manager', // Default workflow stage
+                'status_workflow' => 'Pending Manager',
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -120,6 +125,7 @@ class MaterialRequestController extends Controller
     {
         $requests = MaterialRequest::with(['user', 'items'])
             ->where('status_workflow', 'Pending Manager')
+            ->where('manager_id', auth()->id())
             ->latest()->paginate(10);
 
         $direksiUsers = User::role('Direksi')->get(['id', 'name']);
