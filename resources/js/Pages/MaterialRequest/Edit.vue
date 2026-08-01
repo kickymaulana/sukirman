@@ -19,6 +19,8 @@ const removeItem = (i: number) => {
     if (items.value.length <= 1) { Snackbar.warning('Minimal 1 barang'); return }
     Dialog({
         title: 'Hapus barang?', message: `Hapus "${items.value[i].item_name || 'barang ini'}"?`,
+        confirmButtonText: 'Ya, Hapus',
+        cancelButtonText: 'Batal',
         onConfirm: () => items.value.splice(i, 1),
     })
 }

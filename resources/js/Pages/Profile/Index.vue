@@ -15,6 +15,8 @@ const u = props.user
 const confirmLogout = () => {
     Dialog({
         title: 'Keluar?', message: 'Anda akan logout dari aplikasi.',
+        confirmButtonText: 'Ya, Keluar',
+        cancelButtonText: 'Batal',
         onConfirm: () => router.post(route('logout')),
     })
 }
