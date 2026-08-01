@@ -30,6 +30,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/material-requests/{id}', 'show')->name('material-requests.show');
         Route::get('/material-requests/{id}/edit-revision', 'revisionEdit')->name('material-requests.revision-edit');
         Route::post('/material-requests/{id}/resubmit', 'revisionResubmit')->name('material-requests.resubmit');
+        Route::get('/approval/direksi/{id}/revision', 'revisionPage')->name('approval.revision-page');
+        Route::post('/approval/direksi/{id}/revision', 'submitRevision')->name('approval.revision-submit');
     });
 
     // ==================== APPROVAL WORKFLOW ====================

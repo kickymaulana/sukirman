@@ -21,6 +21,8 @@ class MaterialRequestItem extends Model
         'monthly_usage',
         'stock_on_hand',
         'purpose',
+        'direksi_decision',
+        'direksi_notes',
     ];
 
     public function materialRequest()

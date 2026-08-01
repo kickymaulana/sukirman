@@ -268,21 +268,16 @@ class MaterialRequestController extends Controller
     {
         $mr = MaterialRequest::findOrFail($id);
         $request->validate([
-            'action' => 'required|in:approve,reject,revision',
+            'action' => 'required|in:approve,reject',
             'notes' => 'nullable|string',
         ]);
 
         $statusMap = [
             'approve' => 'Verifikasi Gudang',
             'reject' => 'Rejected',
-            'revision' => 'Revision',
         ];
 
-        $updates = ['status_workflow' => $statusMap[$request->action]];
-        if ($request->action === 'revision') {
-            $updates['revision_notes'] = $request->notes;
-        }
-        $mr->update($updates);
+        $mr->update(['status_workflow' => $statusMap[$request->action]]);
 
         ApprovalLog::create([
             'material_request_id' => $mr->id,
@@ -292,7 +287,6 @@ class MaterialRequestController extends Controller
             'notes' => $request->notes,
         ]);
 
-        // Notifikasi
         if ($request->action === 'approve') {
             $gudangUsers = User::role('Gudang')->get();
             Notification::send($gudangUsers, new MrNotification($mr, "MR {$mr->mr_number} disetujui, perlu verifikasi gudang"));
@@ -301,6 +295,57 @@ class MaterialRequestController extends Controller
         }
 
         return redirect()->route('approval.direksi')->with('success', 'Keputusan diterapkan');
+    }
+
+    // ============ DIREKSI: Revisi per item ============
+
+    public function revisionPage($id)
+    {
+        $mr = MaterialRequest::with(['user', 'items', 'manager'])->findOrFail($id);
+        abort_if($mr->status_workflow !== 'Pending Direksi', 404);
+        abort_if($mr->direksi_id !== auth()->id(), 403);
+
+        return Inertia::render('Approval/Revision', [
+            'mr' => $mr,
+        ]);
+    }
+
+    public function submitRevision(Request $request, $id)
+    {
+        $mr = MaterialRequest::with('items')->findOrFail($id);
+        abort_if($mr->status_workflow !== 'Pending Direksi', 404);
+        abort_if($mr->direksi_id !== auth()->id(), 403);
+
+        $request->validate([
+            'items' => ['required', 'array'],
+            'items.*.id' => ['required', 'exists:material_request_items,id'],
+            'items.*.decision' => ['required', 'in:setuju,tolak,ganti'],
+            'items.*.notes' => ['nullable', 'string'],
+        ]);
+
+        foreach ($request->items as $itemData) {
+            $item = MaterialRequestItem::where('id', $itemData['id'])->where('material_request_id', $mr->id)->first();
+            if ($item) {
+                $item->update([
+                    'direksi_decision' => $itemData['decision'],
+                    'direksi_notes' => $itemData['notes'] ?? null,
+                ]);
+            }
+        }
+
+        $mr->update(['status_workflow' => 'Revision']);
+
+        ApprovalLog::create([
+            'material_request_id' => $mr->id,
+            'user_id' => auth()->id(),
+            'role' => 'Direksi',
+            'action' => 'revision',
+            'notes' => 'Revisi per item',
+        ]);
+
+        $mr->user->notify(new MrNotification($mr, "MR {$mr->mr_number} direvisi, mohon periksa catatan per item"));
+
+        return redirect()->route('approval.direksi')->with('success', 'Revisi diterapkan');
     }
 
     // ============ GUDANG: Verifikasi Stok ============
@@ -383,6 +428,7 @@ class MaterialRequestController extends Controller
 
         $request->validate([
             'items' => ['required', 'array', 'min:1'],
+            'items.*.id' => ['required', 'integer'],
             'items.*.item_name' => ['required', 'string', 'max:255'],
             'items.*.qty' => ['required', 'integer', 'min:1'],
             'items.*.unit' => ['required', 'string', 'max:20'],
@@ -391,17 +437,37 @@ class MaterialRequestController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $mr) {
-            $mr->items()->delete();
+            // Hapus item yang ditolak oleh Direksi
+            $mr->items()->where('direksi_decision', 'tolak')->delete();
+
+            // Update item yang dikirim ulang (setuju & ganti) + buat item baru
             foreach ($request->items as $item) {
-                $mr->items()->create([
-                    'item_name' => $item['item_name'],
-                    'specification' => $item['specification'] ?? null,
-                    'qty' => $item['qty'],
-                    'unit' => $item['unit'],
-                    'item_status' => 'Normal',
-                    'purpose' => $item['purpose'] ?? null,
-                ]);
+                if ((int) $item['id'] > 0) {
+                    $mrItem = MaterialRequestItem::find($item['id']);
+                    if ($mrItem && $mrItem->material_request_id === $mr->id) {
+                        $mrItem->update([
+                            'item_name' => $item['item_name'],
+                            'specification' => $item['specification'] ?? null,
+                            'qty' => $item['qty'],
+                            'unit' => $item['unit'],
+                            'purpose' => $item['purpose'] ?? null,
+                            'direksi_decision' => null,
+                            'direksi_notes' => null,
+                        ]);
+                    }
+                } else {
+                    $mr->items()->create([
+                        'item_name' => $item['item_name'],
+                        'specification' => $item['specification'] ?? null,
+                        'qty' => $item['qty'],
+                        'unit' => $item['unit'],
+                        'purpose' => $item['purpose'] ?? null,
+                        'direksi_decision' => null,
+                        'direksi_notes' => null,
+                    ]);
+                }
             }
+
             $mr->update(['status_workflow' => 'Pending Manager', 'revision_notes' => null]);
         });
 

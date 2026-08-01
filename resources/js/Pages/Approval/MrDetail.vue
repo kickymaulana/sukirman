@@ -38,7 +38,7 @@ const actions = computed(() => {
     if (role === 'direksi' && mr.status_workflow === 'Pending Direksi' && mr.direksi_id === pp.auth?.user?.id) {
         a.push({ label: 'Approve', type: 'approve', action: '' })
         a.push({ label: 'Reject', type: 'reject', action: '' })
-        a.push({ label: 'Revision', type: 'revision', action: '' })
+        a.push({ label: 'Revision (per item)', type: 'revision', action: '' })
     }
     if (role === 'gudang' && mr.status_workflow === 'Verifikasi Gudang') {
         a.push({ label: 'Stok Tersedia', type: 'stock_yes', action: '' })
@@ -70,10 +70,10 @@ const confirmAction = async () => {
         url = `${baseUrl}/approval/fmgm/${mr.id}/acknowledge`
         body.action = 'tolak'
         body.notes = actionNotes.value
-    } else if (['approve', 'reject', 'revision'].includes(actionType.value)) {
+    } else if (['approve', 'reject'].includes(actionType.value)) {
         url = `${baseUrl}/approval/direksi/${mr.id}/decision`
         body.action = actionType.value
-        if (actionType.value === 'revision') body.notes = actionNotes.value
+        body.notes = actionNotes.value
     } else if (actionType.value === 'stock_yes') {
         url = `${baseUrl}/approval/gudang/${mr.id}/verify`
         body.action = 'tersedia'
@@ -91,6 +91,7 @@ const confirmAction = async () => {
 }
 
 const doAction = (type: string) => {
+    if (type === 'revision') { window.location.href = baseUrl + '/approval/direksi/' + mr.id + '/revision'; return }
     if (type === 'fmgm_forward') { showForward.value = true; return }
     if (type === 'manager_lanjut') { showFmGm.value = true; return }
     if (['manager_tolak', 'fmgm_tolak', 'stock_yes', 'stock_no'].includes(type)) { actionType.value = type; confirmAction(); return }
