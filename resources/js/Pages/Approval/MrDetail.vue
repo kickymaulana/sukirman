@@ -10,7 +10,7 @@ const baseUrl = pp.app_url || ''
 const csrf = pp.csrf_token || ''
 
 const mr = props.mr
-const role = props.userRole
+const role = (props.userRole || '').toLowerCase()
 
 // Dialog state
 const showForward = ref(false); const selectedDireksi = ref(''); const forwardNotes = ref('')
@@ -26,14 +26,20 @@ const logLabel = (action: string) => {
 // Determine available actions
 const actions = computed(() => {
     const a: { label: string; type: string; action: string }[] = []
-    if (role === 'Manager' && mr.status_workflow === 'Pending Manager') a.push({ label: 'Forward ke Direksi', type: 'forward', action: '' })
-    if (role === 'FM/GM' && mr.status_workflow === 'Pending FM/GM') a.push({ label: 'Acknowledge', type: 'acknowledge', action: '' })
-    if (role === 'Direksi' && mr.status_workflow === 'Pending Direksi' && mr.direksi_id === pp.auth?.user?.id) {
+    if (role === 'manager' && mr.status_workflow === 'Pending Manager') {
+        a.push({ label: 'Lanjut ke FM/GM', type: 'manager_lanjut', action: '' })
+        a.push({ label: 'Tolak', type: 'manager_tolak', action: '' })
+    }
+    if (role === 'fm/gm' && mr.status_workflow === 'Pending FM/GM') {
+        a.push({ label: 'Forward ke Direksi', type: 'fmgm_forward', action: '' })
+        a.push({ label: 'Tolak', type: 'fmgm_tolak', action: '' })
+    }
+    if (role === 'direksi' && mr.status_workflow === 'Pending Direksi' && mr.direksi_id === pp.auth?.user?.id) {
         a.push({ label: 'Approve', type: 'approve', action: '' })
         a.push({ label: 'Reject', type: 'reject', action: '' })
         a.push({ label: 'Revision', type: 'revision', action: '' })
     }
-    if (role === 'Gudang' && mr.status_workflow === 'Verifikasi Gudang') {
+    if (role === 'gudang' && mr.status_workflow === 'Verifikasi Gudang') {
         a.push({ label: 'Stok Tersedia', type: 'stock_yes', action: '' })
         a.push({ label: 'Stok Tidak Ada', type: 'stock_no', action: '' })
     }
@@ -44,13 +50,23 @@ const confirmAction = async () => {
     let url = ''
     const body: any = {}
 
-    if (actionType.value === 'forward') {
-        if (!selectedDireksi.value) { Snackbar.warning('Pilih Direksi'); return }
+    if (actionType.value === 'manager_lanjut') {
         url = `${baseUrl}/approval/manager/${mr.id}/forward`
+        body.action = 'lanjut'
+    } else if (actionType.value === 'manager_tolak') {
+        url = `${baseUrl}/approval/manager/${mr.id}/forward`
+        body.action = 'tolak'
+        body.notes = actionNotes.value
+    } else if (actionType.value === 'fmgm_forward') {
+        if (!selectedDireksi.value) { Snackbar.warning('Pilih Direksi'); return }
+        url = `${baseUrl}/approval/fmgm/${mr.id}/acknowledge`
+        body.action = 'forward'
         body.direksi_id = selectedDireksi.value
         body.notes = forwardNotes.value
-    } else if (actionType.value === 'acknowledge') {
+    } else if (actionType.value === 'fmgm_tolak') {
         url = `${baseUrl}/approval/fmgm/${mr.id}/acknowledge`
+        body.action = 'tolak'
+        body.notes = actionNotes.value
     } else if (['approve', 'reject', 'revision'].includes(actionType.value)) {
         url = `${baseUrl}/approval/direksi/${mr.id}/decision`
         body.action = actionType.value
@@ -72,8 +88,9 @@ const confirmAction = async () => {
 }
 
 const doAction = (type: string) => {
-    if (type === 'forward') { showForward.value = true; return }
-    if (type === 'acknowledge' || type === 'stock_yes' || type === 'stock_no') { actionType.value = type; confirmAction(); return }
+    if (type === 'fmgm_forward') { showForward.value = true; return }
+    if (type === 'manager_lanjut') { actionType.value = type; confirmAction(); return }
+    if (['manager_tolak', 'fmgm_tolak', 'stock_yes', 'stock_no'].includes(type)) { actionType.value = type; confirmAction(); return }
     actionType.value = type; showAction.value = true
 }
 </script>
@@ -130,17 +147,17 @@ const doAction = (type: string) => {
             </div>
         </main>
 
-        <!-- Forward Dialog -->
-        <var-dialog :show="showForward" title="Forward ke Direksi" @confirm="actionType='forward';confirmAction()" @close="showForward=false" @cancel="showForward=false" confirm-button-text="Kirim" cancel-button-text="Batal">
+        <!-- Forward Dialog (FM/GM ke Direksi) -->
+        <var-dialog :show="showForward" title="Forward ke Direksi" @confirm="actionType='fmgm_forward';confirmAction()" @close="showForward=false" @cancel="showForward=false" confirm-button-text="Kirim" cancel-button-text="Batal">
             <var-select v-model="selectedDireksi" placeholder="Pilih Direksi" style="margin-bottom:12px">
                 <var-option v-for="d in direksiUsers" :key="d.id" :label="d.name" :value="d.id" />
             </var-select>
             <var-input v-model="forwardNotes" placeholder="Catatan (opsional)" />
         </var-dialog>
 
-        <!-- Reject/Revision Dialog -->
-        <var-dialog :show="showAction" :title="actionType === 'reject' ? 'Tolak MR?' : 'Catatan Revisi'" @confirm="confirmAction" @close="showAction=false" @cancel="showAction=false" confirm-button-text="Ya" cancel-button-text="Batal">
-            <var-input v-if="actionType === 'revision' || actionType === 'reject'" v-model="actionNotes" :placeholder="actionType === 'revision' ? 'Catatan revisi...' : 'Alasan ditolak...'" textarea />
+        <!-- Tolak / Revision Dialog -->
+        <var-dialog :show="showAction" :title="['manager_tolak','fmgm_tolak'].includes(actionType) ? 'Tolak MR?' : actionType === 'revision' ? 'Catatan Revisi' : 'Keputusan'" @confirm="confirmAction" @close="showAction=false" @cancel="showAction=false" confirm-button-text="Ya" cancel-button-text="Batal">
+            <var-input v-if="['manager_tolak','fmgm_tolak'].includes(actionType) || actionType === 'revision'" v-model="actionNotes" :placeholder="actionType === 'revision' ? 'Catatan revisi...' : 'Alasan ditolak...'" textarea />
         </var-dialog>
     </div>
 </template>

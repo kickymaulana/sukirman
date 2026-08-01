@@ -73,6 +73,18 @@ class AuthController extends Controller
         }
 
         $user = User::where('nik', $nik)->first();
+
+        // Kalau NIK belum ada, coba cari berdasarkan email (bisa jadi pernah login pake NIK lain)
+        if (!$user && !empty($ssoUser['email'])) {
+            $user = User::where('email', $ssoUser['email'])->first();
+            if ($user) {
+                $user->update([
+                    'nik' => $nik,
+                    'name' => $ssoUser['name'] ?? $user->name,
+                ]);
+            }
+        }
+
         if (!$user) {
             $user = User::create([
                 'nik' => $nik,

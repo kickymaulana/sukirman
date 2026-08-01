@@ -134,13 +134,28 @@ class MaterialRequestController extends Controller
     {
         $mr = MaterialRequest::findOrFail($id);
         $request->validate([
-            'direksi_id' => 'required|exists:users,id',
+            'action' => 'required|in:tolak,lanjut',
             'notes' => 'nullable|string',
         ]);
 
+        if ($request->action === 'tolak') {
+            $mr->update(['status_workflow' => 'Rejected']);
+
+            ApprovalLog::create([
+                'material_request_id' => $mr->id,
+                'user_id' => auth()->id(),
+                'role' => 'Manager',
+                'action' => 'reject',
+                'notes' => $request->notes,
+            ]);
+
+            $mr->user->notify(new MrNotification($mr, "MR {$mr->mr_number} ditolak Manager: {$request->notes}"));
+
+            return redirect()->route('approval.manager')->with('success', 'MR ditolak');
+        }
+
         $mr->update([
             'manager_id' => auth()->id(),
-            'direksi_id' => $request->direksi_id,
             'status_workflow' => 'Pending FM/GM',
         ]);
 
@@ -152,9 +167,8 @@ class MaterialRequestController extends Controller
             'notes' => $request->notes,
         ]);
 
-        // Notifikasi ke user FM/GM
         $fmGmUsers = User::role('FM/GM')->get();
-        Notification::send($fmGmUsers, new MrNotification($mr, "MR {$mr->mr_number} menunggu acknowledge Anda"));
+        Notification::send($fmGmUsers, new MrNotification($mr, "MR {$mr->mr_number} menunggu review FM/GM"));
 
         return redirect()->route('approval.manager')->with('success', 'MR diteruskan ke FM/GM');
     }
@@ -175,27 +189,47 @@ class MaterialRequestController extends Controller
     public function acknowledge(Request $request, $id)
     {
         $mr = MaterialRequest::findOrFail($id);
-        $request->validate(['notes' => 'nullable|string']);
+        $request->validate([
+            'action' => 'required|in:tolak,forward',
+            'direksi_id' => 'required_if:action,forward|exists:users,id',
+            'notes' => 'nullable|string',
+        ]);
 
-        $mr->update(['status_workflow' => 'Pending Direksi']);
+        if ($request->action === 'tolak') {
+            $mr->update(['status_workflow' => 'Rejected']);
+
+            ApprovalLog::create([
+                'material_request_id' => $mr->id,
+                'user_id' => auth()->id(),
+                'role' => 'FM/GM',
+                'action' => 'reject',
+                'notes' => $request->notes,
+            ]);
+
+            $mr->user->notify(new MrNotification($mr, "MR {$mr->mr_number} ditolak FM/GM: {$request->notes}"));
+
+            return redirect()->route('approval.fmgm')->with('success', 'MR ditolak');
+        }
+
+        $mr->update([
+            'status_workflow' => 'Pending Direksi',
+            'direksi_id' => $request->direksi_id,
+        ]);
 
         ApprovalLog::create([
             'material_request_id' => $mr->id,
             'user_id' => auth()->id(),
             'role' => 'FM/GM',
-            'action' => 'acknowledge',
+            'action' => 'forward',
             'notes' => $request->notes,
         ]);
 
-        // Notifikasi ke Direksi yang ditunjuk
-        if ($mr->direksi_id) {
-            $direksiUser = User::find($mr->direksi_id);
-            if ($direksiUser) {
-                $direksiUser->notify(new MrNotification($mr, "MR {$mr->mr_number} menunggu keputusan Anda"));
-            }
+        $direksiUser = User::find($request->direksi_id);
+        if ($direksiUser) {
+            $direksiUser->notify(new MrNotification($mr, "MR {$mr->mr_number} menunggu keputusan Anda"));
         }
 
-        return redirect()->route('approval.fmgm')->with('success', 'MR di-acknowledge');
+        return redirect()->route('approval.fmgm')->with('success', 'MR diteruskan ke Direksi');
     }
 
     // ============ DIREKSI: Approve / Reject / Revision ============
@@ -362,10 +396,10 @@ class MaterialRequestController extends Controller
         $user = auth()->user();
         $role = $user->getRoleNames()->first();
 
-        // Data pendukung untuk action
+        // Data pendukung untuk action (FM/GM pilih Direksi)
         $direksiUsers = collect();
-        if ($role === 'Manager' && $mr->status_workflow === 'Pending Manager') {
-            $direksiUsers = User::role('direksi')->get(['id', 'name']);
+        if (strtolower($role) === 'fm/gm' && $mr->status_workflow === 'Pending FM/GM') {
+            $direksiUsers = User::role('Direksi')->get(['id', 'name']);
         }
 
         return Inertia::render('Approval/MrDetail', [
