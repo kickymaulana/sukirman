@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MaterialRequestController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\BarangController;
 use App\Http\Controllers\Admin\AdminUserController;
 use Inertia\Inertia;
 
@@ -30,6 +31,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/material-requests/{id}', 'show')->name('material-requests.show');
         Route::get('/material-requests/{id}/edit-revision', 'revisionEdit')->name('material-requests.revision-edit');
         Route::post('/material-requests/{id}/resubmit', 'revisionResubmit')->name('material-requests.resubmit');
+        Route::get('/barangs', [BarangController::class, 'index'])->name('barangs.index');
+        Route::post('/barangs', [BarangController::class, 'store'])->name('barangs.store');
+        Route::post('/barangs/import', [BarangController::class, 'import'])->name('barangs.import');
+        Route::post('/barangs/{id}', [BarangController::class, 'update'])->name('barangs.update');
+        Route::delete('/barangs/{id}', [BarangController::class, 'destroy'])->name('barangs.destroy');
         Route::get('/approval/direksi/{id}/revision', 'revisionPage')->name('approval.revision-page');
         Route::post('/approval/direksi/{id}/revision', 'submitRevision')->name('approval.revision-submit');
     });

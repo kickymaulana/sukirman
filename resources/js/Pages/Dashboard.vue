@@ -160,6 +160,16 @@ const handleTabChange = (index: number) => {
         <var-icon name="chevron-right" :size="24" color="#94a3b8" />
       </div>
 
+      <!-- Manajemen Barang (Gudang, Purchasing, admin) -->
+      <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="barang-card" @click="router.get(baseUrl + '/barangs')">
+        <div class="barang-icon">📦</div>
+        <div class="barang-text">
+          <span class="barang-title">Manajemen Barang</span>
+          <span class="barang-count">Kelola data barang</span>
+        </div>
+        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
+      </div>
+
       <!-- Request List -->
       <div class="section-header space-between">
         <h3 class="section-title">Usulan Terakhir</h3>
@@ -364,6 +374,15 @@ const handleTabChange = (index: number) => {
 .approval-text { flex:1;display:flex;flex-direction:column; }
 .approval-title { font-size:14px;font-weight:700;color:#4f46e5; }
 .approval-count { font-size:12px;color:#6366f1; }
+
+.barang-card {
+  display:flex;align-items:center;gap:14px;background:#ecfdf5;border-radius:16px;padding:16px;
+  border:2px solid #a7f3d0;cursor:pointer;margin-bottom:12px;
+}
+.barang-icon { font-size:32px; }
+.barang-text { flex:1;display:flex;flex-direction:column; }
+.barang-title { font-size:14px;font-weight:700;color:#047857; }
+.barang-count { font-size:12px;color:#059669; }
 
 .notif-badge {
   position:absolute;top:-2px;right:-4px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;
