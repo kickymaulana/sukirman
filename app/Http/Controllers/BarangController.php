@@ -17,7 +17,7 @@ class BarangController extends Controller
                 abort(403, 'Anda tidak memiliki akses.');
             }
             return $next($request);
-        });
+        }, ['only' => ['index', 'store', 'update', 'destroy', 'import']]);
     }
 
     public function index(Request $request)
@@ -37,6 +37,19 @@ class BarangController extends Controller
             'barangs' => $barangs,
             'filters' => ['search' => $search],
         ]);
+    }
+
+    public function searchApi(Request $request)
+    {
+        $q = $request->input('q', '');
+
+        $items = Barang::where('nama_barang', 'like', "%{$q}%")
+            ->orWhere('kode_barang', 'like', "%{$q}%")
+            ->orderBy('nama_barang')
+            ->limit(10)
+            ->get(['kode_barang', 'nama_barang']);
+
+        return response()->json($items);
     }
 
     public function store(Request $request)

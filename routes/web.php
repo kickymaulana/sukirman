@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/material-requests/{id}/edit-revision', 'revisionEdit')->name('material-requests.revision-edit');
         Route::post('/material-requests/{id}/resubmit', 'revisionResubmit')->name('material-requests.resubmit');
         Route::get('/barangs', [BarangController::class, 'index'])->name('barangs.index');
+        Route::get('/barangs/search-api', [BarangController::class, 'searchApi'])->name('barangs.search-api');
         Route::post('/barangs', [BarangController::class, 'store'])->name('barangs.store');
         Route::post('/barangs/import', [BarangController::class, 'import'])->name('barangs.import');
         Route::post('/barangs/{id}', [BarangController::class, 'update'])->name('barangs.update');

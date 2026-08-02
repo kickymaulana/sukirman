@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Head, useForm, router } from '@inertiajs/vue3'
+import { ref, nextTick } from 'vue'
+import { Head, useForm, router, usePage } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
 
 interface RequestItem {
@@ -16,6 +16,41 @@ interface RequestItem {
 }
 
 const props = defineProps<{ managers: { id: number; name: string; nik: string }[] }>()
+const pp = usePage().props as any
+const baseUrl = pp.app_url || ''
+
+// Autocomplete barang
+const suggestions = ref<Record<number, { kode_barang: string; nama_barang: string }[]>>({})
+const showSuggestions = ref<Record<number, boolean>>({})
+let searchTimer: any = null
+
+const onNamaInput = (index: number, query: string) => {
+  if (query.trim().length < 2) {
+    suggestions.value[index] = []
+    showSuggestions.value[index] = false
+    return
+  }
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`${baseUrl}/barangs/search-api?q=${encodeURIComponent(query)}`)
+      const data = await res.json()
+      suggestions.value[index] = data
+      showSuggestions.value[index] = data.length > 0
+    } catch { suggestions.value[index] = [] }
+  }, 300)
+}
+
+const selectBarang = (index: number, b: { kode_barang: string; nama_barang: string }) => {
+  form.items[index].item_code = b.kode_barang
+  form.items[index].item_name = b.nama_barang
+  suggestions.value[index] = []
+  showSuggestions.value[index] = false
+}
+
+const hideSuggestions = (index: number) => {
+  nextTick(() => { setTimeout(() => { showSuggestions.value[index] = false }, 150) })
+}
 
 const form = useForm({
   type: 'Lokal',
@@ -162,18 +197,33 @@ const goBack = () => {
             </div>
 
             <var-space direction="column" :size="['12px', 0]">
-              <var-input
-                v-model="item.item_name"
-                variant="outlined"
-                placeholder="Nama Barang *"
-                :error-message="form.errors[`items.${index}.item_name`]"
-              />
+              <div class="autocomplete-wrap">
+                <var-input
+                  v-model="item.item_name"
+                  variant="outlined"
+                  placeholder="Ketik Nama Barang (auto-saran)..."
+                  :error-message="form.errors[`items.${index}.item_name`]"
+                  @update:modelValue="onNamaInput(index, $event)"
+                  @blur="hideSuggestions(index)"
+                />
+                <div v-if="showSuggestions[index] && suggestions[index]?.length" class="suggestions-box">
+                  <div
+                    v-for="(s, si) in suggestions[index]"
+                    :key="si"
+                    class="suggestion-item"
+                    @mousedown.prevent="selectBarang(index, s)"
+                  >
+                    <span class="sug-kode">{{ s.kode_barang }}</span>
+                    <span class="sug-nama">{{ s.nama_barang }}</span>
+                  </div>
+                </div>
+              </div>
 
               <div class="grid-2-col">
                 <var-input
                   v-model="item.item_code"
                   variant="outlined"
-                  placeholder="Kode Barang (Opsional)"
+                  placeholder="Kode Barang (bisa diketik manual)"
                 />
                 <var-select v-model="item.item_status" variant="outlined" placeholder="Status Item">
                   <var-option v-for="opt in itemStatusOptions" :key="opt" :label="opt" :value="opt" />
@@ -280,6 +330,64 @@ const goBack = () => {
   font-weight: 700;
   margin: 0 0 12px 0;
   color: #0f172a;
+}
+
+.autocomplete-wrap {
+  position: relative;
+}
+
+.suggestions-box {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  margin-top: 4px;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover, .suggestion-item:active {
+  background: #f0f5ff;
+}
+
+.sug-kode {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1d6bf0;
+  background: #eef4ff;
+  padding: 2px 8px;
+  border-radius: 6px;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sug-nama {
+  font-size: 13px;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .section-header.space-between {
