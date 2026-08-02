@@ -18,7 +18,7 @@ createInertiaApp({
                 return h(Transition, {
                     name: 'slide',
                     mode: 'out-in',
-                }, () => h(App, props))
+                }, () => h('div', { style: 'min-height:100vh' }, h(App, props)))
             }
         })
             .use(plugin)

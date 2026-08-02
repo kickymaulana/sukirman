@@ -7,6 +7,19 @@ import inertia from '@inertiajs/vite';
 import Components from 'unplugin-vue-components/vite';
 import AutoImport from 'unplugin-auto-import/vite';
 import { VarletImportResolver } from '@varlet/import-resolver';
+import os from 'os';
+
+function getLocalIP() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name] || []) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return 'localhost';
+}
 
 export default defineConfig({
     plugins: [
@@ -34,7 +47,7 @@ export default defineConfig({
     server: {
         host: '0.0.0.0',
         hmr: {
-            host: '192.168.60.117',
+            host: getLocalIP(),
         },
         watch: {
             ignored: ['**/storage/framework/views/**'],
