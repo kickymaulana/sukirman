@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MaterialRequestController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\BarangController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\Admin\AdminUserController;
 use Inertia\Inertia;
 
@@ -29,6 +30,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/material-requests/create', 'create')->name('material-requests.create');
         Route::post('/material-requests', 'store')->name('material-requests.store');
         Route::get('/material-requests/{id}', 'show')->name('material-requests.show');
+        Route::get('/material-requests/{id}/xml', 'downloadXml')->name('material-requests.xml-download');
+        Route::get('/material-requests/{id}/check-xml', 'checkXmlSkips')->name('material-requests.xml-check');
         Route::get('/material-requests/{id}/edit-revision', 'revisionEdit')->name('material-requests.revision-edit');
         Route::post('/material-requests/{id}/resubmit', 'revisionResubmit')->name('material-requests.resubmit');
         Route::get('/barangs', [BarangController::class, 'index'])->name('barangs.index');
@@ -70,8 +73,13 @@ Route::middleware('auth')->group(function () {
     // Purchasing: Export
     Route::middleware('role:Purchasing')->group(function () {
         Route::get('/approval/purchasing', [MaterialRequestController::class, 'purchasingIndex'])->name('approval.purchasing');
-        Route::get('/approval/purchasing/export', [MaterialRequestController::class, 'exportExcel'])->name('approval.export');
+        Route::get('/approval/purchasing/export', [MaterialRequestController::class, 'exportXml'])->name('approval.export');
+        Route::get('/approval/purchasing/check-xml', [MaterialRequestController::class, 'checkXmlSkips'])->name('approval.export-check');
     });
+
+    // Pengaturan (admin, Purchasing, Gudang)
+    Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+    Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
 
         // Admin Panel
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {

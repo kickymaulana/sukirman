@@ -19,6 +19,30 @@ const showAction = ref(false); const actionType = ref(''); const actionNotes = r
 
 const back = () => router.get(route('dashboard'))
 
+// Download XML Accurate — cek dulu item yang akan di-skip
+const showSkipDialog = ref(false)
+const skipList = ref<{ mr: string; item_name: string; item_code: string }[]>([])
+const skipTotal = ref(0)
+const downloadXml = async () => {
+    try {
+        const res = await fetch(`${baseUrl}/material-requests/${mr.id}/check-xml`)
+        const data = await res.json()
+        if (data.total > 0) {
+            skipList.value = data.skips
+            skipTotal.value = data.total
+            showSkipDialog.value = true
+        } else {
+            window.location.href = `${baseUrl}/material-requests/${mr.id}/xml`
+        }
+    } catch {
+        window.location.href = `${baseUrl}/material-requests/${mr.id}/xml`
+    }
+}
+const doDownloadXml = () => {
+    showSkipDialog.value = false
+    window.location.href = `${baseUrl}/material-requests/${mr.id}/xml`
+}
+
 const logLabel = (action: string) => {
     const map: any = { forward: 'Diteruskan', acknowledge: 'Acknowledge', approve: 'Disetujui', reject: 'Ditolak', revision: 'Revisi', stock_available: 'Stok Tersedia', stock_unavailable: 'Stok Tidak Ada' }
     return map[action] || action
@@ -143,6 +167,15 @@ const doAction = (type: string) => {
                 </div>
             </div>
 
+            <!-- Download XML Accurate (Purchasing, Gudang, admin) -->
+            <div
+                v-if="['purchasing', 'gudang', 'admin'].includes(role)"
+                @click="downloadXml"
+                style="display:flex;align-items:center;justify-content:center;gap:8px;background:#22c55e;color:#fff;border-radius:12px;padding:14px;font-weight:700;cursor:pointer;"
+            >
+                <var-icon name="file-download" :size="20" /> Download XML Accurate
+            </div>
+
             <!-- Action Buttons -->
             <div v-if="actions.length" class="actions">
                 <var-button v-for="a in actions" :key="a.type" block type="primary" @click="doAction(a.type)">{{ a.label }}</var-button>
@@ -178,6 +211,17 @@ const doAction = (type: string) => {
         <!-- Tolak / Revision Dialog -->
         <var-dialog :show="showAction" :title="['manager_tolak','fmgm_tolak'].includes(actionType) ? 'Tolak MR?' : actionType === 'revision' ? 'Catatan Revisi' : 'Keputusan'" @confirm="confirmAction" @close="showAction=false" @cancel="showAction=false" confirm-button-text="Ya" cancel-button-text="Batal">
             <var-input v-if="['manager_tolak','fmgm_tolak'].includes(actionType) || actionType === 'revision'" v-model="actionNotes" :placeholder="actionType === 'revision' ? 'Catatan revisi...' : 'Alasan ditolak...'" textarea />
+        </var-dialog>
+
+        <!-- Dialog: item yang di-skip dari XML -->
+        <var-dialog :show="showSkipDialog" title="Item di-skip dari XML" @confirm="doDownloadXml" @close="showSkipDialog=false" @cancel="showSkipDialog=false" confirm-button-text="Tetap Download" cancel-button-text="Batal">
+            <p style="font-size:13px;color:#334155;margin:0 0 10px;">
+                <strong>{{ skipTotal }}</strong> item akan dilewati karena kode barang tidak terdaftar di tabel Barang (dan pasti gagal di Accurate):
+            </p>
+            <div v-for="(s, si) in skipList" :key="si" style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px;color:#475569;">
+                <span>{{ s.item_name }}</span>
+                <span style="font-family:monospace;color:#dc2626;flex-shrink:0;">{{ s.item_code }}</span>
+            </div>
         </var-dialog>
     </div>
 </template>

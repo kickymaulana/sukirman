@@ -170,6 +170,16 @@ const handleTabChange = (index: number) => {
         <var-icon name="chevron-right" :size="24" color="#94a3b8" />
       </div>
 
+      <!-- Pengaturan (Gudang, Purchasing, admin) -->
+      <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="settings-card" @click="router.get(baseUrl + '/settings')">
+        <div class="settings-icon">⚙️</div>
+        <div class="settings-text">
+          <span class="settings-title">Pengaturan</span>
+          <span class="settings-count">Set ID Cabang Accurate</span>
+        </div>
+        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
+      </div>
+
       <!-- Request List -->
       <div class="section-header space-between">
         <h3 class="section-title">Usulan Terakhir</h3>
@@ -383,6 +393,15 @@ const handleTabChange = (index: number) => {
 .barang-text { flex:1;display:flex;flex-direction:column; }
 .barang-title { font-size:14px;font-weight:700;color:#047857; }
 .barang-count { font-size:12px;color:#059669; }
+
+.settings-card {
+  display:flex;align-items:center;gap:14px;background:#f0f9ff;border-radius:16px;padding:16px;
+  border:2px solid #bae6fd;cursor:pointer;margin-bottom:12px;
+}
+.settings-icon { font-size:32px; }
+.settings-text { flex:1;display:flex;flex-direction:column; }
+.settings-title { font-size:14px;font-weight:700;color:#0369a1; }
+.settings-count { font-size:12px;color:#0284c7; }
 
 .notif-badge {
   position:absolute;top:-2px;right:-4px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\MaterialRequest;
 use App\Models\MaterialRequestItem;
 use App\Models\ApprovalLog;
+use App\Models\Setting;
+use App\Models\Barang;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -498,37 +500,117 @@ class MaterialRequestController extends Controller
         ]);
     }
 
-    public function exportExcel()
+    public function exportXml()
     {
-        $requests = MaterialRequest::with(['user', 'items'])
+        $requests = MaterialRequest::with('items')
             ->whereIn('status_workflow', ['Fully Approved', 'Purchasing'])
             ->latest()->get();
 
-        $csv = "MR Number,Tanggal,User,Factory,Type,Status,Item Code,Item Name,Specification,Qty,Unit,Purpose\n";
-        foreach ($requests as $mr) {
+        $xml = $this->buildAccurateXml(collect($requests));
+
+        $filename = 'accurate-' . date('YmdHis') . '.xml';
+
+        return response($xml, 200, [
+            'Content-Type' => 'application/xml',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    public function downloadXml($id)
+    {
+        $mr = MaterialRequest::with('items')->findOrFail($id);
+
+        $xml = $this->buildAccurateXml(collect([$mr]));
+
+        $filename = 'accurate-' . $mr->mr_number . '.xml';
+
+        return response($xml, 200, [
+            'Content-Type' => 'application/xml',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    private function buildAccurateXml($mrs): string
+    {
+        $branch = Setting::get('accurate_branch_code', '');
+        $validCodes = Barang::query()->pluck('kode_barang')->filter()->flip();
+
+        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><NMEXML/>');
+        $xml->addAttribute('EximID', '0');
+        $xml->addAttribute('BranchCode', $branch);
+        $xml->addAttribute('ACCOUNTANTCOPYID', '');
+
+        $trans = $xml->addChild('TRANSACTIONS');
+        $trans->addAttribute('OnError', 'CONTINUE');
+
+        $reqId = 1;
+        foreach ($mrs as $mr) {
+            $req = $trans->addChild('REQUISITION');
+            $req->addAttribute('operation', 'Add');
+            $req->addAttribute('REQUESTID', (string) $reqId);
+            $req->addChild('TRANSACTIONID', '3000');
+            $req->addChild('BRANCHCODEID', $branch);
+            $req->addChild('REQNO', $mr->mr_number);
+            $req->addChild('REQDATE', $mr->created_at->format('Y-m-d'));
+            $req->addChild('DESCRIPTION', 'Permintaan barang dari sistem portal Laravel');
+
+            $seq = 0;
             foreach ($mr->items as $item) {
-                $csv .= implode(',', [
-                    $mr->mr_number,
-                    $mr->created_at->format('Y-m-d'),
-                    $mr->user->name ?? '',
-                    $mr->factory,
-                    $mr->type,
-                    $mr->status_workflow,
-                    $item->item_code ?? '',
-                    '"' . str_replace('"', '""', $item->item_name) . '"',
-                    '"' . str_replace('"', '""', $item->specification ?? '') . '"',
-                    $item->qty,
-                    $item->unit,
-                    '"' . str_replace('"', '""', $item->purpose ?? '') . '"',
-                ]) . "\n";
+                // Hanya export item yang kodenya valid (terdaftar di tabel Barang)
+                $code = trim((string) ($item->item_code ?? ''));
+                if ($code === '' || !$validCodes->has($code)) {
+                    continue;
+                }
+
+                $line = $req->addChild('ITEMLINE');
+                $line->addAttribute('operation', 'Add');
+                $line->addChild('KeyID', (string) $seq);
+                $line->addChild('SEQ', (string) $seq);
+                $line->addChild('ITEMNO', $code);
+                $line->addChild('QUANTITY', (string) $item->qty);
+                $line->addChild('ITEMUNIT');
+                $line->addChild('UNITRATIO', '1');
+                $line->addChild('ITEMOVDESC', $item->item_name);
+                $line->addChild('UNITPRICE', '0');
+                $line->addChild('REQDATE', $mr->created_at->format('Y-m-d'));
+                $line->addChild('NOTES', $item->purpose ?? '');
+                $seq++;
+            }
+            $reqId++;
+        }
+
+        return $xml->asXML();
+    }
+
+    public function checkXmlSkips($id = null)
+    {
+        if ($id) {
+            $mrs = collect([MaterialRequest::with('items')->findOrFail($id)]);
+        } else {
+            $mrs = MaterialRequest::with('items')
+                ->whereIn('status_workflow', ['Fully Approved', 'Purchasing'])
+                ->latest()->get();
+        }
+
+        $validCodes = Barang::query()->pluck('kode_barang')->filter()->flip();
+
+        $skips = [];
+        foreach ($mrs as $mr) {
+            foreach ($mr->items as $item) {
+                $code = trim((string) ($item->item_code ?? ''));
+                if ($code === '' || !$validCodes->has($code)) {
+                    $skips[] = [
+                        'mr' => $mr->mr_number,
+                        'item_name' => $item->item_name,
+                        'item_code' => $code === '' ? '(kosong)' : $code,
+                    ];
+                }
             }
         }
 
-        $filename = 'material-requests-' . date('YmdHis') . '.csv';
-
-        return response($csv, 200, [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        return response()->json([
+            'skips' => $skips,
+            'total' => count($skips),
         ]);
     }
 }
