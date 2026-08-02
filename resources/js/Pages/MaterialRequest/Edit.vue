@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { Head, useForm, router, usePage } from '@inertiajs/vue3'
 import { Snackbar, Dialog } from '@varlet/ui'
 
 interface Item {
-    id: number; item_name: string; specification: string|null; qty: number; unit: string; purpose: string|null
+    id: number; item_code: string; item_name: string; specification: string|null; qty: number; unit: string; purpose: string|null
     direksi_decision: string|null; direksi_notes: string|null
 }
 
@@ -14,9 +14,42 @@ const baseUrl = (page.props as any).app_url || ''
 const csrf = (page.props as any).csrf_token || ''
 
 const items = ref(props.mr.items.map(i => ({
-    id: i.id, item_name: i.item_name, specification: i.specification || '', qty: i.qty, unit: i.unit, purpose: i.purpose || '',
+    id: i.id, item_code: '', item_name: i.item_name, specification: i.specification || '', qty: i.qty, unit: i.unit, purpose: i.purpose || '',
     direksi_decision: i.direksi_decision, direksi_notes: i.direksi_notes,
 })))
+
+// Autocomplete barang
+const suggestions = ref<Record<number, { kode_barang: string; nama_barang: string }[]>>({})
+const showSuggestions = ref<Record<number, boolean>>({})
+let searchTimer: any = null
+
+const onNamaInput = (index: number, query: string) => {
+    if (query.trim().length < 2) {
+        suggestions.value[index] = []
+        showSuggestions.value[index] = false
+        return
+    }
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(async () => {
+        try {
+            const res = await fetch(`${baseUrl}/barangs/search-api?q=${encodeURIComponent(query)}`)
+            const data = await res.json()
+            suggestions.value[index] = data
+            showSuggestions.value[index] = data.length > 0
+        } catch { suggestions.value[index] = [] }
+    }, 300)
+}
+
+const selectBarang = (index: number, b: { kode_barang: string; nama_barang: string }) => {
+    items.value[index].item_code = b.kode_barang
+    items.value[index].item_name = b.nama_barang
+    suggestions.value[index] = []
+    showSuggestions.value[index] = false
+}
+
+const hideSuggestions = (index: number) => {
+    nextTick(() => { setTimeout(() => { showSuggestions.value[index] = false }, 150) })
+}
 
 const decisionLabel = (d: string | null) => d === 'setuju' ? '✅ Disetujui' : d === 'tolak' ? '❌ Ditolak' : d === 'ganti' ? '🔄 Diganti' : ''
 
@@ -26,7 +59,7 @@ const decisionColor = (d: string | null) => d === 'setuju' ? 'success' : d === '
 const submitItems = () => items.value.filter(i => i.direksi_decision !== 'tolak')
 
 const addItem = () => {
-    items.value.push({ id: 0, item_name: '', specification: '', qty: 1, unit: '', purpose: '', direksi_decision: null, direksi_notes: null })
+    items.value.push({ id: 0, item_code: '', item_name: '', specification: '', qty: 1, unit: '', purpose: '', direksi_decision: null, direksi_notes: null })
 }
 
 const removeItem = (i: number) => {
@@ -76,7 +109,16 @@ const submit = async () => {
                 <div v-if="item.direksi_decision === 'tolak'" class="rejected-note">Item ini ditolak Direksi dan akan dihapus.</div>
 
                 <div v-else class="grid">
-                    <var-input v-model="item.item_name" label="Nama Barang *" placeholder="Nama barang" />
+                    <div class="autocomplete-wrap full-width">
+                        <var-input v-model="item.item_name" label="Nama Barang *" placeholder="Ketik nama barang (auto-saran)..." @update:modelValue="onNamaInput(i, $event)" @blur="hideSuggestions(i)" />
+                        <div v-if="showSuggestions[i] && suggestions[i]?.length" class="suggestions-box">
+                            <div v-for="(s, si) in suggestions[i]" :key="si" class="suggestion-item" @mousedown.prevent="selectBarang(i, s)">
+                                <span class="sug-kode">{{ s.kode_barang }}</span>
+                                <span class="sug-nama">{{ s.nama_barang }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <var-input v-model="item.item_code" label="Kode Barang" placeholder="Bisa diketik manual" />
                     <var-input v-model="item.specification" label="Spesifikasi" placeholder="Merk/type" />
                     <var-input v-model="item.qty" label="Qty *" type="number" :min="1" />
                     <var-input v-model="item.unit" label="Satuan *" placeholder="pcs, kg, liter" />
@@ -103,4 +145,11 @@ const submit = async () => {
 .rejected-note { font-size:12px;color:#dc2626;padding:8px; }
 .grid { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
 .full-width { grid-column:span 2; }
+.autocomplete-wrap { position:relative; }
+.suggestions-box { position:absolute;top:100%;left:0;right:0;z-index:100;max-height:220px;overflow-y:auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.12);margin-top:4px; }
+.suggestion-item { display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9; }
+.suggestion-item:last-child { border-bottom:none; }
+.suggestion-item:hover, .suggestion-item:active { background:#f0f5ff; }
+.sug-kode { flex-shrink:0;font-size:12px;font-weight:700;color:#1d6bf0;background:#eef4ff;padding:2px 8px;border-radius:6px;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.sug-nama { font-size:13px;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 </style>
