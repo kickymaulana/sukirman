@@ -66,10 +66,21 @@ const handleFile = async (e: Event) => {
     importing.value = true
     const fd = new FormData()
     fd.append('file', file)
-    const res = await fetch(`${baseUrl}/barangs/import`, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf }, body: fd })
-    importing.value = false
-    if (res.redirected || res.ok) { Snackbar.success('Import selesai'); showImport.value = false; window.location.reload() }
-    else { Snackbar.error('Gagal import') }
+    try {
+        const res = await fetch(`${baseUrl}/barangs/import`, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf }, body: fd })
+        const data = await res.json().catch(() => ({}))
+        importing.value = false
+        if (res.ok && data.success) {
+            Snackbar.success(data.message || 'Import selesai')
+            showImport.value = false
+            window.location.reload()
+        } else {
+            Snackbar.error(data.error || 'Gagal import')
+        }
+    } catch {
+        importing.value = false
+        Snackbar.error('Gagal import (koneksi bermasalah)')
+    }
     input.value = ''
 }
 </script>

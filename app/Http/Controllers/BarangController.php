@@ -98,7 +98,18 @@ class BarangController extends Controller
             'file' => 'required|file|mimes:csv,txt|max:10240',
         ]);
 
-        $file = fopen($request->file('file')->getRealPath(), 'r');
+        // Baca file & konversi encoding non-UTF8 (misal Windows-1252) ke UTF-8 agar karakter khusus (Ø, é, dll) aman
+        $content = file_get_contents($request->file('file')->getRealPath());
+        $content = preg_replace('/^\xEF\xBB\xBF/', '', $content); // hapus BOM
+        $detected = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
+        if ($detected && strtoupper($detected) !== 'UTF-8') {
+            $content = mb_convert_encoding($content, 'UTF-8', $detected);
+        }
+
+        $file = fopen('php://memory', 'r+');
+        fwrite($file, $content);
+        rewind($file);
+
         $firstLine = fgets($file);
         rewind($file);
 
@@ -114,7 +125,7 @@ class BarangController extends Controller
 
         if ($kodeIndex === false || $namaIndex === false) {
             fclose($file);
-            return back()->with('error', 'Format CSV harus memiliki kolom kode_barang dan nama_barang.');
+            return response()->json(['error' => 'Format CSV harus memiliki kolom kode_barang dan nama_barang.'], 422);
         }
 
         set_time_limit(300);
@@ -142,11 +153,14 @@ class BarangController extends Controller
             fclose($file);
             DB::commit();
 
-            return back()->with('success', "Import selesai! Baru: {$new}, Diupdate: {$updated}, Sama: {$skipped}.");
+            return response()->json([
+                'success' => true,
+                'message' => "Import selesai! Baru: {$new}, Diupdate: {$updated}, Sama: {$skipped}.",
+            ]);
         } catch (\Throwable $e) {
             DB::rollBack();
             fclose($file);
-            return back()->with('error', 'Gagal import: ' . $e->getMessage());
+            return response()->json(['error' => 'Gagal import: ' . $e->getMessage()], 422);
         }
     }
 }
