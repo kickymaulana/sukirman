@@ -393,6 +393,85 @@ class MaterialRequestController extends Controller
         return redirect()->route('approval.gudang')->with('success', 'Verifikasi stok selesai');
     }
 
+    public function gudangEdit($id)
+    {
+        $mr = MaterialRequest::with(['user', 'items', 'manager'])->findOrFail($id);
+        abort_if($mr->status_workflow !== 'Verifikasi Gudang', 404);
+
+        return Inertia::render('Approval/GudangEdit', [
+            'mr' => $mr,
+        ]);
+    }
+
+    public function gudangUpdate(Request $request, $id)
+    {
+        $mr = MaterialRequest::findOrFail($id);
+        abort_if($mr->status_workflow !== 'Verifikasi Gudang', 404);
+
+        $validated = $request->validate([
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.id' => ['nullable', 'integer'],
+            'items.*.item_code' => ['nullable', 'string', 'max:50'],
+            'items.*.item_name' => ['required', 'string', 'max:255'],
+            'items.*.specification' => ['nullable', 'string'],
+            'items.*.qty' => ['required', 'integer', 'min:1'],
+            'items.*.unit' => ['required', 'string', 'max:20'],
+            'items.*.item_status' => ['required', 'in:Urgent,Normal,New,Replace'],
+            'items.*.monthly_usage' => ['nullable', 'integer', 'min:0'],
+            'items.*.stock_on_hand' => ['nullable', 'integer', 'min:0'],
+            'items.*.purpose' => ['nullable', 'string'],
+        ]);
+
+        DB::transaction(function () use ($mr, $validated) {
+            $keepIds = [];
+            foreach ($validated['items'] as $item) {
+                if (!empty($item['id'])) {
+                    $mrItem = MaterialRequestItem::find($item['id']);
+                    if ($mrItem && $mrItem->material_request_id === $mr->id) {
+                        $mrItem->update([
+                            'item_code' => $item['item_code'] ?? null,
+                            'item_name' => $item['item_name'],
+                            'specification' => $item['specification'] ?? null,
+                            'qty' => $item['qty'],
+                            'unit' => $item['unit'],
+                            'item_status' => $item['item_status'] ?? 'Normal',
+                            'monthly_usage' => $item['monthly_usage'] ?? 0,
+                            'stock_on_hand' => $item['stock_on_hand'] ?? 0,
+                            'purpose' => $item['purpose'] ?? null,
+                        ]);
+                        $keepIds[] = $mrItem->id;
+                    }
+                } else {
+                    $newItem = $mr->items()->create([
+                        'item_code' => $item['item_code'] ?? null,
+                        'item_name' => $item['item_name'],
+                        'specification' => $item['specification'] ?? null,
+                        'qty' => $item['qty'],
+                        'unit' => $item['unit'],
+                        'item_status' => $item['item_status'] ?? 'Normal',
+                        'monthly_usage' => $item['monthly_usage'] ?? 0,
+                        'stock_on_hand' => $item['stock_on_hand'] ?? 0,
+                        'purpose' => $item['purpose'] ?? null,
+                    ]);
+                    $keepIds[] = $newItem->id;
+                }
+            }
+
+            // Hapus item yang tidak dikirim di form (dihapus oleh Gudang)
+            $mr->items()->whereNotIn('id', $keepIds)->delete();
+        });
+
+        ApprovalLog::create([
+            'material_request_id' => $mr->id,
+            'user_id' => auth()->id(),
+            'role' => 'Gudang',
+            'action' => 'gudang_edit',
+            'notes' => 'MR diedit oleh Gudang (pembersihan data)',
+        ]);
+
+        return redirect()->route('approval.gudang')->with('success', 'MR berhasil diedit.');
+    }
+
     // ============ PURCHASING: Export Excel ============
 
     public function purchasingIndex()

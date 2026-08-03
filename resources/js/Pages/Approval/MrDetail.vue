@@ -43,8 +43,12 @@ const doDownloadXml = () => {
     window.location.href = `${baseUrl}/material-requests/${mr.id}/xml`
 }
 
+const openGudangEdit = () => {
+    window.location.href = `${baseUrl}/approval/gudang/${mr.id}/edit`
+}
+
 const logLabel = (action: string) => {
-    const map: any = { forward: 'Diteruskan', acknowledge: 'Acknowledge', approve: 'Disetujui', reject: 'Ditolak', revision: 'Revisi', stock_available: 'Stok Tersedia', stock_unavailable: 'Stok Tidak Ada' }
+    const map: any = { forward: 'Diteruskan', acknowledge: 'Acknowledge', approve: 'Disetujui', reject: 'Ditolak', revision: 'Revisi', stock_available: 'Stok Tersedia', stock_unavailable: 'Stok Tidak Ada', gudang_edit: 'Diedit Gudang' }
     return map[action] || action
 }
 
@@ -165,6 +169,15 @@ const doAction = (type: string) => {
                     </div>
                     <div v-if="item.purpose" class="item-detail-purpose">Keperluan: {{ item.purpose }}</div>
                 </div>
+            </div>
+
+            <!-- Edit MR (Gudang) -->
+            <div
+                v-if="role === 'gudang' && mr.status_workflow === 'Verifikasi Gudang'"
+                @click="openGudangEdit"
+                style="display:flex;align-items:center;justify-content:center;gap:8px;background:#f59e0b;color:#fff;border-radius:12px;padding:14px;font-weight:700;cursor:pointer;"
+            >
+                <var-icon name="pencil" :size="20" /> Edit MR (Bersihkan Data)
             </div>
 
             <!-- Download XML Accurate (Purchasing, Gudang, admin) -->

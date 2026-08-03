@@ -68,6 +68,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:Gudang')->group(function () {
         Route::get('/approval/gudang', [MaterialRequestController::class, 'gudangIndex'])->name('approval.gudang');
         Route::post('/approval/gudang/{id}/verify', [MaterialRequestController::class, 'verifyGudang'])->name('approval.verify-gudang');
+        Route::get('/approval/gudang/{id}/edit', [MaterialRequestController::class, 'gudangEdit'])->name('approval.gudang-edit');
+        Route::post('/approval/gudang/{id}/update', [MaterialRequestController::class, 'gudangUpdate'])->name('approval.gudang-update');
     });
 
     // Purchasing: Export
