@@ -19,6 +19,10 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::get('/auth/sso', [AuthController::class, 'redirectSso'])->name('sso.redirect');
 Route::get('/callback', [AuthController::class, 'callbackSso'])->name('sso.callback');
 
+// Pilih posisi saat user baru (belum aktif)
+Route::get('/pending-role', [AuthController::class, 'pendingRole'])->name('pending-role');
+Route::post('/pending-role', [AuthController::class, 'submitRole'])->name('pending-role.submit');
+
 // Authenticated Routes (Harus login)
 Route::middleware('auth')->group(function () {
     // Dashboard

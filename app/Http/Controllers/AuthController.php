@@ -95,6 +95,11 @@ class AuthController extends Controller
         }
 
         if (!$user->is_approved) {
+            // User baru: minta pilih posisi dulu sebelum admin mengaktifkan
+            if (empty($user->requested_role)) {
+                session()->put('pending_user_id', $user->id);
+                return redirect()->route('pending-role');
+            }
             return redirect()->route('login')->withErrors(['message' => 'Akun Anda belum diaktifkan. Silakan hubungi Admin.']);
         }
 
@@ -102,6 +107,56 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard'));
+    }
+
+    public function pendingRole()
+    {
+        $userId = session()->get('pending_user_id');
+        if (!$userId) {
+            return redirect()->route('login');
+        }
+
+        $user = User::find($userId);
+        if (!$user || $user->is_approved) {
+            session()->forget('pending_user_id');
+            return redirect()->route('login');
+        }
+
+        // Sudah pernah memilih posisi → kembali ke login dengan pesan menunggu
+        if (!empty($user->requested_role)) {
+            session()->forget('pending_user_id');
+            return redirect()->route('login')->withErrors(['message' => 'Akun Anda belum diaktifkan. Silakan hubungi Admin.']);
+        }
+
+        return Inertia::render('Auth/PendingRole', [
+            'user' => $user,
+        ]);
+    }
+
+    public function submitRole(Request $request)
+    {
+        $userId = session()->get('pending_user_id');
+        if (!$userId) {
+            return redirect()->route('login');
+        }
+
+        $user = User::find($userId);
+        if (!$user || $user->is_approved) {
+            session()->forget('pending_user_id');
+            return redirect()->route('login');
+        }
+
+        $validated = $request->validate([
+            'role' => ['required', 'in:Supervisor,Manager,FM/GM,Direksi,Gudang,Purchasing'],
+        ], [
+            'role.required' => 'Pilih posisi/jabatan Anda terlebih dahulu.',
+            'role.in' => 'Posisi yang dipilih tidak valid.',
+        ]);
+
+        $user->update(['requested_role' => $validated['role']]);
+        session()->forget('pending_user_id');
+
+        return redirect()->route('login')->with('success', 'Permintaan role terkirim! Silakan tunggu persetujuan Admin.');
     }
 
     public function logout(Request $request)

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3'
 
-interface UserItem { id: number; nik: string|null; name: string; email: string; is_approved: boolean; roles: { name: string }[] }
+interface UserItem { id: number; nik: string|null; name: string; email: string; is_approved: boolean; requested_role: string|null; roles: { name: string }[] }
 const props = defineProps<{ users: { data: UserItem[] }; allRoles: string[] }>()
 const baseUrl = (usePage().props as any).app_url || ''
 
@@ -23,6 +23,7 @@ const openDetail = (id: number) => { window.location.href = baseUrl + '/admin/us
                 </div>
                 <div class="right">
                     <var-chip :type="u.is_approved ? 'success' : 'warning'" size="mini">{{ u.is_approved ? 'Aktif' : 'Baru' }}</var-chip>
+                    <span v-if="u.requested_role && !u.is_approved" class="req-tag" :title="'Meminta role ' + u.requested_role">{{ u.requested_role }}</span>
                     <span class="role-tag">{{ u.roles[0]?.name || '—' }}</span>
                     <var-icon name="chevron-right" :size="20" color="#94a3b8" />
                 </div>
@@ -42,4 +43,5 @@ const openDetail = (id: number) => { window.location.href = baseUrl + '/admin/us
 .nik { font-size:11px;color:#4f46e5;font-family:monospace; }
 .right { display:flex;align-items:center;gap:8px; }
 .role-tag { font-size:11px;padding:2px 8px;border-radius:6px;background:#e0e7ff;color:#4f46e5;font-weight:600; }
+.req-tag { font-size:11px;padding:2px 8px;border-radius:6px;background:#fef3c7;color:#b45309;font-weight:700; }
 </style>

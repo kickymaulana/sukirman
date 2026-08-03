@@ -34,6 +34,12 @@ class AdminUserController extends Controller
     {
         $user = User::findOrFail($id);
         $user->update(['is_approved' => true]);
+
+        // Auto-assign role yang diminta user saat registrasi (jika valid)
+        if (!empty($user->requested_role) && \Spatie\Permission\Models\Role::where('name', $user->requested_role)->exists()) {
+            $user->syncRoles([$user->requested_role]);
+        }
+
         return response()->json(['ok' => true, 'message' => "User {$user->name} diaktifkan"]);
     }
 

@@ -6,6 +6,7 @@ import lottie from 'lottie-web'
 
 const page = usePage()
 const errors = (page.props as any)?.errors
+const flashSuccess = (page.props as any)?.flash?.success
 const ssoUrl = (page.props as any).app_url + '/auth/sso'
 
 const lottieContainer = ref<HTMLElement | null>(null)
@@ -24,6 +25,7 @@ onMounted(() => {
     })
   }
   if (errors?.message) Snackbar.error(errors.message)
+  if (flashSuccess) Snackbar.success(flashSuccess)
 })
 
 onBeforeUnmount(() => {

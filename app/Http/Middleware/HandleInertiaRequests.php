@@ -62,6 +62,10 @@ class HandleInertiaRequests extends Middleware
             'csrf_token' => csrf_token(),
             'notifications' => $notifications,
             'unread_count' => $unreadCount,
+            'flash' => [
+                'success' => session('success'),
+                'error' => session('error'),
+            ],
         ];
     }
 }

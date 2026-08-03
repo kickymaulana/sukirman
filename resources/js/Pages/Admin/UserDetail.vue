@@ -9,7 +9,7 @@ const pp = page.props as any
 const baseUrl = pp.app_url || ''
 const csrf = pp.csrf_token || ''
 
-const selectedRole = ref(props.user.roles[0]?.name || '')
+const selectedRole = ref(props.user.roles[0]?.name || props.user.requested_role || '')
 const saving = ref(false)
 
 const approve = async () => {
@@ -41,6 +41,19 @@ const saveRole = async () => {
                 <var-chip :type="user.is_approved ? 'success' : 'warning'" size="small">{{ user.is_approved ? '✅ AKTIF' : '⏳ MENUNGGU AKTIVASI' }}</var-chip>
             </div>
 
+            <!-- Permintaan Role -->
+            <div v-if="user.requested_role && !user.is_approved" class="card req-card">
+                <div class="lbl">Permintaan Role dari User</div>
+                <div class="req-box">
+                    <span class="req-icon">📋</span>
+                    <div>
+                        <span class="req-label">User ini meminta role sebagai:</span>
+                        <span class="req-role">{{ user.requested_role }}</span>
+                        <span class="req-hint">Saat menekan "Aktifkan User", role ini otomatis diberikan. Anda bisa mengubahnya sebelum/sesudah.</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Data User -->
             <div class="card">
                 <div class="lbl">Data User</div>
@@ -56,7 +69,7 @@ const saveRole = async () => {
             <div class="card">
                 <div class="lbl">Aksi</div>
                 <div v-if="!user.is_approved" class="action-row">
-                    <var-button type="success" block @click="approve">✅ Aktifkan User</var-button>
+                    <var-button type="success" block @click="approve">{{ user.requested_role ? `✅ Aktifkan & Beri Role ${user.requested_role}` : '✅ Aktifkan User' }}</var-button>
                 </div>
                 <div class="action-row">
                     <var-select v-model="selectedRole" placeholder="Pilih Role" style="flex:1">
@@ -77,4 +90,10 @@ const saveRole = async () => {
 .grid { display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:13px;color:#475569; }
 .mono { font-family:monospace;color:#4f46e5; }
 .action-row { display:flex;gap:10px;align-items:center;margin-top:8px; }
+.req-card { border-color:#fde68a;background:#fffbeb; }
+.req-box { display:flex;gap:12px;align-items:flex-start; }
+.req-icon { font-size:26px; }
+.req-label { display:block;font-size:13px;color:#92400e;font-weight:600; }
+.req-role { display:inline-block;margin-top:4px;font-size:14px;font-weight:800;color:#b45309;background:#fef3c7;padding:3px 10px;border-radius:8px; }
+.req-hint { display:block;margin-top:6px;font-size:12px;color:#a16207;line-height:1.4; }
 </style>
