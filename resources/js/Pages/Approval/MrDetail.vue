@@ -47,6 +47,10 @@ const openGudangEdit = () => {
     window.location.href = `${baseUrl}/approval/gudang/${mr.id}/edit`
 }
 
+const openPrint = () => {
+    window.location.href = `${baseUrl}/material-requests/${mr.id}/print`
+}
+
 const logLabel = (action: string) => {
     const map: any = { forward: 'Diteruskan', acknowledge: 'Acknowledge', approve: 'Disetujui', reject: 'Ditolak', revision: 'Revisi', stock_available: 'Stok Tersedia', stock_unavailable: 'Stok Tidak Ada', gudang_edit: 'Diedit Gudang' }
     return map[action] || action
@@ -169,6 +173,14 @@ const doAction = (type: string) => {
                     </div>
                     <div v-if="item.purpose" class="item-detail-purpose">Keperluan: {{ item.purpose }}</div>
                 </div>
+            </div>
+
+            <!-- Cetak / Print (semua role) -->
+            <div
+                @click="openPrint"
+                style="display:flex;align-items:center;justify-content:center;gap:8px;background:#0ea5e9;color:#fff;border-radius:12px;padding:14px;font-weight:700;cursor:pointer;"
+            >
+                <var-icon name="printer-outline" :size="20" /> Cetak MR
             </div>
 
             <!-- Edit MR (Gudang) -->
