@@ -114,8 +114,35 @@ class MaterialRequestController extends Controller
             'approvalLogs.user',
         ])->findOrFail($id);
 
+        // Role departemen sesuai jenis MR
+        $deptRole = match ($mr->jenis) {
+            'MTC' => 'MTC',
+            'IT'   => 'IT',
+            'HRD'  => 'HRD',
+            default => null,
+        };
+
+        // Nama approver departemen: dari log approval departemen, atau Manager (kasus skip otomatis)
+        $deptApproverName = null;
+        if ($deptRole) {
+            $deptLog = $mr->approvalLogs
+                ->where('role', $deptRole)
+                ->where('action', 'approve')
+                ->first();
+            if ($deptLog && $deptLog->user) {
+                $deptApproverName = $deptLog->user->name;
+            } else {
+                $manager = User::find($mr->manager_id);
+                if ($manager && $manager->hasRole($deptRole)) {
+                    $deptApproverName = $manager->name;
+                }
+            }
+        }
+
         return Inertia::render('MaterialRequest/Print', [
             'mr' => $mr,
+            'deptRole' => $deptRole,
+            'deptApproverName' => $deptApproverName,
         ]);
     }
 
@@ -140,6 +167,7 @@ class MaterialRequestController extends Controller
             'factory' => ['required', 'in:KIM,DALU 1,DALU 2'],
             'allocation' => ['required', 'in:Project,Proses'],
             'status_pembelian' => ['required', 'in:Urgent,Normal'],
+            'jenis' => ['required', 'in:UMUM,MTC,IT,HRD'],
             'manager_id' => ['required', 'exists:users,id'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.item_code' => ['nullable', 'string', 'max:50'],
@@ -177,6 +205,7 @@ class MaterialRequestController extends Controller
                 'factory' => $validated['factory'],
                 'allocation' => $validated['allocation'],
                 'status_pembelian' => $validated['status_pembelian'],
+                'jenis' => $validated['jenis'],
                 'status_workflow' => 'Pending Manager',
             ]);
 
@@ -240,10 +269,25 @@ class MaterialRequestController extends Controller
             return redirect()->route('approval.manager')->with('success', 'MR ditolak');
         }
 
+        // Tentukan role departemen sesuai jenis MR
+        $deptRole = match ($mr->jenis) {
+            'MTC' => 'MTC',
+            'IT'   => 'IT',
+            'HRD'  => 'HRD',
+            default => null,
+        };
+
+        // Jika MR non-UMUM dan Manager yang approve BUKAN role departemen itu → wajib langkah departemen.
+        // Jika Manager sudah punya role departemen tersebut → langkah departemen otomatis terpenuhi (skip).
+        $nextStatus = 'Pending FM/GM';
+        if ($deptRole && !auth()->user()->hasRole($deptRole)) {
+            $nextStatus = 'Pending ' . $deptRole;
+        }
+
         $mr->update([
             'manager_id' => auth()->id(),
             'fm_gm_id' => $request->fm_gm_id,
-            'status_workflow' => 'Pending FM/GM',
+            'status_workflow' => $nextStatus,
         ]);
 
         ApprovalLog::create([
@@ -254,12 +298,88 @@ class MaterialRequestController extends Controller
             'notes' => $request->notes,
         ]);
 
-        $fmGmUser = User::find($request->fm_gm_id);
+        if ($nextStatus === 'Pending FM/GM') {
+            $fmGmUser = User::find($request->fm_gm_id);
+            if ($fmGmUser) {
+                $fmGmUser->notify(new MrNotification($mr, "MR {$mr->mr_number} menunggu review Anda"));
+            }
+        } else {
+            $deptUsers = User::role($deptRole)->get();
+            Notification::send($deptUsers, new MrNotification($mr, "MR {$mr->mr_number} menunggu persetujuan {$deptRole}"));
+        }
+
+        return redirect()->route('approval.manager')->with('success', 'MR diteruskan');
+    }
+
+    // ============ DEPARTEMEN (MTC/IT/HRD): Approve / Reject ============
+
+    private function deptRoleUser(): ?string
+    {
+        return collect(['MTC', 'IT', 'HRD'])->first(fn ($r) => auth()->user()->hasRole($r));
+    }
+
+    public function departmentIndex()
+    {
+        $deptRole = $this->deptRoleUser();
+
+        $requests = MaterialRequest::with(['user', 'items', 'manager'])
+            ->where('status_workflow', 'Pending ' . $deptRole)
+            ->latest()->paginate(10);
+
+        return Inertia::render('Approval/Departemen', [
+            'requests' => $requests,
+            'deptRole' => $deptRole,
+        ]);
+    }
+
+    public function departmentDecision(Request $request, $id)
+    {
+        $mr = MaterialRequest::findOrFail($id);
+        $deptRole = $this->deptRoleUser();
+
+        abort_if($mr->status_workflow !== 'Pending ' . $deptRole, 404);
+
+        $request->validate(['action' => 'required|in:approve,reject']);
+
+        $route = match ($deptRole) {
+            'MTC' => 'approval.mtc',
+            'IT'   => 'approval.it',
+            'HRD'  => 'approval.hrd',
+            default => 'approval.manager',
+        };
+
+        if ($request->action === 'reject') {
+            $mr->update(['status_workflow' => 'Rejected']);
+
+            ApprovalLog::create([
+                'material_request_id' => $mr->id,
+                'user_id' => auth()->id(),
+                'role' => $deptRole,
+                'action' => 'reject',
+                'notes' => $request->notes,
+            ]);
+
+            $mr->user->notify(new MrNotification($mr, "MR {$mr->mr_number} ditolak {$deptRole}: {$request->notes}"));
+
+            return redirect()->route($route)->with('success', 'MR ditolak');
+        }
+
+        $mr->update(['status_workflow' => 'Pending FM/GM']);
+
+        ApprovalLog::create([
+            'material_request_id' => $mr->id,
+            'user_id' => auth()->id(),
+            'role' => $deptRole,
+            'action' => 'approve',
+            'notes' => $request->notes,
+        ]);
+
+        $fmGmUser = User::find($mr->fm_gm_id);
         if ($fmGmUser) {
             $fmGmUser->notify(new MrNotification($mr, "MR {$mr->mr_number} menunggu review Anda"));
         }
 
-        return redirect()->route('approval.manager')->with('success', 'MR diteruskan ke FM/GM');
+        return redirect()->route($route)->with('success', "MR disetujui {$deptRole}, diteruskan ke FM/GM");
     }
 
     // ============ FM/GM: Acknowledge ============
@@ -627,9 +747,12 @@ class MaterialRequestController extends Controller
 
     public function show($id)
     {
-        $mr = MaterialRequest::with(['user', 'items', 'approvalLogs.user', 'manager', 'direksi'])->findOrFail($id);
+        $mr = MaterialRequest::with(['user', 'items', 'approvalLogs.user', 'manager', 'direksi', 'fmGm'])->findOrFail($id);
         $user = auth()->user();
         $role = $user->getRoleNames()->first();
+
+        // Role departemen yang dimiliki user (MTC/IT/HRD) — untuk aksi approval departemen
+        $deptRole = collect(['MTC', 'IT', 'HRD'])->first(fn ($r) => $user->hasRole($r));
 
         // Data pendukung untuk action
         $direksiUsers = collect();
@@ -644,6 +767,7 @@ class MaterialRequestController extends Controller
         return Inertia::render('Approval/MrDetail', [
             'mr' => $mr,
             'userRole' => $role,
+            'deptRole' => $deptRole,
             'direksiUsers' => $direksiUsers,
             'fmGmUsers' => $fmGmUsers,
         ]);

@@ -64,6 +64,20 @@ Route::middleware('auth')->group(function () {
         Route::post('/approval/fmgm/{id}/acknowledge', [MaterialRequestController::class, 'acknowledge'])->name('approval.acknowledge');
     });
 
+    // Departemen (MTC / IT / HRD): Approval sebelum FM/GM
+    Route::middleware('role:MTC')->group(function () {
+        Route::get('/approval/mtc', [MaterialRequestController::class, 'departmentIndex'])->name('approval.mtc');
+        Route::post('/approval/mtc/{id}/decision', [MaterialRequestController::class, 'departmentDecision'])->name('approval.mtc.decision');
+    });
+    Route::middleware('role:IT')->group(function () {
+        Route::get('/approval/it', [MaterialRequestController::class, 'departmentIndex'])->name('approval.it');
+        Route::post('/approval/it/{id}/decision', [MaterialRequestController::class, 'departmentDecision'])->name('approval.it.decision');
+    });
+    Route::middleware('role:HRD')->group(function () {
+        Route::get('/approval/hrd', [MaterialRequestController::class, 'departmentIndex'])->name('approval.hrd');
+        Route::post('/approval/hrd/{id}/decision', [MaterialRequestController::class, 'departmentDecision'])->name('approval.hrd.decision');
+    });
+
     // Direksi: Decision
     Route::middleware('role:Direksi')->group(function () {
         Route::get('/approval/direksi', [MaterialRequestController::class, 'direksiIndex'])->name('approval.direksi');

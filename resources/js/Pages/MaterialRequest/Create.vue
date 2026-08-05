@@ -57,6 +57,7 @@ const form = useForm({
   factory: 'KIM',
   allocation: 'Proses',
   status_pembelian: 'Normal',
+  jenis: 'UMUM',
   manager_id: '',
   items: [
     {
@@ -77,6 +78,7 @@ const typeOptions = ['Lokal', 'Import']
 const factoryOptions = ['KIM', 'DALU 1', 'DALU 2']
 const allocationOptions = ['Project', 'Proses']
 const urgencyOptions = ['Normal', 'Urgent']
+const jenisOptions = ['UMUM', 'MTC', 'IT', 'HRD']
 const itemStatusOptions = ['Normal', 'Urgent', 'New', 'Replace']
 
 const addItem = () => {
@@ -148,6 +150,14 @@ const goBack = () => {
                 <var-select v-model="form.factory" variant="outlined" placeholder="Pilih Pabrik">
                   <var-option v-for="opt in factoryOptions" :key="opt" :label="opt" :value="opt" />
                 </var-select>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label">Jenis MR <span class="required">*</span></label>
+                <var-select v-model="form.jenis" variant="outlined" placeholder="Pilih Jenis MR" :error-message="form.errors.jenis">
+                  <var-option v-for="opt in jenisOptions" :key="opt" :label="opt" :value="opt" />
+                </var-select>
+                <p class="field-hint">UMUM = tanpa persetujuan departemen. MTC/IT/HRD = wajib persetujuan departemen terkait.</p>
               </div>
 
               <div class="field-group">
@@ -407,6 +417,12 @@ const goBack = () => {
   font-size: 12px;
   font-weight: 600;
   color: #64748b;
+}
+
+.field-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 4px 0 0;
 }
 
 .item-card-header {

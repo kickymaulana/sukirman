@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3'
 
-const props = defineProps<{ mr: any }>()
+const props = defineProps<{ mr: any; deptRole?: string | null; deptApproverName?: string | null }>()
 
 const mr = props.mr
 
@@ -68,8 +68,8 @@ const goBack = () => window.history.back()
         <tr>
           <td class="lbl">Jenis Pembelian</td>
           <td>{{ mr.type }}</td>
-          <td class="lbl">Alokasi</td>
-          <td>{{ mr.allocation }}</td>
+          <td class="lbl">Jenis MR</td>
+          <td>{{ mr.jenis || 'UMUM' }}</td>
         </tr>
         <tr>
           <td class="lbl">Urgensi</td>
@@ -147,6 +147,11 @@ const goBack = () => window.history.back()
           <p class="sign-role">Manager</p>
           <div v-if="mr.manager?.name" class="approved-stamp"><span class="stamp-txt">✓ Approved</span></div>
           <p class="sign-name">{{ mr.manager?.name || '( belum ditandatangani )' }}</p>
+        </div>
+        <div v-if="deptRole" class="sign-box">
+          <p class="sign-role">{{ deptRole }}</p>
+          <div v-if="deptApproverName" class="approved-stamp"><span class="stamp-txt">✓ Approved</span></div>
+          <p class="sign-name">{{ deptApproverName || '( belum ditandatangani )' }}</p>
         </div>
         <div class="sign-box">
           <p class="sign-role">FM/GM</p>

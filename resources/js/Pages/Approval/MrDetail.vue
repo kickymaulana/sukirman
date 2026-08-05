@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
 
-const props = defineProps<{ mr: any; userRole: string; direksiUsers: { id: number; name: string }[]; fmGmUsers?: { id: number; name: string; nik: string }[] }>()
+const props = defineProps<{ mr: any; userRole: string; deptRole?: string | null; direksiUsers: { id: number; name: string }[]; fmGmUsers?: { id: number; name: string; nik: string }[] }>()
 const page = usePage()
 const pp = page.props as any
 const baseUrl = pp.app_url || ''
@@ -63,6 +63,10 @@ const actions = computed(() => {
         a.push({ label: 'Lanjut ke FM/GM', type: 'manager_lanjut', action: '' })
         a.push({ label: 'Tolak', type: 'manager_tolak', action: '' })
     }
+    if (props.deptRole && mr.status_workflow === `Pending ${props.deptRole}`) {
+        a.push({ label: `Setujui (${props.deptRole})`, type: 'dept_approve', action: '' })
+        a.push({ label: `Tolak (${props.deptRole})`, type: 'dept_reject', action: '' })
+    }
     if (role === 'fm/gm' && mr.status_workflow === 'Pending FM/GM') {
         a.push({ label: 'Forward ke Direksi', type: 'fmgm_forward', action: '' })
         a.push({ label: 'Tolak', type: 'fmgm_tolak', action: '' })
@@ -102,6 +106,10 @@ const confirmAction = async () => {
         url = `${baseUrl}/approval/fmgm/${mr.id}/acknowledge`
         body.action = 'tolak'
         body.notes = actionNotes.value
+    } else if (['dept_approve', 'dept_reject'].includes(actionType.value)) {
+        url = `${baseUrl}/approval/${(props.deptRole || '').toLowerCase()}/${mr.id}/decision`
+        body.action = actionType.value === 'dept_approve' ? 'approve' : 'reject'
+        body.notes = actionNotes.value
     } else if (['approve', 'reject'].includes(actionType.value)) {
         url = `${baseUrl}/approval/direksi/${mr.id}/decision`
         body.action = actionType.value
@@ -126,7 +134,7 @@ const doAction = (type: string) => {
     if (type === 'revision') { window.location.href = baseUrl + '/approval/direksi/' + mr.id + '/revision'; return }
     if (type === 'fmgm_forward') { showForward.value = true; return }
     if (type === 'manager_lanjut') { showFmGm.value = true; return }
-    if (['manager_tolak', 'fmgm_tolak', 'stock_yes', 'stock_no'].includes(type)) { actionType.value = type; confirmAction(); return }
+    if (['manager_tolak', 'fmgm_tolak', 'stock_yes', 'stock_no', 'dept_approve', 'dept_reject'].includes(type)) { actionType.value = type; confirmAction(); return }
     actionType.value = type; showAction.value = true
 }
 </script>
@@ -148,6 +156,7 @@ const doAction = (type: string) => {
                     <span>Dibuat oleh</span><span><strong>{{ mr.user?.name }}</strong></span>
                     <span>Factory</span><span>{{ mr.factory }}</span>
                     <span>Tipe</span><span>{{ mr.type }}</span>
+                    <span>Jenis</span><span>{{ mr.jenis || 'UMUM' }}</span>
                     <span>Alokasi</span><span>{{ mr.allocation }}</span>
                     <span>Urgensi</span><span>{{ mr.status_pembelian }}</span>
                     <span v-if="mr.manager">Manager</span><span v-if="mr.manager">{{ mr.manager?.name }}</span>

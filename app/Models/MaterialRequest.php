@@ -19,6 +19,7 @@ class MaterialRequest extends Model
         'factory',
         'allocation',
         'status_pembelian',
+        'jenis',
         'status_workflow',
         'revision_notes',
     ];

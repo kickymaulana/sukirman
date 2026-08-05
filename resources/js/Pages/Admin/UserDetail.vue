@@ -9,8 +9,18 @@ const pp = page.props as any
 const baseUrl = pp.app_url || ''
 const csrf = pp.csrf_token || ''
 
-const selectedRole = ref(props.user.roles[0]?.name || props.user.requested_role || '')
+const currentRoles = (props.user.roles || []).map((r: any) => r.name)
+const selectedRoles = ref<string[]>(currentRoles)
+if (props.user.requested_role && !currentRoles.includes(props.user.requested_role)) {
+    selectedRoles.value.push(props.user.requested_role)
+}
 const saving = ref(false)
+
+const toggleRole = (r: string) => {
+    const i = selectedRoles.value.indexOf(r)
+    if (i > -1) selectedRoles.value.splice(i, 1)
+    else selectedRoles.value.push(r)
+}
 
 const approve = async () => {
     const res = await fetch(`${baseUrl}/admin/users/${props.user.id}/approve`, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf } })
@@ -18,14 +28,15 @@ const approve = async () => {
 }
 
 const saveRole = async () => {
+    if (!selectedRoles.value.length) { Snackbar.warning('Pilih minimal satu role'); return }
     saving.value = true
     const res = await fetch(`${baseUrl}/admin/users/${props.user.id}/role`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
-        body: JSON.stringify({ role: selectedRole.value }),
+        body: JSON.stringify({ roles: selectedRoles.value }),
     })
     saving.value = false
-    if (res.ok) Snackbar.success('Role diubah')
-    else Snackbar.error('Gagal')
+    if (res.ok) { Snackbar.success('Role diperbarui'); window.location.reload() }
+    else { Snackbar.error('Gagal') }
 }
 </script>
 
@@ -72,9 +83,21 @@ const saveRole = async () => {
                     <var-button type="success" block @click="approve">{{ user.requested_role ? `✅ Aktifkan & Beri Role ${user.requested_role}` : '✅ Aktifkan User' }}</var-button>
                 </div>
                 <div class="action-row">
-                    <var-select v-model="selectedRole" placeholder="Pilih Role" style="flex:1">
-                        <var-option v-for="r in allRoles" :key="r" :label="r" :value="r" />
-                    </var-select>
+                    <div class="role-checkboxes">
+                        <label
+                            v-for="r in allRoles"
+                            :key="r"
+                            class="role-check"
+                            :class="{ checked: selectedRoles.includes(r) }"
+                        >
+                            <input
+                                type="checkbox"
+                                :checked="selectedRoles.includes(r)"
+                                @change="toggleRole(r)"
+                            />
+                            <span>{{ r }}</span>
+                        </label>
+                    </div>
                     <var-button type="primary" :loading="saving" @click="saveRole">Simpan Role</var-button>
                 </div>
             </div>
@@ -90,6 +113,10 @@ const saveRole = async () => {
 .grid { display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:13px;color:#475569; }
 .mono { font-family:monospace;color:#4f46e5; }
 .action-row { display:flex;gap:10px;align-items:center;margin-top:8px; }
+.role-checkboxes { display:flex;flex-wrap:wrap;gap:8px;flex:1; }
+.role-check { display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:1px solid #e2e8f0;background:#fff;font-size:13px;font-weight:600;color:#475569;cursor:pointer; }
+.role-check.checked { background:#eef2ff;border-color:#4f46e5;color:#4f46e5; }
+.role-check input { accent-color:#4f46e5; }
 .req-card { border-color:#fde68a;background:#fffbeb; }
 .req-box { display:flex;gap:12px;align-items:flex-start; }
 .req-icon { font-size:26px; }

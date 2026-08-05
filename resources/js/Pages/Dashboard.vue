@@ -60,7 +60,7 @@ const routerInertia = router
 
 const goApproval = () => {
   const r = props.user?.role?.toLowerCase()
-  const routes: any = { manager: '/approval/manager', 'fm/gm': '/approval/fmgm', direksi: '/approval/direksi', gudang: '/approval/gudang', purchasing: '/approval/purchasing' }
+  const routes: any = { manager: '/approval/manager', 'fm/gm': '/approval/fmgm', direksi: '/approval/direksi', gudang: '/approval/gudang', purchasing: '/approval/purchasing', mtc: '/approval/mtc', it: '/approval/it', hrd: '/approval/hrd' }
   const path = routes[r]
   if (path) routerInertia.get(baseUrl + path)
 }
@@ -82,6 +82,9 @@ const approvalRoute = () => {
   if (r === 'direksi') return '/approval/direksi'
   if (r === 'gudang') return '/approval/gudang'
   if (r === 'purchasing') return '/approval/purchasing'
+  if (r === 'mtc') return '/approval/mtc'
+  if (r === 'it') return '/approval/it'
+  if (r === 'hrd') return '/approval/hrd'
   return '#'
 }
 
@@ -160,7 +163,7 @@ const handleTabChange = (index: number) => {
       </div>
 
       <!-- Approval Card (untuk approver) -->
-      <div v-if="user?.role && ['Manager','FM/GM','Direksi','Gudang','Purchasing'].includes(user.role)" class="approval-card" @click="goApproval()">
+      <div v-if="user?.role && ['Manager','FM/GM','Direksi','Gudang','Purchasing','MTC','IT','HRD'].includes(user.role)" class="approval-card" @click="goApproval()">
         <div class="approval-icon"><var-icon name="clipboard-check" :size="28" color="#4f46e5" /></div>
         <div class="approval-text">
           <span class="approval-title">Approval {{ user.role }}</span>

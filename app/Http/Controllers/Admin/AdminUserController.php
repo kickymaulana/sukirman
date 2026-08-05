@@ -46,9 +46,12 @@ class AdminUserController extends Controller
     public function assignRole(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        $request->validate(['role' => 'required|exists:roles,name']);
-        $user->syncRoles([$request->role]);
-        return response()->json(['ok' => true, 'message' => "Role {$user->name} diubah ke {$request->role}"]);
+        $request->validate([
+            'roles' => ['required', 'array', 'min:1'],
+            'roles.*' => ['exists:roles,name'],
+        ]);
+        $user->syncRoles($request->roles);
+        return response()->json(['ok' => true, 'message' => "Role {$user->name} diperbarui: " . implode(', ', $request->roles)]);
     }
 
     public function destroy($id)

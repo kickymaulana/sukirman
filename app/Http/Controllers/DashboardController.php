@@ -60,6 +60,8 @@ class DashboardController extends Controller
         } elseif (in_array($role, ['fm/gm', 'FM/GM'])) {
             $pendingCount = MaterialRequest::where('fm_gm_id', $user->id)
                 ->where('status_workflow', 'Pending FM/GM')->count();
+        } elseif (in_array($role, ['MTC', 'IT', 'HRD'])) {
+            $pendingCount = MaterialRequest::where('status_workflow', 'Pending ' . $role)->count();
         } elseif (in_array($role, ['direksi', 'Direksi'])) {
             $pendingCount = MaterialRequest::where('direksi_id', $user->id)
                 ->where('status_workflow', 'Pending Direksi')->count();
