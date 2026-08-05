@@ -55,11 +55,14 @@ class DashboardController extends Controller
         if (in_array($role, ['admin', 'Admin'])) {
             $pendingCount = User::where('is_approved', false)->count();
         } elseif (in_array($role, ['manager', 'Manager'])) {
-            $pendingCount = MaterialRequest::where('status_workflow', 'Pending Manager')->count();
+            $pendingCount = MaterialRequest::where('manager_id', $user->id)
+                ->where('status_workflow', 'Pending Manager')->count();
         } elseif (in_array($role, ['fm/gm', 'FM/GM'])) {
-            $pendingCount = MaterialRequest::where('status_workflow', 'Pending FM/GM')->count();
+            $pendingCount = MaterialRequest::where('fm_gm_id', $user->id)
+                ->where('status_workflow', 'Pending FM/GM')->count();
         } elseif (in_array($role, ['direksi', 'Direksi'])) {
-            $pendingCount = MaterialRequest::where('status_workflow', 'Pending Direksi')->where('direksi_id', $user->id)->count();
+            $pendingCount = MaterialRequest::where('direksi_id', $user->id)
+                ->where('status_workflow', 'Pending Direksi')->count();
         } elseif (in_array($role, ['gudang', 'Gudang'])) {
             $pendingCount = MaterialRequest::where('status_workflow', 'Verifikasi Gudang')->count();
         } elseif (in_array($role, ['purchasing', 'Purchasing'])) {
