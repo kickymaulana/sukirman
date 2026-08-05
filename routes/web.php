@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\BarangController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AdminOverviewController;
 use Inertia\Inertia;
 
 // 💡 Redirect root '/' langsung ke dashboard (nanti otomatis ke login jika belum auth)
@@ -87,8 +88,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
 
+        // Overview: admin bisa edit, Purchasing & Gudang hanya melihat
+    Route::middleware('role:admin|Purchasing|Gudang')->get('/admin/overview', [AdminOverviewController::class, 'index'])->name('admin.overview');
+
         // Admin Panel
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/overview/{id}/edit', [AdminOverviewController::class, 'edit'])->name('overview.edit');
+        Route::post('/overview/{id}/update', [AdminOverviewController::class, 'update'])->name('overview.update');
         Route::get('/users', [AdminUserController::class, 'index'])->name('users');
         Route::get('/users/{id}', [AdminUserController::class, 'show'])->name('users.show');
         Route::post('/users/{id}/approve', [AdminUserController::class, 'approve'])->name('users.approve');

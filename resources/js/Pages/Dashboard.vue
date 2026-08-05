@@ -140,7 +140,16 @@ const handleTabChange = (index: number) => {
         </div>
       </div>
 
-      <!-- Admin Card (terpisah) -->
+      <!-- Overview MR (admin = edit, Purchasing/Gudang = lihat saja) -->
+      <div v-if="user?.role && ['admin','Purchasing','Gudang'].includes(user.role)" class="overview-card" @click="router.get(baseUrl + '/admin/overview')">
+        <div class="overview-icon">📊</div>
+        <div class="overview-text">
+          <span class="overview-title">{{ user.role === 'admin' ? 'Dashboard Admin' : 'Monitoring MR' }}</span>
+          <span class="overview-count">{{ user.role === 'admin' ? 'Pantau MR & ubah tujuan approval' : 'Lihat statistik & alur MR (read-only)' }}</span>
+        </div>
+        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
+      </div>
+
       <div v-if="user?.role === 'admin'" class="admin-card" @click="router.get(baseUrl + '/admin/users')">
         <div class="admin-icon">👥</div>
         <div class="admin-text">
@@ -375,6 +384,15 @@ const handleTabChange = (index: number) => {
 .admin-text { flex:1;display:flex;flex-direction:column; }
 .admin-title { font-size:14px;font-weight:700;color:#92400e; }
 .admin-count { font-size:12px;color:#b45309; }
+
+.overview-card {
+  display:flex;align-items:center;gap:14px;background:#f3f0ff;border-radius:16px;padding:16px;
+  border:2px solid #ddd6fe;cursor:pointer;margin-bottom:12px;
+}
+.overview-icon { font-size:32px; }
+.overview-text { flex:1;display:flex;flex-direction:column; }
+.overview-title { font-size:14px;font-weight:700;color:#6d28d9; }
+.overview-count { font-size:12px;color:#7c3aed; }
 
 .approval-card {
   display:flex;align-items:center;gap:14px;background:#eef2ff;border-radius:16px;padding:16px;
