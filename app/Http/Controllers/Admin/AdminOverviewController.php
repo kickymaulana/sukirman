@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\MaterialRequest;
 use App\Models\User;
+use App\Notifications\MrNotification;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 
 class AdminOverviewController extends Controller
@@ -137,6 +139,7 @@ class AdminOverviewController extends Controller
             'direksis' => User::role('Direksi')->get(['id', 'name', 'nik']),
             'allStatuses' => [
                 'Pending Manager', 'Pending FM/GM', 'Pending Direksi',
+                'Pending MTC', 'Pending IT', 'Pending HRD',
                 'Verifikasi Gudang', 'Fully Approved', 'Purchasing', 'Rejected', 'Revision',
             ],
         ]);
@@ -148,6 +151,11 @@ class AdminOverviewController extends Controller
     public function update(Request $request, $id)
     {
         $mr = MaterialRequest::findOrFail($id);
+
+        // Target lama sebelum diubah (untuk penanganan notifikasi)
+        $oldManager = $mr->manager_id;
+        $oldFmGm    = $mr->fm_gm_id;
+        $oldDireksi = $mr->direksi_id;
 
         $validated = $request->validate([
             'type'             => ['required', 'in:Lokal,Import'],
@@ -179,7 +187,59 @@ class AdminOverviewController extends Controller
             'notes' => 'MR diedit oleh admin',
         ]);
 
+        $this->notifyTargetChange($mr, $oldManager, $oldFmGm, $oldDireksi);
+
         return redirect()->route('admin.overview.edit', $id)->with('success', 'MR berhasil diperbarui.');
+    }
+
+    /**
+     * Kondisikan notifikasi saat admin mengubah tujuan MR.
+     */
+    private function notifyTargetChange($mr, $oldManager, $oldFmGm, $oldDireksi)
+    {
+        $status = $mr->status_workflow;
+
+        // Target relevan baru & lama sesuai status
+        $newTargetId = match ($status) {
+            'Pending Manager' => $mr->manager_id,
+            'Pending FM/GM'   => $mr->fm_gm_id,
+            'Pending Direksi' => $mr->direksi_id,
+            default           => null,
+        };
+        $oldTargetId = match ($status) {
+            'Pending Manager' => $oldManager,
+            'Pending FM/GM'   => $oldFmGm,
+            'Pending Direksi' => $oldDireksi,
+            default           => null,
+        };
+
+        // 1. Notifikasi ke target baru (jika diubah)
+        if ($newTargetId && (int) $newTargetId !== (int) $oldTargetId) {
+            $newUser = User::find($newTargetId);
+            if ($newUser) {
+                $newUser->notify(new MrNotification($mr, "MR {$mr->mr_number} dialihkan ke Anda — menunggu persetujuan Anda."));
+            }
+        }
+
+        // 2. Target lama: tandai notifikasi "menunggu" yang lama sudah dibaca + info dialihkan
+        if ($oldTargetId && (int) $oldTargetId !== (int) $newTargetId) {
+            DatabaseNotification::whereRaw("JSON_UNQUOTE(JSON_EXTRACT(`data`, '$.mr_id')) = ?", [(string) $mr->id])
+                ->where('notifiable_id', $oldTargetId)
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+
+            $oldUser = User::find($oldTargetId);
+            if ($oldUser) {
+                $oldUser->notify(new MrNotification($mr, "MR {$mr->mr_number} telah dialihkan ke approver lain."));
+            }
+        }
+
+        // 3. Status departemen (Pending MTC/IT/HRD) → notifikasi semua user dengan role itu
+        if (in_array($status, ['Pending MTC', 'Pending IT', 'Pending HRD'])) {
+            $deptRole = str_replace('Pending ', '', $status);
+            $deptUsers = User::role($deptRole)->get();
+            Notification::send($deptUsers, new MrNotification($mr, "MR {$mr->mr_number} menunggu persetujuan {$deptRole}."));
+        }
     }
 
     /**
