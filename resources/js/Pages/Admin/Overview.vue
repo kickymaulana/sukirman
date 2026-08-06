@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
+import { Snackbar } from '@varlet/ui'
 
 interface MR {
     id: number
@@ -10,6 +11,7 @@ interface MR {
     type: string
     allocation: string
     created_at: string
+    input_accurate?: string
     user?: { name: string; nik: string }
     manager?: { id: number; name: string } | null
     fm_gm?: { id: number; name: string } | null
@@ -27,11 +29,13 @@ const props = defineProps<{
     fmGms: { id: number; name: string; nik: string }[]
     direksis: { id: number; name: string; nik: string }[]
     canEdit: boolean
+    canGudang: boolean
     allStatuses: string[]
 }>()
 
 const pp = usePage().props as any
 const baseUrl = pp.app_url || ''
+const csrf = pp.csrf_token || ''
 
 const searchVal = ref(props.filters?.search || '')
 const statusVal = ref(props.filters?.status || '')
@@ -39,7 +43,7 @@ const statusVal = ref(props.filters?.status || '')
 const statusBadge = (s: string) => {
     if (['Fully Approved'].includes(s)) return 'success'
     if (['Rejected'].includes(s)) return 'danger'
-    if (['Pending Manager', 'Pending FM/GM', 'Pending Direksi'].includes(s)) return 'warning'
+    if (['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD'].includes(s)) return 'warning'
     if (['Verifikasi Gudang', 'Purchasing'].includes(s)) return 'info'
     return 'default'
 }
@@ -62,6 +66,55 @@ const targetInfo = (mr: MR) => {
 }
 
 const openEdit = (id: number) => { window.location.href = baseUrl + '/admin/overview/' + id + '/edit' }
+
+// ===== Tandai input Accurate (Gudang) =====
+const togglingAccurate = ref<number | null>(null)
+const toggleAccurate = async (mr: MR) => {
+    const next = mr.input_accurate === 'Sudah' ? 'Belum' : 'Sudah'
+    togglingAccurate.value = mr.id
+    try {
+        const res = await fetch(`${baseUrl}/gudang/mr/${mr.id}/accurate`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+            body: JSON.stringify({ value: next }),
+        })
+        togglingAccurate.value = null
+        if (res.ok) { Snackbar.success(`Ditandai: ${next}`); window.location.reload() }
+        else { Snackbar.error('Gagal') }
+    } catch { togglingAccurate.value = null; Snackbar.error('Gagal') }
+}
+
+// ===== Isi keterangan ketersediaan item (Gudang) =====
+const showNotes = ref(false)
+const notesMr = ref<MR | null>(null)
+const notesItems = ref<any[]>([])
+const savingNotes = ref(false)
+
+const openNotes = (mr: MR) => {
+    notesMr.value = mr
+    notesItems.value = (mr.items || []).map((it: any) => ({
+        id: it.id,
+        qty_tersedia: it.qty_tersedia ?? '',
+        keterangan_gudang: it.keterangan_gudang ?? '',
+        nama: it.item_name,
+        qty: it.qty,
+        unit: it.unit,
+    }))
+    showNotes.value = true
+}
+
+const saveNotes = async () => {
+    savingNotes.value = true
+    try {
+        const payload = notesItems.value.map((it: any) => ({ id: it.id, qty_tersedia: it.qty_tersedia === '' ? null : Number(it.qty_tersedia), keterangan_gudang: it.keterangan_gudang || null }))
+        const res = await fetch(`${baseUrl}/gudang/mr/${notesMr.value!.id}/items`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+            body: JSON.stringify({ items: payload }),
+        })
+        savingNotes.value = false
+        if (res.ok) { Snackbar.success('Keterangan disimpan'); showNotes.value = false; window.location.reload() }
+        else { Snackbar.error('Gagal') }
+    } catch { savingNotes.value = false; Snackbar.error('Gagal') }
+}
 
 const statusStats = computed(() => [
     { label: 'Total MR', value: props.stats.total, color: '#4f46e5', bg: '#e0e7ff' },
@@ -135,12 +188,24 @@ const openDetail = (id: number) => { window.location.href = baseUrl + '/material
             <div v-for="mr in requests.data" :key="mr.id" class="mr-card">
                 <div class="mr-head" @click="openDetail(mr.id)">
                     <span class="mr-num">{{ mr.mr_number }}</span>
-                    <var-chip :type="statusBadge(mr.status_workflow)" size="mini">{{ mr.status_workflow }}</var-chip>
+                    <div class="head-chips">
+                        <var-chip :type="mr.input_accurate === 'Sudah' ? 'success' : 'default'" size="mini">{{ mr.input_accurate === 'Sudah' ? '✅ Accurate' : 'Accurate: Belum' }}</var-chip>
+                        <var-chip :type="statusBadge(mr.status_workflow)" size="mini">{{ mr.status_workflow }}</var-chip>
+                    </div>
                 </div>
                 <div class="mr-info" @click="openDetail(mr.id)">
                     <span><strong>{{ mr.user?.name || '?' }}</strong> ({{ mr.user?.nik || '-' }})</span>
-                    <span class="muted">{{ mr.factory }} • {{ mr.type }} • {{ mr.allocation }} • {{ mr.items?.length || 0 }} item</span>
-                    <span class="muted">{{ mr.created_at }}</span>
+                    <span class="muted">{{ mr.factory }} • {{ mr.type }} • {{ mr.allocation }} • {{ mr.created_at }}</span>
+                </div>
+
+                <!-- Aksi Gudang: tandai Accurate & isi keterangan item -->
+                <div v-if="canGudang" class="gudang-actions">
+                    <button class="g-btn" :class="mr.input_accurate === 'Sudah' ? 'active' : ''" :disabled="togglingAccurate === mr.id" @click="toggleAccurate(mr)">
+                        {{ mr.input_accurate === 'Sudah' ? '✅ Sudah Input Accurate' : 'Tandai Sudah Input Accurate' }}
+                    </button>
+                    <button class="g-btn outline" @click="openNotes(mr)">
+                        <var-icon name="clipboard-text" :size="16" style="margin-right:4px" /> Isi Keterangan Item
+                    </button>
                 </div>
 
                 <!-- Tujuan & Edit -->
@@ -152,6 +217,25 @@ const openDetail = (id: number) => { window.location.href = baseUrl + '/material
                     </var-button>
                 </div>
             </div>
+
+            <!-- Dialog: isi keterangan item (Gudang) -->
+            <var-dialog :show="showNotes" :title="'Keterangan Item — ' + (notesMr?.mr_number || '')" @close="showNotes=false" @cancel="showNotes=false" confirm-button-text="Simpan" cancel-button-text="Batal" @confirm="saveNotes">
+                <div class="notes-list">
+                    <div v-for="(it, i) in notesItems" :key="it.id" class="note-item">
+                        <p class="note-name">{{ i + 1 }}. {{ it.nama }} <span class="note-qty">(diminta {{ it.qty }} {{ it.unit }})</span></p>
+                        <div class="note-row">
+                            <label>Qty Tersedia</label>
+                            <input v-model="it.qty_tersedia" type="number" min="0" placeholder="cth: 2" />
+                        </div>
+                        <div class="note-row">
+                            <label>Keterangan</label>
+                            <input v-model="it.keterangan_gudang" placeholder="cth: hanya tersedia 2, kurang 1" />
+                        </div>
+                    </div>
+                    <p v-if="!notesItems.length" class="empty">Tidak ada item.</p>
+                </div>
+                <div v-if="savingNotes" class="saving-note">Menyimpan...</div>
+            </var-dialog>
 
             <!-- Pagination -->
             <div class="pagination">
@@ -193,10 +277,25 @@ const openDetail = (id: number) => { window.location.href = baseUrl + '/material
 .empty { text-align:center;padding:40px;color:#94a3b8; }
 
 .mr-card { background:#fff;border-radius:14px;padding:14px;border:1px solid #f1f5f9; }
-.mr-head { display:flex;justify-content:space-between;align-items:center;cursor:pointer; }
+.mr-head { display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:8px; }
+.head-chips { display:flex;gap:6px;align-items:center; }
 .mr-num { font-family:monospace;font-weight:800;font-size:13px;color:#0f172a; }
 .mr-info { display:flex;flex-direction:column;gap:2px;font-size:12px;margin:6px 0 10px;cursor:pointer; }
 .mr-info .muted { color:#64748b; }
+.gudang-actions { display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap; }
+.g-btn { flex:1;min-width:140px;padding:10px;border-radius:10px;border:none;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:4px;background:#10b981;color:#fff; }
+.g-btn.outline { background:#fff;color:#0e7490;border:1px solid #67e8f9; }
+.g-btn.active { background:#065f46; }
+.g-btn:disabled { opacity:0.5; }
+.notes-list { display:flex;flex-direction:column;gap:14px;max-height:60vh;overflow-y:auto; }
+.note-item { border:1px solid #e2e8f0;border-radius:10px;padding:10px; }
+.note-name { margin:0 0 8px;font-size:13px;font-weight:600;color:#0f172a; }
+.note-qty { font-size:11px;color:#64748b;font-weight:400; }
+.note-row { display:flex;align-items:center;gap:10px;margin-top:6px; }
+.note-row label { font-size:11px;font-weight:600;color:#64748b;width:110px; }
+.note-row input { flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px;outline:none; }
+.note-row input:focus { border-color:#4f46e5; }
+.saving-note { text-align:center;font-size:12px;color:#64748b;padding-top:8px; }
 .target-row { display:flex;align-items:center;gap:8px;border-top:1px solid #f1f5f9;padding-top:10px; }
 .target-lbl { font-size:11px;font-weight:700;color:#4f46e5;white-space:nowrap; }
 .target-done { font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:10px; }

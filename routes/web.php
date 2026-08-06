@@ -91,6 +91,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/approval/gudang/{id}/verify', [MaterialRequestController::class, 'verifyGudang'])->name('approval.verify-gudang');
         Route::get('/approval/gudang/{id}/edit', [MaterialRequestController::class, 'gudangEdit'])->name('approval.gudang-edit');
         Route::post('/approval/gudang/{id}/update', [MaterialRequestController::class, 'gudangUpdate'])->name('approval.gudang-update');
+        Route::post('/gudang/mr/{id}/accurate', [MaterialRequestController::class, 'toggleAccurate'])->name('gudang.accurate');
+        Route::post('/gudang/mr/{id}/items', [MaterialRequestController::class, 'updateGudangItems'])->name('gudang.items');
     });
 
     // Purchasing: Export

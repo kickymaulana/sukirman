@@ -263,14 +263,22 @@ class MaterialRequestController extends Controller
         ]);
 
         DB::transaction(function () use ($validated) {
-            // Format pendek: MR010508 (jam) — pastikan unik dengan menambahkan suffix bila dobel
-            $base = 'MR' . date('His');
-            $mrNumber = $base;
-            $suffix = 0;
-            while (MaterialRequest::where('mr_number', $mrNumber)->exists()) {
-                $suffix++;
-                $mrNumber = $base . $suffix;
+            // Nomor MR berurutan (format 6 digit, misal 010564) — aman anti dobel dengan lock baris
+            $setting = Setting::where('key', 'mr_number_counter')->lockForUpdate()->first();
+            if (!$setting) {
+                $setting = Setting::create(['key' => 'mr_number_counter', 'value' => 0]);
             }
+
+            $next = ((int) $setting->value) + 1;
+            $mrNumber = str_pad($next, 6, '0', STR_PAD_LEFT);
+
+            // Jaga-jaga kalau counter di-set lebih rendah dari nomor yang sudah terpakai
+            while (MaterialRequest::where('mr_number', $mrNumber)->exists()) {
+                $next++;
+                $mrNumber = str_pad($next, 6, '0', STR_PAD_LEFT);
+            }
+
+            $setting->update(['value' => $next]);
 
             $mr = MaterialRequest::create([
                 'mr_number' => $mrNumber,
@@ -735,6 +743,43 @@ class MaterialRequestController extends Controller
         ]);
 
         return redirect()->route('approval.gudang')->with('success', 'MR berhasil diedit.');
+    }
+
+    /**
+     * Gudang menandai apakah MR sudah diinput ke Accurate.
+     */
+    public function toggleAccurate(Request $request, $id)
+    {
+        $mr = MaterialRequest::findOrFail($id);
+        $validated = $request->validate(['value' => 'required|in:Belum,Sudah']);
+        $mr->update(['input_accurate' => $validated['value']]);
+        return response()->json(['ok' => true, 'message' => "Ditandai: {$validated['value']}"]);
+    }
+
+    /**
+     * Gudang mengisi ketersediaan & keterangan tiap item.
+     */
+    public function updateGudangItems(Request $request, $id)
+    {
+        $mr = MaterialRequest::findOrFail($id);
+        $validated = $request->validate([
+            'items' => ['required', 'array'],
+            'items.*.id' => ['required', 'integer'],
+            'items.*.qty_tersedia' => ['nullable', 'integer', 'min:0'],
+            'items.*.keterangan_gudang' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        foreach ($validated['items'] as $item) {
+            $mrItem = MaterialRequestItem::find($item['id']);
+            if ($mrItem && $mrItem->material_request_id === $mr->id) {
+                $mrItem->update([
+                    'qty_tersedia' => $item['qty_tersedia'] ?? null,
+                    'keterangan_gudang' => $item['keterangan_gudang'] ?? null,
+                ]);
+            }
+        }
+
+        return response()->json(['ok' => true, 'message' => 'Keterangan item diperbarui.']);
     }
 
     // ============ PURCHASING: Export Excel ============

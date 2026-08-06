@@ -20,6 +20,7 @@ class MaterialRequest extends Model
         'allocation',
         'status_pembelian',
         'jenis',
+        'input_accurate',
         'status_workflow',
         'revision_notes',
     ];

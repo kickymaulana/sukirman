@@ -16,6 +16,8 @@ class MaterialRequestItem extends Model
         'item_name',
         'specification',
         'qty',
+        'qty_tersedia',
+        'keterangan_gudang',
         'unit',
         'item_status',
         'monthly_usage',

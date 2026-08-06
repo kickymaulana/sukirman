@@ -71,6 +71,7 @@ class AdminOverviewController extends Controller
             'fmGms'    => $fmGms,
             'direksis' => $direksis,
             'canEdit'  => auth()->user()->hasRole('admin'),
+            'canGudang' => auth()->user()->hasRole('Gudang'),
             'allStatuses' => [
                 'Pending Manager', 'Pending FM/GM', 'Pending Direksi',
                 'Verifikasi Gudang', 'Fully Approved', 'Purchasing', 'Rejected', 'Revision',
