@@ -126,6 +126,16 @@ const handleTabChange = (index: number) => {
         <var-icon name="clipboard-text-outline" class="welcome-icon" />
       </div>
 
+      <!-- MR Saya (untuk semua user) -->
+      <div class="my-mr-card" @click="router.get(baseUrl + '/my-mrs')">
+        <div class="my-mr-icon">📋</div>
+        <div class="my-mr-text">
+          <span class="my-mr-title">MR Saya</span>
+          <span class="my-mr-count">Lihat semua MR yang terkait dengan Anda</span>
+        </div>
+        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
+      </div>
+
       <!-- Stats Grid -->
       <div class="section-header">
         <h3 class="section-title">Status Pengajuan</h3>
@@ -396,6 +406,15 @@ const handleTabChange = (index: number) => {
 .overview-text { flex:1;display:flex;flex-direction:column; }
 .overview-title { font-size:14px;font-weight:700;color:#6d28d9; }
 .overview-count { font-size:12px;color:#7c3aed; }
+
+.my-mr-card {
+  display:flex;align-items:center;gap:14px;background:#ecfeff;border-radius:16px;padding:16px;
+  border:2px solid #a5f3fc;cursor:pointer;margin-bottom:12px;
+}
+.my-mr-icon { font-size:32px; }
+.my-mr-text { flex:1;display:flex;flex-direction:column; }
+.my-mr-title { font-size:14px;font-weight:700;color:#0e7490; }
+.my-mr-count { font-size:12px;color:#06b6d4; }
 
 .approval-card {
   display:flex;align-items:center;gap:14px;background:#eef2ff;border-radius:16px;padding:16px;

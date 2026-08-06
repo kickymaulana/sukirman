@@ -53,6 +53,59 @@ class MaterialRequestController extends Controller
     }
 
     /**
+     * Daftar MR yang bersangkutan dengan user (pengaju / target / pernah menindak).
+     */
+    public function myMrs(Request $request): Response
+    {
+        $search = $request->input('search');
+
+        $query = MaterialRequest::with(['user', 'manager', 'fmGm', 'direksi', 'items'])
+            ->where(function ($q) {
+                $q->where('user_id', auth()->id())
+                  ->orWhere('manager_id', auth()->id())
+                  ->orWhere('fm_gm_id', auth()->id())
+                  ->orWhere('direksi_id', auth()->id())
+                  ->orWhereHas('approvalLogs', fn ($l) => $l->where('user_id', auth()->id()));
+            });
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('mr_number', 'like', "%{$search}%")
+                  ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
+                          ->orWhere('nik', 'like', "%{$search}%"));
+            });
+        }
+
+        $requests = $query->latest()
+            ->paginate(10)
+            ->withQueryString()
+            ->through(function ($mr) {
+                $myId = auth()->id();
+                $roles = [];
+                if ($mr->user_id === $myId) $roles[] = 'Pengaju';
+                if ($mr->manager_id === $myId) $roles[] = 'Manager';
+                if ($mr->fm_gm_id === $myId) $roles[] = 'FM/GM';
+                if ($mr->direksi_id === $myId) $roles[] = 'Direksi';
+
+                return [
+                    'id' => $mr->id,
+                    'mr_number' => $mr->mr_number,
+                    'jenis' => $mr->jenis,
+                    'factory' => $mr->factory,
+                    'status_workflow' => $mr->status_workflow,
+                    'created_at' => $mr->created_at->format('d M Y'),
+                    'pengaju' => $mr->user?->name,
+                    'peran_saya' => $roles,
+                ];
+            });
+
+        return Inertia::render('MaterialRequest/MyMrs', [
+            'requests' => $requests,
+            'filters' => ['search' => $search ?? ''],
+        ]);
+    }
+
+    /**
      * Ubah MR menjadi struktur data untuk halaman daftar (progress + riwayat).
      */
     private function mapForList($mr): array

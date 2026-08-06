@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
     // Material Request (SUKIRMAN)
     Route::controller(MaterialRequestController::class)->group(function () {
         Route::get('/material-requests', 'index')->name('material-requests.index');
+        Route::get('/my-mrs', 'myMrs')->name('material-requests.my-mrs');
         Route::get('/material-requests/create', 'create')->name('material-requests.create');
         Route::post('/material-requests', 'store')->name('material-requests.store');
         Route::get('/material-requests/{id}', 'show')->name('material-requests.show');
