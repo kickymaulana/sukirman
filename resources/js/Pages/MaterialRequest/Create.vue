@@ -177,6 +177,7 @@ const goBack = () => {
                 variant="outlined"
                 placeholder="Nama Barang *"
                 :error-message="form.errors[`items.${index}.item_name`]"
+                @update:modelValue="(v: any) => item.item_name = String(v).toUpperCase()"
               />
 
               <div class="grid-2-col">
