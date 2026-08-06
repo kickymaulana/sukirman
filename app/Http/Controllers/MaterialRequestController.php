@@ -286,15 +286,15 @@ class MaterialRequestController extends Controller
 
             foreach ($validated['items'] as $item) {
                 $mr->items()->create([
-                    'item_code' => $item['item_code'] ?? null,
+                    'item_code' => isset($item['item_code']) ? mb_strtoupper($item['item_code']) : null,
                     'item_name' => mb_strtoupper($item['item_name']),
-                    'specification' => $item['specification'] ?? null,
+                    'specification' => isset($item['specification']) ? mb_strtoupper($item['specification']) : null,
                     'qty' => $item['qty'],
-                    'unit' => $item['unit'],
+                    'unit' => mb_strtoupper($item['unit']),
                     'item_status' => $item['item_status'],
                     'monthly_usage' => $item['monthly_usage'] ?? 0,
                     'stock_on_hand' => $item['stock_on_hand'] ?? 0,
-                    'purpose' => $item['purpose'] ?? null,
+                    'purpose' => isset($item['purpose']) ? mb_strtoupper($item['purpose']) : null,
                 ]);
             }
         });

@@ -185,6 +185,7 @@ const goBack = () => {
                   v-model="item.item_code"
                   variant="outlined"
                   placeholder="Kode Barang (bisa diketik manual)"
+                  @update:modelValue="(v: any) => item.item_code = String(v).toUpperCase()"
                 />
                 <var-select v-model="item.item_status" variant="outlined" placeholder="Status Item">
                   <var-option v-for="opt in itemStatusOptions" :key="opt" :label="opt" :value="opt" />
@@ -204,6 +205,7 @@ const goBack = () => {
                   variant="outlined"
                   placeholder="Satuan (Pcs/Roll/dll) *"
                   :error-message="form.errors[`items.${index}.unit`]"
+                  @update:modelValue="(v: any) => item.unit = String(v).toUpperCase()"
                 />
               </div>
 
@@ -230,12 +232,14 @@ const goBack = () => {
                 textarea
                 rows="2"
                 placeholder="Spesifikasi Teknik / Detail Merk"
+                @update:modelValue="(v: any) => item.specification = String(v).toUpperCase()"
               />
 
               <var-input
                 v-model="item.purpose"
                 variant="outlined"
                 placeholder="Tujuan / Keperluan Barang"
+                @update:modelValue="(v: any) => item.purpose = String(v).toUpperCase()"
               />
             </var-space>
           </div>
