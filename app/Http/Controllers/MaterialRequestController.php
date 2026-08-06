@@ -114,6 +114,8 @@ class MaterialRequestController extends Controller
             'approvalLogs.user',
         ])->findOrFail($id);
 
+        $logs = $mr->approvalLogs->sortByDesc('id');
+
         // Role departemen sesuai jenis MR
         $deptRole = match ($mr->jenis) {
             'MTC' => 'MTC',
@@ -122,19 +124,32 @@ class MaterialRequestController extends Controller
             default => null,
         };
 
-        // Nama approver departemen: dari log approval departemen, atau Manager (kasus skip otomatis)
+        // Persetujuan hanya dihitung jika ada LOG approval (bukan sekadar ditugaskan)
+        $managerLog = $logs->where('role', 'Manager')->where('action', 'forward')->first();
+        $fmGmLog    = $logs->where('role', 'FM/GM')->where('action', 'forward')->first();
+        $direksiLog = $logs->where('role', 'Direksi')->where('action', 'approve')->first();
+
+        $managerApproved = (bool) $managerLog;
+        $fmGmApproved    = (bool) $fmGmLog;
+        $direksiApproved = (bool) $direksiLog;
+
+        $managerApproverName = $managerLog?->user?->name;
+        $fmGmApproverName    = $fmGmLog?->user?->name;
+        $direksiApproverName = $direksiLog?->user?->name;
+
+        // Departemen: approve dari log departemen, ATAU skip otomatis jika manager sudah approve & punya role tsb
+        $deptApproved = false;
         $deptApproverName = null;
         if ($deptRole) {
-            $deptLog = $mr->approvalLogs
-                ->where('role', $deptRole)
-                ->where('action', 'approve')
-                ->first();
-            if ($deptLog && $deptLog->user) {
-                $deptApproverName = $deptLog->user->name;
-            } else {
-                $manager = User::find($mr->manager_id);
-                if ($manager && $manager->hasRole($deptRole)) {
-                    $deptApproverName = $manager->name;
+            $deptLog = $logs->where('role', $deptRole)->where('action', 'approve')->first();
+            if ($deptLog) {
+                $deptApproved = true;
+                $deptApproverName = $deptLog->user?->name;
+            } elseif ($managerLog) {
+                $managerUser = User::find($mr->manager_id);
+                if ($managerUser && $managerUser->hasRole($deptRole)) {
+                    $deptApproved = true;
+                    $deptApproverName = $managerUser->name;
                 }
             }
         }
@@ -142,7 +157,14 @@ class MaterialRequestController extends Controller
         return Inertia::render('MaterialRequest/Print', [
             'mr' => $mr,
             'deptRole' => $deptRole,
+            'deptApproved' => $deptApproved,
             'deptApproverName' => $deptApproverName,
+            'managerApproved' => $managerApproved,
+            'managerApproverName' => $managerApproverName,
+            'fmGmApproved' => $fmGmApproved,
+            'fmGmApproverName' => $fmGmApproverName,
+            'direksiApproved' => $direksiApproved,
+            'direksiApproverName' => $direksiApproverName,
         ]);
     }
 

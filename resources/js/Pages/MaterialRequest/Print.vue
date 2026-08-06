@@ -1,7 +1,18 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3'
 
-const props = defineProps<{ mr: any; deptRole?: string | null; deptApproverName?: string | null }>()
+const props = defineProps<{
+    mr: any
+    deptRole?: string | null
+    deptApproved?: boolean
+    deptApproverName?: string | null
+    managerApproved?: boolean
+    managerApproverName?: string | null
+    fmGmApproved?: boolean
+    fmGmApproverName?: string | null
+    direksiApproved?: boolean
+    direksiApproverName?: string | null
+}>()
 
 const mr = props.mr
 
@@ -145,23 +156,23 @@ const goBack = () => window.history.back()
       <div class="signatures">
         <div class="sign-box">
           <p class="sign-role">Manager</p>
-          <div v-if="mr.manager?.name" class="approved-stamp"><span class="stamp-txt">✓ Approved</span></div>
-          <p class="sign-name">{{ mr.manager?.name || '( belum ditandatangani )' }}</p>
+          <div v-if="managerApproved" class="approved-stamp"><span class="stamp-txt">✓ Approved</span></div>
+          <p class="sign-name">{{ managerApproverName || mr.manager?.name || '( belum ditandatangani )' }}</p>
         </div>
         <div v-if="deptRole" class="sign-box">
           <p class="sign-role">{{ deptRole }}</p>
-          <div v-if="deptApproverName" class="approved-stamp"><span class="stamp-txt">✓ Approved</span></div>
+          <div v-if="deptApproved" class="approved-stamp"><span class="stamp-txt">✓ Approved</span></div>
           <p class="sign-name">{{ deptApproverName || '( belum ditandatangani )' }}</p>
         </div>
         <div class="sign-box">
           <p class="sign-role">FM/GM</p>
-          <div v-if="mr.fm_gm?.name" class="approved-stamp"><span class="stamp-txt">✓ Approved</span></div>
-          <p class="sign-name">{{ mr.fm_gm?.name || '( belum ditandatangani )' }}</p>
+          <div v-if="fmGmApproved" class="approved-stamp"><span class="stamp-txt">✓ Approved</span></div>
+          <p class="sign-name">{{ fmGmApproverName || mr.fm_gm?.name || '( belum ditandatangani )' }}</p>
         </div>
         <div class="sign-box">
           <p class="sign-role">Direksi</p>
-          <div v-if="mr.direksi?.name" class="approved-stamp"><span class="stamp-txt">✓ Approved</span></div>
-          <p class="sign-name">{{ mr.direksi?.name || '( belum ditandatangani )' }}</p>
+          <div v-if="direksiApproved" class="approved-stamp"><span class="stamp-txt">✓ Approved</span></div>
+          <p class="sign-name">{{ direksiApproverName || mr.direksi?.name || '( belum ditandatangani )' }}</p>
         </div>
       </div>
 
