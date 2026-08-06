@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MaterialRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -179,5 +180,25 @@ class AdminOverviewController extends Controller
         ]);
 
         return redirect()->route('admin.overview.edit', $id)->with('success', 'MR berhasil diperbarui.');
+    }
+
+    /**
+     * Hapus MR sekaligus membersihkan relasi & notifikasi agar tidak ada yang tertinggal.
+     */
+    public function destroy($id)
+    {
+        $mr = MaterialRequest::findOrFail($id);
+
+        DB::transaction(function () use ($mr, $id) {
+            // 1. Hapus notifikasi yang merujuk MR ini (untuk semua user, misal yang masih ada di Direksi)
+            DatabaseNotification::whereRaw("JSON_UNQUOTE(JSON_EXTRACT(`data`, '$.mr_id')) = ?", [(string) $id])
+                ->delete();
+
+            // 2. Hapus MR — items & approval_logs ikut terhapus otomatis (cascade)
+            $mr->delete();
+        });
+
+        return redirect()->route('admin.overview')
+            ->with('status', "MR {$mr->mr_number} berhasil dihapus beserta riwayat & notifikasinya.");
     }
 }

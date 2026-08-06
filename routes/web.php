@@ -110,6 +110,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/overview/{id}/edit', [AdminOverviewController::class, 'edit'])->name('overview.edit');
         Route::post('/overview/{id}/update', [AdminOverviewController::class, 'update'])->name('overview.update');
+        Route::delete('/overview/{id}', [AdminOverviewController::class, 'destroy'])->name('overview.destroy');
         Route::get('/users', [AdminUserController::class, 'index'])->name('users');
         Route::get('/users/{id}', [AdminUserController::class, 'show'])->name('users.show');
         Route::post('/users/{id}/approve', [AdminUserController::class, 'approve'])->name('users.approve');

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Head, router, useForm, usePage } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
 
@@ -57,6 +57,15 @@ const statusBadge = (s: string) => {
 const save = () => {
     form.post(`${baseUrl}/admin/overview/${props.mr.id}/update`, {
         onSuccess: () => Snackbar.success('MR berhasil diperbarui'),
+    })
+}
+
+// Hapus MR (batal) — dengan konfirmasi
+const showDelete = ref(false)
+const confirmDelete = () => {
+    showDelete.value = false
+    router.delete(`${baseUrl}/admin/overview/${props.mr.id}`, {
+        onSuccess: () => { Snackbar.success('MR dihapus'); window.location.href = `${baseUrl}/admin/overview` },
     })
 }
 </script>
@@ -165,6 +174,21 @@ const save = () => {
             <var-button type="primary" block :loading="form.processing" @click="save">
                 Simpan Perubahan
             </var-button>
+
+            <var-button type="danger" block text @click="showDelete = true" style="margin-top:8px;color:#ef4444">
+                🗑️ Hapus MR (Batal)
+            </var-button>
+
+            <var-dialog
+                :show="showDelete"
+                title="Hapus MR?"
+                message="MR akan dihapus permanen beserta semua item, riwayat approval, dan notifikasi terkait. Lanjutkan?"
+                confirm-button-text="Ya, Hapus"
+                cancel-button-text="Batal"
+                @confirm="confirmDelete"
+                @close="showDelete = false"
+                @cancel="showDelete = false"
+            />
         </main>
     </div>
 </template>
