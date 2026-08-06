@@ -263,22 +263,14 @@ class MaterialRequestController extends Controller
         ]);
 
         DB::transaction(function () use ($validated) {
-            // Nomor MR berurutan (format 6 digit, misal 010564) — aman anti dobel dengan lock baris
-            $setting = Setting::where('key', 'mr_number_counter')->lockForUpdate()->first();
-            if (!$setting) {
-                $setting = Setting::create(['key' => 'mr_number_counter', 'value' => 0]);
-            }
-
-            $next = ((int) $setting->value) + 1;
-            $mrNumber = str_pad($next, 6, '0', STR_PAD_LEFT);
-
-            // Jaga-jaga kalau counter di-set lebih rendah dari nomor yang sudah terpakai
+            // Format pendek: MR010508 (jam) — pastikan unik dengan menambahkan suffix bila dobel
+            $base = 'MR' . date('His');
+            $mrNumber = $base;
+            $suffix = 0;
             while (MaterialRequest::where('mr_number', $mrNumber)->exists()) {
-                $next++;
-                $mrNumber = str_pad($next, 6, '0', STR_PAD_LEFT);
+                $suffix++;
+                $mrNumber = $base . $suffix;
             }
-
-            $setting->update(['value' => $next]);
 
             $mr = MaterialRequest::create([
                 'mr_number' => $mrNumber,

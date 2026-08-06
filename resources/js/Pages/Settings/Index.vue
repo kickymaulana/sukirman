@@ -2,11 +2,10 @@
 import { Head, router, useForm } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
 
-const props = defineProps<{ branch_code: string; mr_number_counter: number }>()
+const props = defineProps<{ branch_code: string }>()
 
 const form = useForm({
   branch_code: props.branch_code,
-  mr_number_counter: String(props.mr_number_counter),
 })
 
 const save = () => {
@@ -30,7 +29,7 @@ const goBack = () => router.get(route('dashboard'))
     <main class="android-content">
       <div class="info-card">
         <var-icon name="information" :size="22" color="#1d6bf0" />
-        <span>Pengaturan export XML Accurate (PR / Permintaan Barang).</span>
+        <span>ID Cabang ini dipakai untuk keperluan export XML Accurate (PR / Permintaan Barang).</span>
       </div>
 
       <div class="form-card">
@@ -42,32 +41,17 @@ const goBack = () => router.get(route('dashboard'))
           :error-message="form.errors.branch_code"
         />
         <p class="hint">Bisa berisi angka maupun teks. Contoh: <strong>64260479</strong></p>
-      </div>
 
-      <div class="form-card">
-        <label class="field-label">Nomor MR Terakhir (Counter)</label>
-        <var-input
-          v-model="form.mr_number_counter"
-          variant="outlined"
-          type="number"
-          min="0"
-          placeholder="Contoh: 10563"
-          :error-message="form.errors.mr_number_counter"
-        />
-        <p class="hint">
-          Isi dengan <strong>nomor PR terakhir di Accurate</strong> (misal 10563). MR berikutnya otomatis jadi
-          <strong>010564</strong>, lalu 010565, dst.
-        </p>
+        <var-button
+          type="primary"
+          block
+          :loading="form.processing"
+          @click="save"
+          style="margin-top: 16px"
+        >
+          Simpan Pengaturan
+        </var-button>
       </div>
-
-      <var-button
-        type="primary"
-        block
-        :loading="form.processing"
-        @click="save"
-      >
-        Simpan Pengaturan
-      </var-button>
     </main>
   </div>
 </template>

@@ -24,7 +24,6 @@ class SettingController extends Controller
     {
         return Inertia::render('Settings/Index', [
             'branch_code' => Setting::get('accurate_branch_code', ''),
-            'mr_number_counter' => Setting::get('mr_number_counter', 0),
         ]);
     }
 
@@ -32,20 +31,12 @@ class SettingController extends Controller
     {
         $validated = $request->validate([
             'branch_code' => ['nullable', 'string', 'max:50'],
-            'mr_number_counter' => ['nullable', 'integer', 'min:0'],
         ]);
 
         Setting::updateOrCreate(
             ['key' => 'accurate_branch_code'],
             ['value' => $validated['branch_code'] ?? '']
         );
-
-        if (array_key_exists('mr_number_counter', $validated) && $validated['mr_number_counter'] !== null) {
-            Setting::updateOrCreate(
-                ['key' => 'mr_number_counter'],
-                ['value' => $validated['mr_number_counter']]
-            );
-        }
 
         return back()->with('success', 'Pengaturan berhasil disimpan.');
     }
