@@ -8,9 +8,8 @@ interface MR {
     jenis: string
     factory: string
     status_workflow: string
-    input_po: string
-    nomor_po: string | null
-    tanggal_po: string | null
+    po_status: string
+    nomor_pos: string[]
     created_at: string
     pengaju: string
     departemen: string | null
@@ -40,6 +39,12 @@ const applyFilters = () => {
         search: searchVal.value || undefined,
         status: statusVal.value || undefined,
     }, { preserveState: true })
+}
+
+const poBadge = (s: string) => {
+    if (s === 'Sudah') return 'success'
+    if (s === 'Sebagian') return 'warning'
+    return 'default'
 }
 
 const goBack = () => router.get(route('dashboard'))
@@ -91,12 +96,8 @@ const goBack = () => router.get(route('dashboard'))
                             <td class="muted">{{ mr.created_at }}</td>
                             <td><var-chip :type="statusBadge(mr.status_workflow)" size="mini">{{ mr.status_workflow }}</var-chip></td>
                             <td>
-                                <template v-if="mr.input_po === 'Sudah'">
-                                    <var-chip type="success" size="mini">✅ PO</var-chip>
-                                    <div v-if="mr.nomor_po" class="po-num">{{ mr.nomor_po }}</div>
-                                    <div v-if="mr.tanggal_po" class="po-date">{{ mr.tanggal_po }}</div>
-                                </template>
-                                <var-chip v-else type="default" size="mini">Belum</var-chip>
+                                <var-chip :type="poBadge(mr.po_status)" size="mini">{{ mr.po_status === 'Sudah' ? '✅ PO' : mr.po_status }}</var-chip>
+                                <div v-for="np in mr.nomor_pos" :key="np" class="po-num">{{ np }}</div>
                             </td>
                             <td>
                                 <a :href="baseUrl + '/approval/purchasing/' + mr.id + '/input'" class="btn-kerja">Kerjakan / Input PO</a>

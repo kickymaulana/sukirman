@@ -10,40 +10,61 @@ const csrf = pp.csrf_token || ''
 
 const mr = props.mr
 
-const inputPo = ref(mr.input_po === 'Sudah' ? 'Sudah' : 'Belum')
-const nomorPo = ref(mr.nomor_po || '')
+const items = ref((mr.items || []).map((it: any) => ({
+    id: it.id,
+    nomor_po: it.nomor_po || '',
+    nama: it.item_name,
+    kode: it.item_code || '',
+    qty: it.qty,
+    unit: it.unit,
+    departemen: it.departemen?.nama || '',
+})))
 
-const formatFull = (v: string | null) => {
-    if (!v) return '-'
-    return new Date(v).toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
+const bulkPo = ref('')
 
 const copyText = async (text: string) => {
     try { await navigator.clipboard.writeText(text); Snackbar.success('Tersalin') }
     catch { Snackbar.error('Gagal menyalin') }
 }
 
+// Status PO dihitung otomatis dari item
+const poStatus = computed(() => {
+    const total = items.value.length
+    const withPo = items.value.filter(i => i.nomor_po.trim()).length
+    if (total === 0) return 'Belum'
+    if (withPo === total) return 'Sudah'
+    return withPo > 0 ? 'Sebagian' : 'Belum'
+})
+
+const poBadgeType = computed(() => {
+    if (poStatus.value === 'Sudah') return 'success'
+    if (poStatus.value === 'Sebagian') return 'warning'
+    return 'default'
+})
+
+// Terapkan satu nomor PO ke semua item
+const applyBulk = () => {
+    if (!bulkPo.value.trim()) { Snackbar.warning('Isi nomor PO terlebih dahulu'); return }
+    items.value.forEach(i => { i.nomor_po = bulkPo.value.trim() })
+    bulkPo.value = ''
+    Snackbar.success('Nomor PO diterapkan ke semua item')
+}
+
 const saving = ref(false)
 const save = async () => {
-    if (inputPo.value === 'Sudah' && !nomorPo.value.trim()) {
-        Snackbar.warning('Isi Nomor PO terlebih dahulu')
-        return
-    }
     saving.value = true
     try {
         const res = await fetch(`${baseUrl}/approval/purchasing/${mr.id}/po`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
-            body: JSON.stringify({ input_po: inputPo.value, nomor_po: nomorPo.value.trim() }),
+            body: JSON.stringify({ items: items.value.map(i => ({ id: i.id, nomor_po: i.nomor_po.trim() })) }),
         })
         saving.value = false
-        if (res.ok) { Snackbar.success('Data PO disimpan'); window.location.reload() }
+        if (res.ok) { Snackbar.success('Nomor PO disimpan'); window.location.reload() }
         else { Snackbar.error('Gagal') }
     } catch { saving.value = false; Snackbar.error('Gagal') }
 }
 
 const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
-
-const isDone = computed(() => inputPo.value === 'Sudah')
 </script>
 
 <template>
@@ -58,38 +79,18 @@ const isDone = computed(() => inputPo.value === 'Sudah')
                     <h2 class="mr-num">{{ mr.mr_number }}</h2>
                     <p class="info">{{ mr.user?.name }} • Jenis: {{ mr.jenis }} • {{ mr.factory }} • {{ mr.created_at }}</p>
                 </div>
-                <var-chip :type="isDone ? 'success' : 'default'" size="small">
-                    {{ isDone ? '✅ Sudah jadi PO' : 'Belum jadi PO' }}
-                </var-chip>
+                <var-chip :type="poBadge" size="small">{{ poStatus === 'Sudah' ? '✅ Sudah PO' : poStatus }}</var-chip>
             </div>
 
-            <!-- Tanggal PO otomatis -->
-            <div v-if="mr.input_po === 'Sudah'" class="po-date-card">
-                <span class="field-lbl">Tanggal & Jam PO (otomatis)</span>
-                <span class="po-date-val">{{ formatFull(mr.tanggal_po) }}</span>
-            </div>
-
-            <!-- Input Nomor PO -->
-            <div class="po-card">
-                <div class="po-form">
-                    <label class="field-lbl">Nomor PO (salin dari Accurate)</label>
-                    <div class="po-row">
-                        <input v-model="nomorPo" type="text" placeholder="Contoh: PO-2026-000123" class="po-input" :disabled="saving" />
-                        <button class="btn-copy" @click="copyText(nomorPo)">⧉ Salin</button>
-                    </div>
-                </div>
-                <div class="po-actions">
-                    <button v-if="!isDone" class="btn-done" :disabled="saving" @click="inputPo='Sudah'; save()">
-                        ✅ Tandai MR Sudah Jadi PO
-                    </button>
-                    <template v-else>
-                        <button class="btn-done" :disabled="saving" @click="save()">💾 Simpan Nomor PO</button>
-                        <button class="btn-undo" :disabled="saving" @click="inputPo='Belum'; nomorPo=''; save()">↩ Batalkan PO</button>
-                    </template>
+            <!-- Terapkan satu PO ke semua item (kasus 1 MR = 1 PO) -->
+            <div class="bulk-card">
+                <label class="field-lbl">Set semua item ke satu Nomor PO</label>
+                <div class="bulk-row">
+                    <input v-model="bulkPo" type="text" placeholder="Isi satu nomor PO untuk semua item..." class="bulk-input" />
+                    <button class="btn-bulk" @click="applyBulk">Terapkan ke Semua Item</button>
                 </div>
             </div>
 
-            <!-- Daftar item -->
             <div class="table-wrap">
                 <table class="tbl">
                     <thead>
@@ -100,23 +101,34 @@ const isDone = computed(() => inputPo.value === 'Sudah')
                             <th>Departemen</th>
                             <th>Qty</th>
                             <th>Satuan</th>
+                            <th>Nomor PO</th>
                             <th>Salin</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(it, i) in mr.items" :key="it.id">
+                        <tr v-for="(it, i) in items" :key="it.id">
                             <td>{{ i + 1 }}</td>
-                            <td class="mono">{{ it.item_code || '-' }}</td>
-                            <td>{{ it.item_name }}</td>
-                            <td>{{ it.departemen?.nama || '-' }}</td>
+                            <td class="mono">{{ it.kode || '-' }}</td>
+                            <td>{{ it.nama }}</td>
+                            <td>{{ it.departemen || '-' }}</td>
                             <td>{{ it.qty }}</td>
                             <td>{{ it.unit }}</td>
-                            <td><button class="btn-copy" @click="copyText(`${it.item_code || ''} | ${it.item_name || ''}`.trim())">⧉ Salin</button></td>
+                            <td>
+                                <input v-model="it.nomor_po" type="text" placeholder="Nomor PO..." class="po-input" />
+                            </td>
+                            <td>
+                                <div class="copy-group">
+                                    <button class="btn-copy" @click="copyText(it.kode)">Kode</button>
+                                    <button class="btn-copy" @click="copyText(it.nama)">Nama</button>
+                                </div>
+                            </td>
                         </tr>
-                        <tr v-if="!mr.items?.length"><td colspan="7" class="empty">Tidak ada item.</td></tr>
+                        <tr v-if="!items.length"><td colspan="8" class="empty">Tidak ada item.</td></tr>
                     </tbody>
                 </table>
             </div>
+
+            <button class="btn-save" :disabled="saving" @click="save">💾 Simpan Nomor PO Semua Item</button>
         </main>
     </div>
 </template>
@@ -127,24 +139,23 @@ const isDone = computed(() => inputPo.value === 'Sudah')
 .head-card { background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap; }
 .mr-num { margin:0;font-family:monospace;font-weight:800;font-size:18px;color:#0f172a; }
 .info { font-size:13px;color:#64748b;margin:4px 0 0; }
-.po-date-card { background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px; }
-.po-date-val { font-size:16px;font-weight:800;color:#047857; }
-.po-card { background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px; }
-.po-form { display:flex;flex-direction:column;gap:6px; }
-.field-lbl { font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase; }
-.po-row { display:flex;gap:8px;align-items:center; }
-.po-input { flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:14px;outline:none; }
-.po-input:focus { border-color:#4f46e5; }
-.po-actions { display:flex;gap:10px;flex-wrap:wrap; }
-.btn-done { background:#10b981;color:#fff;border:none;padding:12px 18px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer; }
-.btn-done:disabled { opacity:0.5; }
-.btn-undo { background:#fff;color:#64748b;border:1px solid #cbd5e1;padding:12px 16px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer; }
-.btn-copy { background:#e0e7ff;color:#4338ca;border:none;padding:6px 12px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer; }
+.bulk-card { background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px; }
+.field-label { font-size:12px;font-weight:700;color:#334155;text-transform:uppercase; }
+.bulk-row { display:flex;gap:8px;align-items:center; }
+.bulk-input { flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:14px;outline:none; }
+.bulk-input:focus { border-color:#4f46e5; }
+.btn-bulk { background:#4f46e5;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap; }
 .table-wrap { background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden; }
 .tbl { width:100%;border-collapse:collapse;font-size:13px; }
 .tbl th { background:#f1f5f9;color:#334155;font-weight:700;text-align:left;padding:12px;font-size:12px;text-transform:uppercase; }
 .tbl td { padding:10px 12px;border-top:1px solid #f1f5f9;color:#1e293b; }
 .tbl tr:hover td { background:#f8fafc; }
 .mono { font-family:monospace;font-weight:700; }
+.po-input { width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:13px;outline:none; }
+.po-input:focus { border-color:#4f46e5; }
+.copy-group { display:flex;gap:6px; }
+.btn-copy { background:#e0e7ff;color:#4338ca;border:none;padding:5px 10px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer; }
 .empty { text-align:center;color:#94a3b8;padding:40px; }
+.btn-save { background:#10b981;color:#fff;border:none;padding:14px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer; }
+.btn-save:disabled { opacity:0.5; }
 </style>

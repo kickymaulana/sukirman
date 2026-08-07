@@ -27,6 +27,7 @@ class MaterialRequestItem extends Model
         'direksi_notes',
         'input_accurate',
         'departemen_id',
+        'nomor_po',
     ];
 
     public function materialRequest()

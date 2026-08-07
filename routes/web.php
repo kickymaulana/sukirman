@@ -105,7 +105,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/approval/purchasing/export', [MaterialRequestController::class, 'exportXml'])->name('approval.export');
         Route::get('/approval/purchasing/check-xml', [MaterialRequestController::class, 'checkXmlSkips'])->name('approval.export-check');
         Route::get('/approval/purchasing/{id}/input', [MaterialRequestController::class, 'purchasingInput'])->name('purchasing.input');
-        Route::post('/approval/purchasing/{id}/po', [MaterialRequestController::class, 'updatePo'])->name('purchasing.po');
+        Route::post('/approval/purchasing/{id}/po', [MaterialRequestController::class, 'updateItemsPo'])->name('purchasing.po');
     });
 
     // Pengaturan (admin, Purchasing, Gudang)

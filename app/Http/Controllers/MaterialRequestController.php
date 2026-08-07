@@ -849,20 +849,26 @@ class MaterialRequestController extends Controller
             ->latest();
 
         $requests = $query->paginate(10)->withQueryString()
-            ->through(fn ($mr) => [
-                'id' => $mr->id,
-                'mr_number' => $mr->mr_number,
-                'jenis' => $mr->jenis,
-                'factory' => $mr->factory,
-                'status_workflow' => $mr->status_workflow,
-                'input_po' => $mr->input_po,
-                'nomor_po' => $mr->nomor_po,
-                'tanggal_po' => $mr->tanggal_po ? \Illuminate\Support\Carbon::parse($mr->tanggal_po)->format('d M Y H:i') : null,
-                'created_at' => $mr->created_at->format('d M Y'),
-                'pengaju' => $mr->user?->name,
-                'departemen' => $mr->user?->departemen?->nama,
-                'items_count' => $mr->items->count(),
-            ]);
+            ->through(function ($mr) {
+                $items = $mr->items;
+                $total = $items->count();
+                $withPo = $items->filter(fn ($i) => !empty($i->nomor_po))->count();
+                $poStatus = $total === 0 ? 'Belum' : ($withPo === $total ? 'Sudah' : ($withPo > 0 ? 'Sebagian' : 'Belum'));
+
+                return [
+                    'id' => $mr->id,
+                    'mr_number' => $mr->mr_number,
+                    'jenis' => $mr->jenis,
+                    'factory' => $mr->factory,
+                    'status_workflow' => $mr->status_workflow,
+                    'po_status' => $poStatus,
+                    'nomor_pos' => $items->pluck('nomor_po')->filter()->unique()->values(),
+                    'created_at' => $mr->created_at->format('d M Y'),
+                    'pengaju' => $mr->user?->name,
+                    'departemen' => $mr->user?->departemen?->nama,
+                    'items_count' => $total,
+                ];
+            });
 
         $topUsers = MaterialRequest::with('user')
             ->select('user_id', DB::raw('count(*) as total'))
@@ -897,23 +903,25 @@ class MaterialRequestController extends Controller
     }
 
     /**
-     * Simpan nomor PO & status PO (dari Accurate).
+     * Simpan nomor PO per item (dari Accurate).
      */
-    public function updatePo(Request $request, $id)
+    public function updateItemsPo(Request $request, $id)
     {
         $mr = MaterialRequest::findOrFail($id);
         $validated = $request->validate([
-            'input_po' => ['required', 'in:Belum,Sudah'],
-            'nomor_po' => ['nullable', 'string', 'max:100'],
+            'items' => ['required', 'array'],
+            'items.*.id' => ['required', 'integer'],
+            'items.*.nomor_po' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $mr->update([
-            'input_po' => $validated['input_po'],
-            'nomor_po' => $validated['input_po'] === 'Sudah' ? ($validated['nomor_po'] ?: $mr->nomor_po) : null,
-            'tanggal_po' => $validated['input_po'] === 'Sudah' ? ($mr->tanggal_po ?: now()) : null,
-        ]);
+        foreach ($validated['items'] as $it) {
+            $mrItem = MaterialRequestItem::find($it['id']);
+            if ($mrItem && $mrItem->material_request_id === $mr->id) {
+                $mrItem->update(['nomor_po' => !empty($it['nomor_po']) ? $it['nomor_po'] : null]);
+            }
+        }
 
-        return response()->json(['ok' => true, 'message' => 'Data PO diperbarui.']);
+        return response()->json(['ok' => true, 'message' => 'Nomor PO item diperbarui.']);
     }
 
     public function revisionEdit($id)
