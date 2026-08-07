@@ -42,11 +42,19 @@ const addLine = (r: Row) => {
 }
 const removeLine = (r: Row, i: number) => r.lines.splice(i, 1)
 
-// Terapkan satu nomor PO ke semua baris (kasus 1 MR = 1 pemasok)
+// Buat semua item jadi satu PO: otomatis buat baris qty penuh + nomor PO yang sama
 const applyBulk = () => {
     if (!bulkPo.value.trim()) { Snackbar.warning('Isi nomor PO terlebih dahulu'); return }
-    items.value.forEach(r => r.lines.forEach(l => { l.nomor_po = bulkPo.value.trim() }))
-    Snackbar.success('Nomor PO diterapkan ke semua baris')
+    let added = 0
+    items.value.forEach(r => {
+        const sisa = r.qty - covered(r)
+        if (sisa > 0) {
+            r.lines.push({ qty: String(sisa), nomor_po: bulkPo.value.trim() })
+            added++
+        }
+    })
+    if (added === 0) { Snackbar.info('Semua item sudah terisi penuh') }
+    else { Snackbar.success(`Dibuat ${added} baris PO`); bulkPo.value = '' }
 }
 
 // Status seluruh item
@@ -97,12 +105,12 @@ const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
                 <var-chip :type="poBadgeType" size="small">{{ poStatus === 'Sudah' ? '✅ Sudah PO' : poStatus }}</var-chip>
             </div>
 
-            <!-- Terapkan satu nomor PO ke semua (kasus 1 MR = 1 pemasok) -->
+            <!-- Buat semua item jadi satu PO (kasus 1 MR = 1 pemasok) -->
             <div class="bulk-card">
-                <label class="field-label">Set satu Nomor PO ke semua baris</label>
+                <label class="field-label">Buat semua item jadi satu Nomor PO</label>
                 <div class="bulk-row">
-                    <input v-model="bulkPo" type="text" placeholder="Isi nomor PO untuk semua baris..." class="bulk-input" />
-                    <button class="btn-bulk" @click="applyBulk">Terapkan ke Semua</button>
+                    <input v-model="bulkPo" type="text" placeholder="Isi nomor PO untuk semua item..." class="bulk-input" />
+                    <button class="btn-bulk" @click="applyBulk">Buat Semua Jadi Satu PO</button>
                 </div>
             </div>
 
