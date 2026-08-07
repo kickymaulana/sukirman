@@ -795,12 +795,18 @@ class MaterialRequestController extends Controller
 
     /**
      * Gudang menandai apakah MR sudah diinput ke Accurate.
+     * Saat "Sudah" → status workflow ikut pindah ke Purchasing.
      */
     public function toggleAccurate(Request $request, $id)
     {
         $mr = MaterialRequest::findOrFail($id);
         $validated = $request->validate(['value' => 'required|in:Belum,Sudah']);
-        $mr->update(['input_accurate' => $validated['value']]);
+
+        $mr->update([
+            'input_accurate' => $validated['value'],
+            'status_workflow' => $validated['value'] === 'Sudah' ? 'Purchasing' : 'Verifikasi Gudang',
+        ]);
+
         return response()->json(['ok' => true, 'message' => "Ditandai: {$validated['value']}"]);
     }
 
