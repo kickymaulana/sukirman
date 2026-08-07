@@ -47,6 +47,10 @@ const openGudangEdit = () => {
     window.location.href = `${baseUrl}/approval/gudang/${mr.id}/edit`
 }
 
+const openGudangInput = () => {
+    window.location.href = `${baseUrl}/approval/gudang/${mr.id}/input`
+}
+
 const openPrint = () => {
     window.location.href = `${baseUrl}/material-requests/${mr.id}/print`
 }
@@ -75,10 +79,6 @@ const actions = computed(() => {
         a.push({ label: 'Approve', type: 'approve', action: '' })
         a.push({ label: 'Reject', type: 'reject', action: '' })
         a.push({ label: 'Revision (per item)', type: 'revision', action: '' })
-    }
-    if (role === 'gudang' && mr.status_workflow === 'Verifikasi Gudang') {
-        a.push({ label: 'Stok Tersedia', type: 'stock_yes', action: '' })
-        a.push({ label: 'Stok Tidak Ada', type: 'stock_no', action: '' })
     }
     return a
 })
@@ -190,6 +190,15 @@ const doAction = (type: string) => {
                 style="display:flex;align-items:center;justify-content:center;gap:8px;background:#0ea5e9;color:#fff;border-radius:12px;padding:14px;font-weight:700;cursor:pointer;"
             >
                 <var-icon name="printer-outline" :size="20" /> Cetak MR
+            </div>
+
+            <!-- Input ke Accurate (Gudang) -->
+            <div
+                v-if="role === 'gudang'"
+                @click="openGudangInput"
+                style="display:flex;align-items:center;justify-content:center;gap:8px;background:#10b981;color:#fff;border-radius:12px;padding:14px;font-weight:700;cursor:pointer;"
+            >
+                <var-icon name="clipboard-text" :size="20" /> Input ke Permintaan Barang (Accurate)
             </div>
 
             <!-- Edit MR (Gudang) -->

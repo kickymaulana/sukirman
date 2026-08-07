@@ -93,6 +93,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/approval/gudang/{id}/update', [MaterialRequestController::class, 'gudangUpdate'])->name('approval.gudang-update');
         Route::post('/gudang/mr/{id}/accurate', [MaterialRequestController::class, 'toggleAccurate'])->name('gudang.accurate');
         Route::post('/gudang/mr/{id}/items', [MaterialRequestController::class, 'updateGudangItems'])->name('gudang.items');
+        Route::get('/approval/gudang/{id}/input', [MaterialRequestController::class, 'gudangInput'])->name('gudang.input');
+        Route::post('/gudang/item/{id}/accurate', [MaterialRequestController::class, 'toggleItemAccurate'])->name('gudang.item.accurate');
     });
 
     // Purchasing: Export
@@ -100,6 +102,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/approval/purchasing', [MaterialRequestController::class, 'purchasingIndex'])->name('approval.purchasing');
         Route::get('/approval/purchasing/export', [MaterialRequestController::class, 'exportXml'])->name('approval.export');
         Route::get('/approval/purchasing/check-xml', [MaterialRequestController::class, 'checkXmlSkips'])->name('approval.export-check');
+        Route::get('/approval/purchasing/{id}/input', [MaterialRequestController::class, 'purchasingInput'])->name('purchasing.input');
+        Route::post('/approval/purchasing/{id}/po', [MaterialRequestController::class, 'updatePo'])->name('purchasing.po');
     });
 
     // Pengaturan (admin, Purchasing, Gudang)

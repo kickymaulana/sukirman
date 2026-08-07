@@ -617,15 +617,67 @@ class MaterialRequestController extends Controller
 
     // ============ GUDANG: Verifikasi Stok ============
 
-    public function gudangIndex()
+    public function gudangIndex(Request $request)
     {
-        $requests = MaterialRequest::with(['user', 'items'])
-            ->where('status_workflow', 'Verifikasi Gudang')
-            ->latest()->paginate(10);
+        $search = $request->input('search');
+        $status = $request->input('status');
+
+        $query = MaterialRequest::with(['user', 'items'])
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($w) use ($search) {
+                    $w->where('mr_number', 'like', "%{$search}%")
+                      ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
+                              ->orWhere('nik', 'like', "%{$search}%"));
+                });
+            })
+            ->when($status, fn ($q) => $q->where('status_workflow', $status))
+            ->latest();
+
+        $requests = $query->paginate(10)->withQueryString()
+            ->through(fn ($mr) => [
+                'id' => $mr->id,
+                'mr_number' => $mr->mr_number,
+                'jenis' => $mr->jenis,
+                'factory' => $mr->factory,
+                'status_workflow' => $mr->status_workflow,
+                'input_accurate' => $mr->input_accurate,
+                'created_at' => $mr->created_at->format('d M Y'),
+                'pengaju' => $mr->user?->name,
+                'items_count' => $mr->items->count(),
+            ]);
 
         return Inertia::render('Approval/Gudang', [
             'requests' => $requests,
+            'filters' => ['search' => $search ?? '', 'status' => $status ?? ''],
+            'allStatuses' => [
+                'Pending Manager', 'Pending FM/GM', 'Pending Direksi',
+                'Pending MTC', 'Pending IT', 'Pending HRD',
+                'Verifikasi Gudang', 'Fully Approved', 'Purchasing', 'Rejected', 'Revision',
+            ],
         ]);
+    }
+
+    /**
+     * Halaman kerja Gudang: input item ke Accurate.
+     */
+    public function gudangInput($id)
+    {
+        $mr = MaterialRequest::with(['user', 'items'])->findOrFail($id);
+
+        return Inertia::render('Approval/GudangInput', [
+            'mr' => $mr,
+        ]);
+    }
+
+    /**
+     * Toggle per-item: sudah/belum diinput ke Accurate.
+     */
+    public function toggleItemAccurate(Request $request, $id)
+    {
+        $mrItem = MaterialRequestItem::findOrFail($id);
+        $validated = $request->validate(['value' => 'required|in:Belum,Sudah']);
+        $mrItem->update(['input_accurate' => $validated['value']]);
+        return response()->json(['ok' => true, 'message' => "Item ditandai: {$validated['value']}"]);
     }
 
     public function verifyGudang(Request $request, $id)
@@ -776,15 +828,78 @@ class MaterialRequestController extends Controller
 
     // ============ PURCHASING: Export Excel ============
 
-    public function purchasingIndex()
+    public function purchasingIndex(Request $request)
     {
-        $requests = MaterialRequest::with(['user', 'items'])
-            ->whereIn('status_workflow', ['Fully Approved', 'Purchasing'])
-            ->latest()->paginate(10);
+        $search = $request->input('search');
+        $status = $request->input('status');
+
+        $query = MaterialRequest::with(['user', 'items'])
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($w) use ($search) {
+                    $w->where('mr_number', 'like', "%{$search}%")
+                      ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
+                              ->orWhere('nik', 'like', "%{$search}%"));
+                });
+            })
+            ->when($status, fn ($q) => $q->where('status_workflow', $status))
+            ->latest();
+
+        $requests = $query->paginate(10)->withQueryString()
+            ->through(fn ($mr) => [
+                'id' => $mr->id,
+                'mr_number' => $mr->mr_number,
+                'jenis' => $mr->jenis,
+                'factory' => $mr->factory,
+                'status_workflow' => $mr->status_workflow,
+                'input_po' => $mr->input_po,
+                'nomor_po' => $mr->nomor_po,
+                'tanggal_po' => $mr->tanggal_po ? \Illuminate\Support\Carbon::parse($mr->tanggal_po)->format('d M Y H:i') : null,
+                'created_at' => $mr->created_at->format('d M Y'),
+                'pengaju' => $mr->user?->name,
+                'items_count' => $mr->items->count(),
+            ]);
 
         return Inertia::render('Approval/Purchasing', [
             'requests' => $requests,
+            'filters' => ['search' => $search ?? '', 'status' => $status ?? ''],
+            'allStatuses' => [
+                'Pending Manager', 'Pending FM/GM', 'Pending Direksi',
+                'Pending MTC', 'Pending IT', 'Pending HRD',
+                'Verifikasi Gudang', 'Fully Approved', 'Purchasing', 'Rejected', 'Revision',
+            ],
         ]);
+    }
+
+    /**
+     * Halaman kerja Purchasing: input MR menjadi PO.
+     */
+    public function purchasingInput($id)
+    {
+        $mr = MaterialRequest::with(['user', 'items'])->findOrFail($id);
+
+        return Inertia::render('Approval/PurchasingInput', [
+            'mr' => $mr,
+        ]);
+    }
+
+    /**
+     * Simpan nomor PO & status PO (dari Accurate).
+     */
+    public function updatePo(Request $request, $id)
+    {
+        $mr = MaterialRequest::findOrFail($id);
+        $validated = $request->validate([
+            'input_po' => ['required', 'in:Belum,Sudah'],
+            'nomor_po' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $mr->update([
+            'input_po' => $validated['input_po'],
+            'nomor_po' => $validated['input_po'] === 'Sudah' ? ($validated['nomor_po'] ?: $mr->nomor_po) : null,
+            'tanggal_po' => $validated['input_po'] === 'Sudah' ? ($mr->tanggal_po ?: now()) : null,
+        ]);
+
+        return response()->json(['ok' => true, 'message' => 'Data PO diperbarui.']);
     }
 
     public function revisionEdit($id)

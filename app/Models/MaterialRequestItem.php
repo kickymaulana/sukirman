@@ -25,6 +25,7 @@ class MaterialRequestItem extends Model
         'purpose',
         'direksi_decision',
         'direksi_notes',
+        'input_accurate',
     ];
 
     public function materialRequest()

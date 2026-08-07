@@ -21,6 +21,9 @@ class MaterialRequest extends Model
         'status_pembelian',
         'jenis',
         'input_accurate',
+        'input_po',
+        'nomor_po',
+        'tanggal_po',
         'status_workflow',
         'revision_notes',
     ];
@@ -53,5 +56,12 @@ class MaterialRequest extends Model
     public function approvalLogs()
     {
         return $this->hasMany(ApprovalLog::class);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'tanggal_po' => 'datetime',
+        ];
     }
 }
