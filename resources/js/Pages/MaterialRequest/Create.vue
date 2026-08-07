@@ -7,6 +7,7 @@ interface RequestItem {
   item_code: string
   item_name: string
   specification: string
+  departemen_id: string
   qty: number
   unit: string
   item_status: 'Urgent' | 'Normal' | 'New' | 'Replace'
@@ -15,7 +16,7 @@ interface RequestItem {
   purpose: string
 }
 
-const props = defineProps<{ managers: { id: number; name: string; nik: string }[] }>()
+const props = defineProps<{ managers: { id: number; name: string; nik: string }[]; departemens?: { id: number; nama: string }[] }>()
 const baseUrl = (usePage().props as any).app_url || ''
 
 // Autocomplete barang (kode & nama)
@@ -73,6 +74,7 @@ const form = useForm({
       item_code: '',
       item_name: '',
       specification: '',
+      departemen_id: '',
       qty: 1,
       unit: 'Pcs',
       item_status: 'Normal',
@@ -95,6 +97,7 @@ const addItem = () => {
     item_code: '',
     item_name: '',
     specification: '',
+    departemen_id: '',
     qty: 1,
     unit: 'Pcs',
     item_status: 'Normal',
@@ -303,6 +306,19 @@ const goBack = () => {
                 placeholder="Tujuan / Keperluan Barang"
                 @update:modelValue="(v: any) => item.purpose = String(v).toUpperCase()"
               />
+
+              <div class="field-group">
+                <label class="field-label">Departemen Item <span class="opt-label">(opsional)</span></label>
+                <var-select
+                  v-model="item.departemen_id"
+                  filterable
+                  clearable
+                  variant="outlined"
+                  placeholder="Pilih departemen tujuan item ini..."
+                >
+                  <var-option v-for="d in props.departemens || []" :key="d.id" :label="d.nama" :value="String(d.id)" />
+                </var-select>
+              </div>
             </var-space>
           </div>
 
@@ -382,6 +398,11 @@ const goBack = () => {
   font-size: 11px;
   color: #94a3b8;
   margin: 4px 0 0;
+}
+.opt-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 400;
 }
 
 .item-card-header {

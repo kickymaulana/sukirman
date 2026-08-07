@@ -105,6 +105,7 @@ const goBack = () => window.history.back()
             <th>Kode</th>
             <th>Nama Barang</th>
             <th>Spesifikasi</th>
+            <th>Departemen</th>
             <th class="qty-col">Qty</th>
             <th class="unit-col">Satuan</th>
             <th>Keperluan</th>
@@ -116,12 +117,13 @@ const goBack = () => window.history.back()
             <td>{{ it.item_code || '-' }}</td>
             <td>{{ it.item_name }}</td>
             <td>{{ it.specification || '-' }}</td>
+            <td>{{ it.departemen?.nama || '-' }}</td>
             <td class="center">{{ it.qty }}</td>
             <td class="center">{{ it.unit }}</td>
             <td>{{ it.purpose || '-' }}</td>
           </tr>
           <tr v-if="!mr.items?.length">
-            <td colspan="7" class="center empty">Tidak ada item</td>
+            <td colspan="8" class="center empty">Tidak ada item</td>
           </tr>
         </tbody>
       </table>
@@ -216,6 +218,7 @@ body { margin: 0; background: #e2e8f0; }
 .no-col { width: 34px; } .qty-col { width: 50px; } .unit-col { width: 60px; }
 .center { text-align: center; }
 .empty { color: #94a3b8; font-style: italic; }
+.item-dept { font-weight:400;color:#64748b;font-size:10px; }
 
 .signatures { display: flex; justify-content: space-between; gap: 16px; margin-top: 46px; }
 .sign-box { flex: 1; text-align: center; }

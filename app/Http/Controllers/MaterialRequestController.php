@@ -159,7 +159,7 @@ class MaterialRequestController extends Controller
     public function print($id)
     {
         $mr = MaterialRequest::with([
-            'items',
+            'items.departemen',
             'user.departemen',
             'manager',
             'fmGm',
@@ -229,6 +229,7 @@ class MaterialRequestController extends Controller
         $managers = User::role('Manager')->get(['id', 'name', 'nik']);
         return Inertia::render('MaterialRequest/Create', [
             'managers' => $managers,
+            'departemens' => \App\Models\Departemen::orderBy('nama')->get(['id', 'nama']),
         ]);
     }
 
@@ -248,6 +249,7 @@ class MaterialRequestController extends Controller
             'items.*.item_code' => ['nullable', 'string', 'max:50'],
             'items.*.item_name' => ['required', 'string', 'max:255'],
             'items.*.specification' => ['nullable', 'string'],
+            'items.*.departemen_id' => ['nullable', 'exists:departemens,id'],
             'items.*.qty' => ['required', 'integer', 'min:1'],
             'items.*.unit' => ['required', 'string', 'max:20'],
             'items.*.item_status' => ['required', 'in:Urgent,Normal,New,Replace'],
@@ -289,6 +291,7 @@ class MaterialRequestController extends Controller
                     'item_code' => isset($item['item_code']) ? mb_strtoupper($item['item_code']) : null,
                     'item_name' => mb_strtoupper($item['item_name']),
                     'specification' => isset($item['specification']) ? mb_strtoupper($item['specification']) : null,
+                    'departemen_id' => $item['departemen_id'] ?? null,
                     'qty' => $item['qty'],
                     'unit' => mb_strtoupper($item['unit']),
                     'item_status' => $item['item_status'],
@@ -663,7 +666,7 @@ class MaterialRequestController extends Controller
      */
     public function gudangInput($id)
     {
-        $mr = MaterialRequest::with(['user', 'items'])->findOrFail($id);
+        $mr = MaterialRequest::with(['user', 'items.departemen'])->findOrFail($id);
 
         return Inertia::render('Approval/GudangInput', [
             'mr' => $mr,
@@ -886,7 +889,7 @@ class MaterialRequestController extends Controller
      */
     public function purchasingInput($id)
     {
-        $mr = MaterialRequest::with(['user', 'items'])->findOrFail($id);
+        $mr = MaterialRequest::with(['user', 'items.departemen'])->findOrFail($id);
 
         return Inertia::render('Approval/PurchasingInput', [
             'mr' => $mr,

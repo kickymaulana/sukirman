@@ -97,6 +97,7 @@ const isDone = computed(() => inputPo.value === 'Sudah')
                             <th>No</th>
                             <th>Kode</th>
                             <th>Nama Barang</th>
+                            <th>Departemen</th>
                             <th>Qty</th>
                             <th>Satuan</th>
                             <th>Salin</th>
@@ -107,11 +108,12 @@ const isDone = computed(() => inputPo.value === 'Sudah')
                             <td>{{ i + 1 }}</td>
                             <td class="mono">{{ it.item_code || '-' }}</td>
                             <td>{{ it.item_name }}</td>
+                            <td>{{ it.departemen?.nama || '-' }}</td>
                             <td>{{ it.qty }}</td>
                             <td>{{ it.unit }}</td>
                             <td><button class="btn-copy" @click="copyText(`${it.item_code || ''} | ${it.item_name || ''}`.trim())">⧉ Salin</button></td>
                         </tr>
-                        <tr v-if="!mr.items?.length"><td colspan="6" class="empty">Tidak ada item.</td></tr>
+                        <tr v-if="!mr.items?.length"><td colspan="7" class="empty">Tidak ada item.</td></tr>
                     </tbody>
                 </table>
             </div>

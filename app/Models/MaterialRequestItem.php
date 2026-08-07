@@ -26,10 +26,16 @@ class MaterialRequestItem extends Model
         'direksi_decision',
         'direksi_notes',
         'input_accurate',
+        'departemen_id',
     ];
 
     public function materialRequest()
     {
         return $this->belongsTo(MaterialRequest::class);
+    }
+
+    public function departemen()
+    {
+        return $this->belongsTo(\App\Models\Departemen::class, 'departemen_id');
     }
 }

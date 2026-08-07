@@ -80,6 +80,7 @@ const goBack = () => window.location.href = baseUrl + '/approval/gudang'
                             <th>No</th>
                             <th>Kode</th>
                             <th>Nama Barang</th>
+                            <th>Departemen</th>
                             <th>Qty</th>
                             <th>Satuan</th>
                             <th>Salin</th>
@@ -91,6 +92,7 @@ const goBack = () => window.location.href = baseUrl + '/approval/gudang'
                             <td>{{ i + 1 }}</td>
                             <td class="mono">{{ it.item_code || '-' }}</td>
                             <td>{{ it.item_name }}</td>
+                            <td>{{ it.departemen?.nama || '-' }}</td>
                             <td>{{ it.qty }}</td>
                             <td>{{ it.unit }}</td>
                             <td>
@@ -108,7 +110,7 @@ const goBack = () => window.location.href = baseUrl + '/approval/gudang'
                             </td>
                         </tr>
                         <tr v-if="!mr.items?.length">
-                            <td colspan="7" class="empty">Tidak ada item.</td>
+                            <td colspan="8" class="empty">Tidak ada item.</td>
                         </tr>
                     </tbody>
                 </table>
