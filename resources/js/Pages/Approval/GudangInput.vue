@@ -19,11 +19,6 @@ const copyText = async (text: string) => {
     }
 }
 
-// salin kode + nama sekaligus
-const copyItem = (it: any) => {
-    copyText(`${it.item_code || ''} | ${it.item_name || ''}`.trim())
-}
-
 const toggling = ref<number | null>(null)
 const toggleItem = async (it: any) => {
     const next = it.input_accurate === 'Sudah' ? 'Belum' : 'Sudah'
@@ -96,7 +91,10 @@ const goBack = () => window.location.href = baseUrl + '/approval/gudang'
                             <td>{{ it.qty }}</td>
                             <td>{{ it.unit }}</td>
                             <td>
-                                <button class="btn-copy" @click="copyItem(it)">⧉ Salin</button>
+                                <div class="copy-group">
+                                    <button class="btn-copy" @click="copyText(it.item_code || '')">Salin Kode</button>
+                                    <button class="btn-copy" @click="copyText(it.item_name || '')">Salin Nama</button>
+                                </div>
                             </td>
                             <td>
                                 <button
@@ -145,6 +143,7 @@ const goBack = () => window.location.href = baseUrl + '/approval/gudang'
 .empty { text-align:center;color:#94a3b8;padding:40px; }
 .btn-copy { background:#e0e7ff;color:#4338ca;border:none;padding:6px 12px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer; }
 .btn-copy:hover { background:#c7d2fe; }
+.copy-group { display:flex;gap:6px; }
 .btn-toggle { background:#fff;color:#dc2626;border:1px solid #fecaca;padding:6px 12px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer; }
 .btn-toggle.on { background:#10b981;color:#fff;border-color:#10b981; }
 .btn-toggle:disabled { opacity:0.5; }
