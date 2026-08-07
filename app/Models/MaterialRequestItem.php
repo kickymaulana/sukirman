@@ -27,7 +27,6 @@ class MaterialRequestItem extends Model
         'direksi_notes',
         'input_accurate',
         'departemen_id',
-        'nomor_po',
     ];
 
     public function materialRequest()
@@ -38,5 +37,10 @@ class MaterialRequestItem extends Model
     public function departemen()
     {
         return $this->belongsTo(\App\Models\Departemen::class, 'departemen_id');
+    }
+
+    public function item_po_lines()
+    {
+        return $this->hasMany(\App\Models\ItemPoLine::class, 'material_request_item_id');
     }
 }

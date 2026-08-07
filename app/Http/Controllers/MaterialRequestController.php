@@ -837,7 +837,7 @@ class MaterialRequestController extends Controller
         $search = $request->input('search');
         $status = $request->input('status');
 
-        $query = MaterialRequest::with(['user.departemen', 'items'])
+        $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('mr_number', 'like', "%{$search}%")
@@ -852,8 +852,20 @@ class MaterialRequestController extends Controller
             ->through(function ($mr) {
                 $items = $mr->items;
                 $total = $items->count();
-                $withPo = $items->filter(fn ($i) => !empty($i->nomor_po))->count();
-                $poStatus = $total === 0 ? 'Belum' : ($withPo === $total ? 'Sudah' : ($withPo > 0 ? 'Sebagian' : 'Belum'));
+                $doneCount = 0;
+                $hasPo = false;
+                $nomorPos = collect();
+                foreach ($items as $it) {
+                    $lines = $it->item_po_lines;
+                    $covered = $lines->sum('qty');
+                    if ($covered >= (int) $it->qty) { $doneCount++; }
+                    if ($covered > 0) {
+                        $hasPo = true;
+                        $nomorPos = $nomorPos->merge($lines->pluck('nomor_po')->filter());
+                    }
+                }
+
+                $poStatus = $total === 0 ? 'Belum' : ($doneCount === $total ? 'Sudah' : ($hasPo ? 'Sebagian' : 'Belum'));
 
                 return [
                     'id' => $mr->id,
@@ -862,7 +874,7 @@ class MaterialRequestController extends Controller
                     'factory' => $mr->factory,
                     'status_workflow' => $mr->status_workflow,
                     'po_status' => $poStatus,
-                    'nomor_pos' => $items->pluck('nomor_po')->filter()->unique()->values(),
+                    'nomor_pos' => $nomorPos->unique()->values(),
                     'created_at' => $mr->created_at->format('d M Y'),
                     'pengaju' => $mr->user?->name,
                     'departemen' => $mr->user?->departemen?->nama,
@@ -895,7 +907,7 @@ class MaterialRequestController extends Controller
      */
     public function purchasingInput($id)
     {
-        $mr = MaterialRequest::with(['user', 'items.departemen'])->findOrFail($id);
+        $mr = MaterialRequest::with(['user', 'items.departemen', 'items.item_po_lines'])->findOrFail($id);
 
         return Inertia::render('Approval/PurchasingInput', [
             'mr' => $mr,
@@ -903,7 +915,7 @@ class MaterialRequestController extends Controller
     }
 
     /**
-     * Simpan nomor PO per item (dari Accurate).
+     * Simpan baris PO per item (qty terbagi + nomor PO, bisa beda pemasok).
      */
     public function updateItemsPo(Request $request, $id)
     {
@@ -911,17 +923,37 @@ class MaterialRequestController extends Controller
         $validated = $request->validate([
             'items' => ['required', 'array'],
             'items.*.id' => ['required', 'integer'],
-            'items.*.nomor_po' => ['nullable', 'string', 'max:100'],
+            'items.*.lines' => ['array'],
+            'items.*.lines.*.qty' => ['required', 'integer', 'min:1'],
+            'items.*.lines.*.nomor_po' => ['nullable', 'string', 'max:100'],
         ]);
 
-        foreach ($validated['items'] as $it) {
-            $mrItem = MaterialRequestItem::find($it['id']);
-            if ($mrItem && $mrItem->material_request_id === $mr->id) {
-                $mrItem->update(['nomor_po' => !empty($it['nomor_po']) ? $it['nomor_po'] : null]);
+        foreach ($validated['items'] as $itemData) {
+            $mrItem = MaterialRequestItem::find($itemData['id']);
+            if (!$mrItem || $mrItem->material_request_id !== $mr->id) {
+                continue;
+            }
+
+            $lines = $itemData['lines'] ?? [];
+            $total = array_sum(array_column($lines, 'qty'));
+
+            // Jaga agar total qty PO tidak melebihi qty permintaan
+            if ($total > (int) $mrItem->qty) {
+                return response()->json([
+                    'error' => "Item {$mrItem->item_name}: total qty PO ({$total}) melebihi qty permintaan ({$mrItem->qty}).",
+                ], 422);
+            }
+
+            $mrItem->item_po_lines()->delete();
+            foreach ($lines as $line) {
+                $mrItem->item_po_lines()->create([
+                    'qty' => (int) $line['qty'],
+                    'nomor_po' => !empty($line['nomor_po']) ? $line['nomor_po'] : null,
+                ]);
             }
         }
 
-        return response()->json(['ok' => true, 'message' => 'Nomor PO item diperbarui.']);
+        return response()->json(['ok' => true, 'message' => 'Baris PO diperbarui.']);
     }
 
     public function revisionEdit($id)
