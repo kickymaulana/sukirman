@@ -13,12 +13,17 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Support\Str;
 
-#[Fillable(['nik', 'name', 'email', 'password', 'is_approved', 'requested_role'])]
+#[Fillable(['nik', 'name', 'email', 'password', 'is_approved', 'requested_role', 'departemen_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
+
+    public function departemen()
+    {
+        return $this->belongsTo(\App\Models\Departemen::class, 'departemen_id');
+    }
 
     /**
      * Get the attributes that should be cast.

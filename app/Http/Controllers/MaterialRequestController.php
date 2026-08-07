@@ -160,7 +160,7 @@ class MaterialRequestController extends Controller
     {
         $mr = MaterialRequest::with([
             'items',
-            'user',
+            'user.departemen',
             'manager',
             'fmGm',
             'direksi',
@@ -622,7 +622,7 @@ class MaterialRequestController extends Controller
         $search = $request->input('search');
         $status = $request->input('status');
 
-        $query = MaterialRequest::with(['user', 'items'])
+        $query = MaterialRequest::with(['user.departemen', 'items'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('mr_number', 'like', "%{$search}%")
@@ -643,6 +643,7 @@ class MaterialRequestController extends Controller
                 'input_accurate' => $mr->input_accurate,
                 'created_at' => $mr->created_at->format('d M Y'),
                 'pengaju' => $mr->user?->name,
+                'departemen' => $mr->user?->departemen?->nama,
                 'items_count' => $mr->items->count(),
             ]);
 
@@ -833,7 +834,7 @@ class MaterialRequestController extends Controller
         $search = $request->input('search');
         $status = $request->input('status');
 
-        $query = MaterialRequest::with(['user', 'items'])
+        $query = MaterialRequest::with(['user.departemen', 'items'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('mr_number', 'like', "%{$search}%")
@@ -856,6 +857,7 @@ class MaterialRequestController extends Controller
                 'tanggal_po' => $mr->tanggal_po ? \Illuminate\Support\Carbon::parse($mr->tanggal_po)->format('d M Y H:i') : null,
                 'created_at' => $mr->created_at->format('d M Y'),
                 'pengaju' => $mr->user?->name,
+                'departemen' => $mr->user?->departemen?->nama,
                 'items_count' => $mr->items->count(),
             ]);
 

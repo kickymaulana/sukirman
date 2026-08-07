@@ -13,6 +13,7 @@ interface MR {
     tanggal_po: string | null
     created_at: string
     pengaju: string
+    departemen: string | null
     items_count: number
 }
 
@@ -69,6 +70,7 @@ const goBack = () => router.get(route('dashboard'))
                         <tr>
                             <th>No. MR</th>
                             <th>Pengaju</th>
+                            <th>Departemen</th>
                             <th>Factory</th>
                             <th>Jenis</th>
                             <th>Tanggal</th>
@@ -83,6 +85,7 @@ const goBack = () => router.get(route('dashboard'))
                                 <a :href="baseUrl + '/material-requests/' + mr.id + '/print'" class="link-mr">{{ mr.mr_number }}</a>
                             </td>
                             <td>{{ mr.pengaju }}</td>
+                            <td>{{ mr.departemen || '-' }}</td>
                             <td>{{ mr.factory }}</td>
                             <td>{{ mr.jenis }}</td>
                             <td class="muted">{{ mr.created_at }}</td>
@@ -100,7 +103,7 @@ const goBack = () => router.get(route('dashboard'))
                             </td>
                         </tr>
                         <tr v-if="!requests.data.length">
-                            <td colspan="8" class="empty">Tidak ada MR</td>
+                            <td colspan="9" class="empty">Tidak ada MR</td>
                         </tr>
                     </tbody>
                 </table>

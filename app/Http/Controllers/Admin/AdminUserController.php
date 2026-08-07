@@ -4,30 +4,55 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Departemen;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class AdminUserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with('roles')->latest()->paginate(20);
+        $search = $request->input('search');
+        $query = User::with('roles', 'departemen');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('nik', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $users = $query->latest()->paginate(20)->withQueryString();
         $roles = \Spatie\Permission\Models\Role::pluck('name');
 
         return Inertia::render('Admin/Users', [
             'users' => $users,
             'allRoles' => $roles,
+            'filters' => ['search' => $search ?? ''],
         ]);
     }
 
     public function show($id)
     {
-        $user = User::with('roles')->findOrFail($id);
+        $user = User::with('roles', 'departemen')->findOrFail($id);
         $roles = \Spatie\Permission\Models\Role::pluck('name');
+        $departemens = Departemen::orderBy('nama')->get(['id', 'nama']);
         return Inertia::render('Admin/UserDetail', [
             'user' => $user,
             'allRoles' => $roles,
+            'departemens' => $departemens,
         ]);
+    }
+
+    public function updateDepartemen(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $validated = $request->validate([
+            'departemen_id' => ['nullable', 'exists:departemens,id'],
+        ]);
+        $user->update(['departemen_id' => $validated['departemen_id'] ?? null]);
+        return response()->json(['ok' => true, 'message' => 'Departemen diperbarui']);
     }
 
     public function approve($id)

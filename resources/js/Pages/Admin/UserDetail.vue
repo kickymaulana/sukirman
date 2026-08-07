@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
 
-const props = defineProps<{ user: any; allRoles: string[] }>()
+const props = defineProps<{ user: any; allRoles: string[]; departemens?: { id: number; nama: string }[] }>()
 const page = usePage()
 const pp = page.props as any
 const baseUrl = pp.app_url || ''
@@ -15,6 +15,20 @@ if (props.user.requested_role && !currentRoles.includes(props.user.requested_rol
     selectedRoles.value.push(props.user.requested_role)
 }
 const saving = ref(false)
+
+const selectedDepartemen = ref(props.user.departemen_id ? String(props.user.departemen_id) : '')
+const savingDept = ref(false)
+
+const saveDepartemen = async () => {
+    savingDept.value = true
+    const res = await fetch(`${baseUrl}/admin/users/${props.user.id}/departemen`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+        body: JSON.stringify({ departemen_id: selectedDepartemen.value || null }),
+    })
+    savingDept.value = false
+    if (res.ok) { Snackbar.success('Departemen diperbarui'); window.location.reload() }
+    else { Snackbar.error('Gagal') }
+}
 
 const toggleRole = (r: string) => {
     const i = selectedRoles.value.indexOf(r)
@@ -72,6 +86,7 @@ const saveRole = async () => {
                     <span>NIK</span><span class="mono">{{ user.nik || '—' }}</span>
                     <span>Nama</span><span><strong>{{ user.name }}</strong></span>
                     <span>Email</span><span>{{ user.email }}</span>
+                    <span>Departemen</span><span>{{ user.departemen?.nama || '—' }}</span>
                     <span>Role</span><span>{{ user.roles[0]?.name || '—' }}</span>
                 </div>
             </div>
@@ -99,6 +114,14 @@ const saveRole = async () => {
                         </label>
                     </div>
                     <var-button type="primary" :loading="saving" @click="saveRole">Simpan Role</var-button>
+                </div>
+
+                <!-- Departemen -->
+                <div class="action-row">
+                    <var-select v-model="selectedDepartemen" placeholder="Pilih Departemen" clearable style="flex:1">
+                        <var-option v-for="d in departemens || []" :key="d.id" :label="d.nama" :value="String(d.id)" />
+                    </var-select>
+                    <var-button type="primary" :loading="savingDept" @click="saveDepartemen">Simpan Departemen</var-button>
                 </div>
             </div>
         </main>

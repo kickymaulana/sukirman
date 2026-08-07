@@ -8,6 +8,7 @@ use App\Http\Controllers\BarangController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminOverviewController;
+use App\Http\Controllers\Master\DepartemenController;
 use App\Http\Controllers\StatistikPengajuController;
 use Inertia\Inertia;
 
@@ -126,7 +127,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/users/{id}', [AdminUserController::class, 'show'])->name('users.show');
         Route::post('/users/{id}/approve', [AdminUserController::class, 'approve'])->name('users.approve');
         Route::post('/users/{id}/role', [AdminUserController::class, 'assignRole'])->name('users.role');
+        Route::post('/users/{id}/departemen', [AdminUserController::class, 'updateDepartemen'])->name('users.departemen');
         Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+        Route::get('/master/departemens', [DepartemenController::class, 'index'])->name('departemens.index');
+        Route::post('/master/departemens', [DepartemenController::class, 'store'])->name('departemens.store');
+        Route::put('/master/departemens/{id}', [DepartemenController::class, 'update'])->name('departemens.update');
+        Route::delete('/master/departemens/{id}', [DepartemenController::class, 'destroy'])->name('departemens.destroy');
     });
 
     // Notifications

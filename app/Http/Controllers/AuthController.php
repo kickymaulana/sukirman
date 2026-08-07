@@ -130,6 +130,7 @@ class AuthController extends Controller
 
         return Inertia::render('Auth/PendingRole', [
             'user' => $user,
+            'departemens' => \App\Models\Departemen::orderBy('nama')->get(['id', 'nama']),
         ]);
     }
 
@@ -148,12 +149,16 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'role' => ['required', 'in:Supervisor,Manager,FM/GM,Direksi,Gudang,Purchasing'],
+            'departemen_id' => ['nullable', 'exists:departemens,id'],
         ], [
             'role.required' => 'Pilih posisi/jabatan Anda terlebih dahulu.',
             'role.in' => 'Posisi yang dipilih tidak valid.',
         ]);
 
-        $user->update(['requested_role' => $validated['role']]);
+        $user->update([
+            'requested_role' => $validated['role'],
+            'departemen_id' => $validated['departemen_id'] ?? null,
+        ]);
         session()->forget('pending_user_id');
 
         return redirect()->route('login')->with('success', 'Permintaan role terkirim! Silakan tunggu persetujuan Admin.');

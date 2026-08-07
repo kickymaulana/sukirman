@@ -72,7 +72,7 @@ const goBack = () => window.history.back()
       <table class="info-table">
         <tr>
           <td class="lbl">Pengaju</td>
-          <td><strong>{{ mr.user?.name }}</strong> ({{ mr.user?.nik || '-' }})</td>
+          <td><strong>{{ mr.user?.name }}</strong> ({{ mr.user?.nik || '-' }}){{ mr.user?.departemen?.nama ? ' — ' + mr.user.departemen.nama : '' }}</td>
           <td class="lbl">Pabrik</td>
           <td>{{ mr.factory }}</td>
         </tr>

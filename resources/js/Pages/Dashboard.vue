@@ -182,6 +182,16 @@ const handleTabChange = (index: number) => {
         <var-icon name="chevron-right" :size="24" color="#94a3b8" />
       </div>
 
+      <!-- Kelola Departemen (khusus admin) -->
+      <div v-if="user?.role === 'admin'" class="admin-card" @click="router.get(baseUrl + '/admin/master/departemens')">
+        <div class="admin-icon">🏷️</div>
+        <div class="admin-text">
+          <span class="admin-title">Kelola Departemen</span>
+          <span class="admin-count">Tambah/ubah daftar departemen</span>
+        </div>
+        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
+      </div>
+
       <!-- Approval Card (untuk approver) -->
       <div v-if="user?.role && ['Manager','FM/GM','Direksi','Gudang','Purchasing','MTC','IT','HRD'].includes(user.role)" class="approval-card" @click="goApproval()">
         <div class="approval-icon"><var-icon name="clipboard-check" :size="28" color="#4f46e5" /></div>

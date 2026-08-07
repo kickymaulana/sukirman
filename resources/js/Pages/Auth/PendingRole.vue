@@ -2,7 +2,7 @@
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
 
-const props = defineProps<{ user: { name: string; nik: string } }>()
+const props = defineProps<{ user: { name: string; nik: string }; departemens: { id: number; nama: string }[] }>()
 const baseUrl = (usePage().props as any).app_url || ''
 
 const roles = [
@@ -14,7 +14,7 @@ const roles = [
     { name: 'Purchasing', desc: 'Download & proses pembelian (export Accurate)' },
 ]
 
-const form = useForm({ role: '' })
+const form = useForm({ role: '', departemen_id: '' })
 
 const submit = () => {
     if (!form.role) { Snackbar.warning('Pilih posisi/jabatan Anda terlebih dahulu'); return }
@@ -51,6 +51,19 @@ const submit = () => {
                     </div>
                     <var-icon :name="form.role === r.name ? 'radiobox-marked' : 'radiobox-blank'" :size="22" :color="form.role === r.name ? '#4f46e5' : '#cbd5e1'" />
                 </div>
+            </div>
+
+            <!-- Departemen (opsional, dengan saran) -->
+            <div class="dept-block">
+                <label class="dept-label">Departemen <span class="dept-opt">(opsional)</span></label>
+                <var-select
+                    v-model="form.departemen_id"
+                    filterable
+                    placeholder="Ketik untuk mencari departemen Anda..."
+                    clearable
+                >
+                    <var-option v-for="d in departemens" :key="d.id" :label="d.nama" :value="String(d.id)" />
+                </var-select>
             </div>
 
             <var-button type="primary" block size="large" :loading="form.processing" @click="submit">
@@ -114,4 +127,7 @@ const submit = () => {
 .role-info { display: flex; flex-direction: column; gap: 2px; }
 .role-name { font-size: 14px; font-weight: 700; color: #0f172a; }
 .role-desc { font-size: 12px; color: #64748b; }
+.dept-block { margin-bottom: 18px; }
+.dept-label { display:block;font-size:13px;font-weight:600;color:#0f172a;margin-bottom:8px; }
+.dept-opt { font-size:11px;color:#94a3b8;font-weight:400; }
 </style>
