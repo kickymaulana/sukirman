@@ -8,6 +8,7 @@ use App\Http\Controllers\BarangController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminOverviewController;
+use App\Http\Controllers\StatistikPengajuController;
 use Inertia\Inertia;
 
 // 💡 Redirect root '/' langsung ke dashboard (nanti otomatis ke login jika belum auth)
@@ -109,6 +110,9 @@ Route::middleware('auth')->group(function () {
     // Pengaturan (admin, Purchasing, Gudang)
     Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
+
+    // Statistik Pengaju (admin, Purchasing, Gudang)
+    Route::get('/statistik-pengaju', [StatistikPengajuController::class, 'index'])->name('statistik-pengaju');
 
         // Overview: admin bisa edit, Purchasing & Gudang hanya melihat
     Route::middleware('role:admin|Purchasing|Gudang')->get('/admin/overview', [AdminOverviewController::class, 'index'])->name('admin.overview');

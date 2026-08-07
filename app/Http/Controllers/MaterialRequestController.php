@@ -859,9 +859,18 @@ class MaterialRequestController extends Controller
                 'items_count' => $mr->items->count(),
             ]);
 
+        $topUsers = MaterialRequest::with('user')
+            ->select('user_id', DB::raw('count(*) as total'))
+            ->groupBy('user_id')
+            ->orderByDesc('total')
+            ->take(5)
+            ->get()
+            ->map(fn ($t) => ['name' => $t->user?->name ?? '?', 'total' => $t->total]);
+
         return Inertia::render('Approval/Purchasing', [
             'requests' => $requests,
             'filters' => ['search' => $search ?? '', 'status' => $status ?? ''],
+            'topUsers' => $topUsers,
             'allStatuses' => [
                 'Pending Manager', 'Pending FM/GM', 'Pending Direksi',
                 'Pending MTC', 'Pending IT', 'Pending HRD',

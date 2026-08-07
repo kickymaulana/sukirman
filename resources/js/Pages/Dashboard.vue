@@ -153,12 +153,22 @@ const handleTabChange = (index: number) => {
         </div>
       </div>
 
-      <!-- Overview MR (admin = edit, Purchasing/Gudang = lihat saja) -->
-      <div v-if="user?.role && ['admin','Purchasing','Gudang'].includes(user.role)" class="overview-card" @click="router.get(baseUrl + '/admin/overview')">
+      <!-- Dashboard Admin (khusus admin: edit MR & tujuan) -->
+      <div v-if="user?.role === 'admin'" class="overview-card" @click="router.get(baseUrl + '/admin/overview')">
+        <div class="overview-icon">⚙️</div>
+        <div class="overview-text">
+          <span class="overview-title">Dashboard Admin</span>
+          <span class="overview-count">Pantau MR & ubah tujuan approval</span>
+        </div>
+        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
+      </div>
+
+      <!-- Statistik Pengaju (semua user) -->
+      <div v-if="user" class="overview-card" @click="router.get(baseUrl + '/statistik-pengaju')">
         <div class="overview-icon">📊</div>
         <div class="overview-text">
-          <span class="overview-title">{{ user.role === 'admin' ? 'Dashboard Admin' : 'Monitoring MR' }}</span>
-          <span class="overview-count">{{ user.role === 'admin' ? 'Pantau MR & ubah tujuan approval' : 'Lihat statistik & alur MR (read-only)' }}</span>
+          <span class="overview-title">Statistik Pengaju</span>
+          <span class="overview-count">Lihat daftar pengaju & semua MR-nya</span>
         </div>
         <var-icon name="chevron-right" :size="24" color="#94a3b8" />
       </div>

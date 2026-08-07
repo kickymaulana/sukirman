@@ -69,6 +69,7 @@ const goBack = () => router.get(route('dashboard'))
                         <tr>
                             <th>No. MR</th>
                             <th>Pengaju</th>
+                            <th>Factory</th>
                             <th>Jenis</th>
                             <th>Tanggal</th>
                             <th>Status</th>
@@ -82,6 +83,7 @@ const goBack = () => router.get(route('dashboard'))
                                 <a :href="baseUrl + '/material-requests/' + mr.id + '/print'" class="link-mr">{{ mr.mr_number }}</a>
                             </td>
                             <td>{{ mr.pengaju }}</td>
+                            <td>{{ mr.factory }}</td>
                             <td>{{ mr.jenis }}</td>
                             <td class="muted">{{ mr.created_at }}</td>
                             <td><var-chip :type="statusBadge(mr.status_workflow)" size="mini">{{ mr.status_workflow }}</var-chip></td>
@@ -98,7 +100,7 @@ const goBack = () => router.get(route('dashboard'))
                             </td>
                         </tr>
                         <tr v-if="!requests.data.length">
-                            <td colspan="7" class="empty">Tidak ada MR</td>
+                            <td colspan="8" class="empty">Tidak ada MR</td>
                         </tr>
                     </tbody>
                 </table>
