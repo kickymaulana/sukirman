@@ -7,16 +7,17 @@ const pp = page.props as any
 const baseUrl = pp.app_url || ''
 
 interface UserInfo {
-    id: number; name: string; email: string; nik: string|null; roles: { name: string }[]
+    id: number; name: string; email: string; nik?: string|null; roles: { name: string }[]; departemen?: { nama: string }|null
 }
 const props = defineProps<{ user: UserInfo }>()
 const u = props.user
 
+const goEdit = () => { window.location.href = baseUrl + '/profile/edit' }
+
 const confirmLogout = () => {
     Dialog({
         title: 'Keluar?', message: 'Anda akan logout dari aplikasi.',
-        confirmButtonText: 'Ya, Keluar',
-        cancelButtonText: 'Batal',
+        confirmButtonText: 'Ya, Keluar', cancelButtonText: 'Batal',
         onConfirm: () => router.post(route('logout')),
     })
 }
@@ -63,10 +64,17 @@ const back = () => { window.location.href = baseUrl + '/dashboard' }
                     <span class="value">{{ u.roles?.[0]?.name || '—' }}</span>
                 </div>
                 <div class="info-row">
+                    <span class="label">Departemen</span>
+                    <span class="value">{{ u.departemen?.nama || '—' }}</span>
+                </div>
+                <div class="info-row">
                     <span class="label">Status</span>
                     <span class="value active">Aktif</span>
                 </div>
             </div>
+
+            <!-- Edit Profil (halaman terpisah) -->
+            <button class="edit-btn" @click="goEdit">✏️ Edit Profil</button>
 
             <!-- Logout Button -->
             <button class="logout-btn" @click="confirmLogout">
@@ -148,6 +156,25 @@ const back = () => { window.location.href = baseUrl + '/dashboard' }
 .mono { font-family: monospace; color: #4f46e5; }
 .active { color: #10b981; }
 
+.edit-card { text-align:left; }
+.edit-title { margin:0 0 16px; font-size:15px; font-weight:700; color:#0f172a; }
+.field { margin-bottom:14px; }
+.field label { display:block; font-size:12px; font-weight:600; color:#64748b; margin-bottom:6px; }
+.field .opt { font-size:11px; color:#94a3b8; font-weight:400; }
+.field input,
+.field select {
+    width:100%; padding:11px 14px; border:1px solid #e2e8f0; border-radius:12px;
+    font-size:14px; color:#0f172a; background:#fff; outline:none; font-family:inherit; box-sizing:border-box;
+}
+.field input:focus, .field select:focus { border-color:#4f46e5; }
+.save-btn {
+    width:100%; padding:14px; border:none; border-radius:14px;
+    background:linear-gradient(135deg,#4f46e5,#7c3aed); color:#fff; font-size:15px; font-weight:700;
+    cursor:pointer; font-family:inherit; transition:opacity .2s;
+}
+.save-btn:disabled { opacity:.5; }
+.saved-note { font-size:12px; color:#10b981; font-weight:600; margin:10px 0 0; text-align:center; }
+
 .logout-btn {
     display: flex; align-items: center; justify-content: center; gap: 10px;
     width: 100%; max-width: 400px; padding: 16px 24px;
@@ -156,6 +183,16 @@ const back = () => { window.location.href = baseUrl + '/dashboard' }
     transition: all 0.2s; font-family: inherit;
 }
 .logout-btn:hover { background: #fef2f2; border-color: #fca5a5; }
+
+.edit-btn {
+    display:flex; align-items:center; justify-content:center;
+    width:100%; max-width:400px; padding:16px 24px;
+    background:linear-gradient(135deg,#4f46e5,#7c3aed); color:#fff;
+    border:none; border-radius:16px; font-size:15px; font-weight:700;
+    cursor:pointer; transition:all .2s; font-family:inherit;
+    box-shadow:0 4px 15px rgba(79,70,229,.25);
+}
+.edit-btn:hover { opacity:.92; }
 
 .version { font-size: 11px; color: #94a3b8; margin: 0; }
 </style>

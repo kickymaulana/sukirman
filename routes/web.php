@@ -157,10 +157,9 @@ Route::middleware('auth')->group(function () {
     })->name('notifications.read-all');
 
     // Profile
-    Route::get('/profile', function () {
-        $user = auth()->user()->load('roles');
-        return Inertia::render('Profile/Index', ['user' => $user]);
-    })->name('profile.index');
+    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');
+    Route::get('/profile/edit', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile/update', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 
     // Auth Actions
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

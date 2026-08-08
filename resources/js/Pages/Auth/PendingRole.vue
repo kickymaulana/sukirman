@@ -18,6 +18,7 @@ const form = useForm({ role: '', departemen_id: '' })
 
 const submit = () => {
     if (!form.role) { Snackbar.warning('Pilih posisi/jabatan Anda terlebih dahulu'); return }
+    if (!form.departemen_id) { Snackbar.warning('Pilih departemen Anda terlebih dahulu'); return }
     form.post(baseUrl + '/pending-role', {
         onError: () => Snackbar.error('Gagal menyimpan. Coba lagi.'),
     })
@@ -53,9 +54,9 @@ const submit = () => {
                 </div>
             </div>
 
-            <!-- Departemen (opsional, dengan saran) -->
+            <!-- Departemen (opsional) -->
             <div class="dept-block">
-                <label class="dept-label">Departemen <span class="dept-opt">(opsional)</span></label>
+                <label class="dept-label">Departemen <span class="dept-tag">(wajib)</span></label>
                 <var-select
                     v-model="form.departemen_id"
                     filterable
@@ -129,5 +130,5 @@ const submit = () => {
 .role-desc { font-size: 12px; color: #64748b; }
 .dept-block { margin-bottom: 18px; }
 .dept-label { display:block;font-size:13px;font-weight:600;color:#0f172a;margin-bottom:8px; }
-.dept-opt { font-size:11px;color:#94a3b8;font-weight:400; }
+.dept-tag { font-size:11px;color:#dc2626;font-weight:600; }
 </style>
