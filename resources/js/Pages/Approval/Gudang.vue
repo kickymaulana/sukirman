@@ -11,6 +11,7 @@ interface MR {
     input_accurate: string
     po_status: string
     nomor_pos: string[]
+    po_users: string[]
     created_at: string
     pengaju: string
     departemen: string | null
@@ -103,6 +104,7 @@ const goBack = () => router.get(route('dashboard'))
                                     <var-chip :type="poBadge(mr.po_status)" size="mini">{{ mr.po_status === 'Sudah' ? '✅' : mr.po_status }}</var-chip>
                                     <div v-for="np in mr.nomor_pos" :key="np" class="po-num">{{ np }}</div>
                                 </a>
+                                <div class="po-users">{{ mr.po_users && mr.po_users.length ? mr.po_users.join(', ') : '-' }}</div>
                             </td>
                             <td>
                                 <a :href="baseUrl + '/approval/gudang/' + mr.id + '/input'" class="btn-kerja">Kerjakan / Input</a>
@@ -139,6 +141,7 @@ const goBack = () => router.get(route('dashboard'))
 .muted { color:#64748b; }
 .po-link { color:#4f46e5;text-decoration:none; }
 .po-num { font-size:11px;color:#065f46;font-weight:700;margin-top:2px; }
+.po-users { font-size:11px;color:#334155;margin-top:3px; }
 .empty { text-align:center;color:#94a3b8;padding:40px; }
 .btn-small { background:#4f46e5;color:#fff;padding:6px 14px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600; }
 .pagination { display:flex;align-items:center;justify-content:center;gap:16px;font-size:13px; }

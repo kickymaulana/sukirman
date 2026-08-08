@@ -650,7 +650,7 @@ class MaterialRequestController extends Controller
         $search = $request->input('search');
         $status = $request->input('status');
 
-        $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines'])
+        $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('mr_number', 'like', "%{$search}%")
@@ -665,19 +665,16 @@ class MaterialRequestController extends Controller
             ->through(function ($mr) {
                 $items = $mr->items;
                 $total = $items->count();
-                $doneCount = 0;
-                $hasPo = false;
                 $nomorPos = collect();
+                $poUsers = collect();
                 foreach ($items as $it) {
                     $lines = $it->item_po_lines;
-                    $covered = $lines->sum('qty');
-                    if ($covered >= (int) $it->qty) { $doneCount++; }
-                    if ($covered > 0) {
-                        $hasPo = true;
-                        $nomorPos = $nomorPos->merge($lines->pluck('nomor_po')->filter());
+                    $nomorPos = $nomorPos->merge($lines->pluck('nomor_po')->filter());
+                    foreach ($lines as $ln) {
+                        if ($ln->user?->name) { $poUsers->push($ln->user->name); }
                     }
                 }
-                $poStatus = $total === 0 ? 'Belum' : ($doneCount === $total ? 'Sudah' : ($hasPo ? 'Sebagian' : 'Belum'));
+                $poStatus = $nomorPos->count() > 0 ? ($nomorPos->count() === $total ? 'Sudah' : 'Sebagian') : 'Belum';
 
                 return [
                     'id' => $mr->id,
@@ -688,6 +685,7 @@ class MaterialRequestController extends Controller
                     'input_accurate' => $mr->input_accurate,
                     'po_status' => $poStatus,
                     'nomor_pos' => $nomorPos->unique()->values(),
+                    'po_users' => $poUsers->unique()->values(),
                     'created_at' => $mr->created_at->format('d M Y'),
                     'pengaju' => $mr->user?->name,
                     'departemen' => $mr->user?->departemen?->nama,
@@ -1112,7 +1110,7 @@ class MaterialRequestController extends Controller
 
     public function show($id)
     {
-        $mr = MaterialRequest::with(['user', 'items', 'approvalLogs.user', 'manager', 'direksi', 'fmGm'])->findOrFail($id);
+        $mr = MaterialRequest::with(['user', 'items', 'items.item_po_lines.user', 'approvalLogs.user', 'manager', 'direksi', 'fmGm'])->findOrFail($id);
         $user = auth()->user();
         $role = $user->getRoleNames()->first();
 

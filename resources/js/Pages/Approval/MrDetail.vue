@@ -12,6 +12,16 @@ const csrf = pp.csrf_token || ''
 const mr = props.mr
 const role = (props.userRole || '').toLowerCase()
 
+const statusChip = computed(() => {
+    if (mr.status_workflow === 'Fully Approved') return 'success'
+    if (mr.status_workflow === 'Rejected') return 'danger'
+    return 'warning'
+})
+
+const targetText = computed(() =>
+    [mr.manager?.name, mr.fm_gm?.name, mr.direksi?.name].filter(Boolean).join(' → ') || '—'
+)
+
 // Dialog state
 const showForward = ref(false); const selectedDireksi = ref(''); const forwardNotes = ref('')
 const showFmGm = ref(false); const selectedFmGm = ref('')
@@ -159,94 +169,72 @@ const doAction = (type: string) => {
             <template #left><var-button round text @click="back"><var-icon name="arrow-left" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
-            <!-- Status -->
-            <div class="card"><span class="lbl">Status</span><var-chip :type="mr.status_workflow === 'Fully Approved' ? 'success' : mr.status_workflow === 'Rejected' ? 'danger' : 'warning'">{{ mr.status_workflow }}</var-chip></div>
+            <!-- Ringkas: nomor + status + aksi -->
+            <div class="top-card">
+                <div class="top-left">
+                    <span class="mr-num">{{ mr.mr_number }}</span>
+                    <var-chip :type="statusChip" size="small">{{ mr.status_workflow }}</var-chip>
+                </div>
+                <div class="actions-row">
+                    <button class="mini-btn blue" @click="openPrint"><var-icon name="printer-outline" :size="14" style="margin-right:4px" /> Cetak</button>
+                    <button v-if="canDelete" class="mini-btn red" @click="confirmDeleteMr"><var-icon name="delete" :size="14" style="margin-right:4px" /> Hapus</button>
+                    <button v-if="role === 'gudang'" class="mini-btn green" @click="openGudangInput">Accurate</button>
+                    <button v-if="role === 'gudang' && mr.status_workflow === 'Verifikasi Gudang'" class="mini-btn amber" @click="openGudangEdit">Edit</button>
+                    <button v-if="['purchasing', 'gudang', 'admin'].includes(role)" class="mini-btn lg" @click="downloadXml">XML</button>
+                </div>
+            </div>
 
-            <!-- Info -->
+            <!-- Info ringkas -->
             <div class="card">
-                <div class="lbl">Informasi MR</div>
                 <div class="info-grid">
-                    <span>Dibuat oleh</span><span><strong>{{ mr.user?.name }}</strong></span>
+                    <span>Pengaju</span><span><strong>{{ mr.user?.name }}</strong> ({{ mr.user?.nik || '-' }})</span>
                     <span>Factory</span><span>{{ mr.factory }}</span>
-                    <span>Tipe</span><span>{{ mr.type }}</span>
-                    <span>Jenis</span><span>{{ mr.jenis || 'UMUM' }}</span>
-                    <span>Alokasi</span><span>{{ mr.allocation }}</span>
-                    <span>Urgensi</span><span>{{ mr.status_pembelian }}</span>
-                    <span v-if="mr.manager">Manager</span><span v-if="mr.manager">{{ mr.manager?.name }}</span>
-                    <span v-if="mr.direksi">Direksi</span><span v-if="mr.direksi">{{ mr.direksi?.name }}</span>
+                    <span>Tipe / Jenis</span><span>{{ mr.type }} • {{ mr.jenis || 'UMUM' }}</span>
+                    <span>Alokasi / Urgensi</span><span>{{ mr.allocation }} • {{ mr.status_pembelian }}</span>
+                    <span>Tanggal</span><span>{{ mr.created_at }}</span>
+                    <span>Tujuan</span><span>{{ targetText }}</span>
                 </div>
                 <div v-if="mr.revision_notes" class="revision-box">{{ mr.revision_notes }}</div>
             </div>
 
-            <!-- Items -->
-            <div class="card">
-                <div class="lbl">Barang ({{ mr.items?.length }})</div>
-                <div v-for="item in mr.items" :key="item.id" class="item-detail-card">
-                    <div class="item-detail-header">
-                        <span class="item-detail-name">{{ item.item_name }}</span>
-                        <var-chip v-if="item.item_status" size="mini" type="info">{{ item.item_status }}</var-chip>
-                    </div>
-                    <div v-if="item.item_code" class="item-detail-code">Kode: {{ item.item_code }}</div>
-                    <div v-if="item.specification" class="item-detail-spec">{{ item.specification }}</div>
-                    <div class="item-detail-grid">
-                        <div class="item-detail-box"><span class="item-detail-label">Jumlah</span><span class="item-detail-value">{{ item.qty }} {{ item.unit }}</span></div>
-                        <div class="item-detail-box"><span class="item-detail-label">Pemakaian / Bulan</span><span class="item-detail-value">{{ item.monthly_usage ?? 0 }}</span></div>
-                        <div class="item-detail-box"><span class="item-detail-label">Stock On Hand</span><span class="item-detail-value">{{ item.stock_on_hand ?? 0 }}</span></div>
-                    </div>
-                    <div v-if="item.purpose" class="item-detail-purpose">Keperluan: {{ item.purpose }}</div>
-                </div>
-            </div>
-
-            <!-- Cetak / Print (semua role) -->
-            <div
-                @click="openPrint"
-                style="display:flex;align-items:center;justify-content:center;gap:8px;background:#0ea5e9;color:#fff;border-radius:12px;padding:14px;font-weight:700;cursor:pointer;"
-            >
-                <var-icon name="printer-outline" :size="20" /> Cetak MR
-            </div>
-
-            <!-- Hapus MR (pengaju, status tertentu) -->
-            <div
-                v-if="canDelete"
-                @click="confirmDeleteMr"
-                style="display:flex;align-items:center;justify-content:center;gap:8px;background:#ef4444;color:#fff;border-radius:12px;padding:14px;font-weight:700;cursor:pointer;"
-            >
-                <var-icon name="delete" :size="20" /> Hapus MR
-            </div>
-
-            <!-- Input ke Accurate (Gudang) -->
-            <div
-                v-if="role === 'gudang'"
-                @click="openGudangInput"
-                style="display:flex;align-items:center;justify-content:center;gap:8px;background:#10b981;color:#fff;border-radius:12px;padding:14px;font-weight:700;cursor:pointer;"
-            >
-                <var-icon name="clipboard-text" :size="20" /> Input ke Permintaan Barang (Accurate)
-            </div>
-
-            <!-- Edit MR (Gudang) -->
-            <div
-                v-if="role === 'gudang' && mr.status_workflow === 'Verifikasi Gudang'"
-                @click="openGudangEdit"
-                style="display:flex;align-items:center;justify-content:center;gap:8px;background:#f59e0b;color:#fff;border-radius:12px;padding:14px;font-weight:700;cursor:pointer;"
-            >
-                <var-icon name="pencil" :size="20" /> Edit MR (Bersihkan Data)
-            </div>
-
-            <!-- Download XML Accurate (Purchasing, Gudang, admin) -->
-            <div
-                v-if="['purchasing', 'gudang', 'admin'].includes(role)"
-                @click="downloadXml"
-                style="display:flex;align-items:center;justify-content:center;gap:8px;background:#22c55e;color:#fff;border-radius:12px;padding:14px;font-weight:700;cursor:pointer;"
-            >
-                <var-icon name="file-download" :size="20" /> Download XML Accurate
-            </div>
-
-            <!-- Action Buttons -->
+            <!-- Aksi approval -->
             <div v-if="actions.length" class="actions">
                 <var-button v-for="a in actions" :key="a.type" block type="primary" @click="doAction(a.type)">{{ a.label }}</var-button>
             </div>
 
-            <!-- History -->
+            <!-- Barang + info PO -->
+            <div class="card">
+                <div class="lbl">Barang ({{ mr.items?.length }})</div>
+                <table class="itbl">
+                    <thead>
+                        <tr><th>No</th><th>Barang</th><th style="text-align:center">Qty</th><th>PO</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(item, i) in mr.items" :key="item.id">
+                            <td class="tno">{{ i + 1 }}</td>
+                            <td>
+                                <span class="iname">{{ item.item_name }}</span>
+                                <span v-if="item.item_code" class="icode">{{ item.item_code }}</span>
+                                <span v-if="item.specification" class="ispec">{{ item.specification }}</span>
+                                <span v-if="item.purpose" class="ipurpose">{{ item.purpose }}</span>
+                            </td>
+                            <td class="iqty">{{ item.qty }} {{ item.unit }}</td>
+                            <td>
+                                <div v-for="l in item.item_po_lines || []" :key="l.id" class="po-line">
+                                    <span class="po-no">{{ l.nomor_po || '-' }}</span>
+                                    <span class="po-qty">{{ l.qty }}</span>
+                                    <span v-if="l.tgl_po" class="po-dt">PO {{ l.tgl_po }}</span>
+                                    <span v-if="l.expected_date" class="po-dt">etd {{ l.expected_date }}</span>
+                                    <span v-if="l.tanggal_disetujui_direksi" class="po-dt">setuju {{ String(l.tanggal_disetujui_direksi).slice(0, 16).replace('T', ' ') }}</span>
+                                </div>
+                                <span v-if="!item.item_po_lines?.length" class="no-po">belum ada PO</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Riwayat -->
             <div class="card">
                 <div class="lbl">Riwayat</div>
                 <div v-for="log in mr.approval_logs" :key="log.id" class="log-row">
@@ -293,21 +281,35 @@ const doAction = (type: string) => {
 
 <style scoped>
 .layout { display:flex;flex-direction:column;height:100vh;background:#f8fafc;overflow:hidden; }
-.content { flex:1;overflow-y:auto;padding:16px 20px 80px;display:flex;flex-direction:column;gap:12px; }
-.card { background:#fff;border-radius:16px;padding:16px;border:1px solid #f1f5f9; }
+.content { flex:1;overflow-y:auto;padding:16px 20px 80px;display:flex;flex-direction:column;gap:10px; }
+.top-card { display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between; }
+.top-left { display:flex;align-items:center;gap:10px; }
+.mr-num { font-family:monospace;font-weight:800;font-size:16px;color:#0f172a; }
+.actions-row { display:flex;flex-wrap:wrap;gap:6px; }
+.mini-btn { display:flex;align-items:center;justify-content:center;padding:7px 12px;border:none;border-radius:9px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit; }
+.mini-btn.blue { background:#0ea5e9; }
+.mini-btn.red { background:#ef4444; }
+.mini-btn.green { background:#10b981; }
+.mini-btn.amber { background:#f59e0b; }
+.mini-btn.lg { background:#22c55e; }
+.card { background:#fff;border-radius:14px;padding:14px 16px;border:1px solid #f1f5f9; }
 .lbl { font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px; }
 .info-grid { display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:13px;color:#475569; }
 .revision-box { margin-top:8px;padding:10px;background:#fef3c7;border-radius:8px;font-size:12px;color:#92400e; }
-.item-detail-card { background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:8px; }
-.item-detail-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:4px; }
-.item-detail-name { font-size:14px;font-weight:700;color:#0f172a; }
-.item-detail-code { font-size:11px;color:#64748b;font-family:monospace;margin-bottom:2px; }
-.item-detail-spec { font-size:12px;color:#475569;font-style:italic;margin-bottom:8px; }
-.item-detail-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px; }
-.item-detail-box { background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;text-align:center; }
-.item-detail-label { display:block;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.3px; }
-.item-detail-value { display:block;font-size:14px;font-weight:700;color:#4f46e5; }
-.item-detail-purpose { font-size:12px;color:#64748b; }
+.itbl { width:100%;border-collapse:collapse;font-size:13px; }
+.itbl th { background:#f8fafc;color:#334155;text-align:left;padding:8px;font-size:11px;text-transform:uppercase; }
+.itbl td { padding:8px;border-top:1px solid #f1f5f9;vertical-align:top; }
+.tno { width:20px;color:#94a3b8; }
+.iname { display:block;font-weight:700;color:#0f172a; }
+.icode { display:block;font-size:11px;color:#4f46e5;font-family:monospace;margin-top:1px; }
+.ispec { display:block;font-size:12px;color:#64748b;font-style:italic;margin-top:1px; }
+.ipurpose { display:block;font-size:11px;color:#94a3b8;margin-top:1px; }
+.iqty { text-align:center;font-weight:700;color:#4f46e5;white-space:nowrap; }
+.po-line { display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;padding:2px 0; }
+.po-no { font-family:monospace;font-weight:700;color:#065f46; }
+.po-qty { font-weight:700;color:#334155; }
+.po-dt { font-size:11px;color:#94a3b8; }
+.no-po { font-size:11px;color:#94a3b8;font-style:italic; }
 .actions { display:flex;flex-direction:column;gap:8px; }
 .log-row { display:flex;gap:10px;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:12px; }
 .lr { font-weight:700;color:#4f46e5;min-width:60px; }
