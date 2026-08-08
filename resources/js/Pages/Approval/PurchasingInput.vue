@@ -33,6 +33,9 @@ const items = ref<Row[]>((mr.items || []).map((it: any) => ({
 })))
 
 const bulkPo = ref('')
+const bulkTglPo = ref('')
+const bulkExpected = ref('')
+const bulkTanggalSetuju = ref('')
 
 const copyText = async (text: string) => {
     try { await navigator.clipboard.writeText(text); Snackbar.success('Tersalin') }
@@ -48,14 +51,20 @@ const addLine = (r: Row) => {
 }
 const removeLine = (r: Row, i: number) => r.lines.splice(i, 1)
 
-// Buat semua item jadi satu PO: otomatis buat baris qty penuh + nomor PO yang sama
+// Buat semua item jadi satu PO: otomatis buat baris qty penuh + isi SEMUA kolom yang sama
 const applyBulk = () => {
     if (!bulkPo.value.trim()) { Snackbar.warning('Isi nomor PO terlebih dahulu'); return }
     let added = 0
     items.value.forEach(r => {
         const sisa = r.qty - covered(r)
         if (sisa > 0) {
-            r.lines.push({ qty: String(sisa), nomor_po: bulkPo.value.trim(), tgl_po: '', expected_date: '', tgl_setuju: '' })
+            r.lines.push({
+                qty: String(sisa),
+                nomor_po: bulkPo.value.trim(),
+                tgl_po: bulkTglPo.value,
+                expected_date: bulkExpected.value,
+                tgl_setuju: bulkTanggalSetuju.value,
+            })
             added++
         }
     })
@@ -119,11 +128,26 @@ const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
 
             <!-- Buat semua item jadi satu PO (kasus 1 MR = 1 pemasok) -->
             <div class="bulk-card">
-                <label class="field-label">Buat semua item jadi satu Nomor PO</label>
-                <div class="bulk-row">
-                    <input v-model="bulkPo" type="text" placeholder="Isi nomor PO untuk semua item..." class="bulk-input" />
-                    <button class="btn-bulk" @click="applyBulk">Buat Semua Jadi Satu PO</button>
+                <label class="field-label">Buat semua item jadi satu PO — isi nilai yang sama untuk semua</label>
+                <div class="bulk-grid">
+                    <div class="bulk-field">
+                        <span class="bf-label">Nomor PO</span>
+                        <input v-model="bulkPo" type="text" placeholder="Nomor PO..." class="bulk-input" />
+                    </div>
+                    <div class="bulk-field">
+                        <span class="bf-label">Tgl PO</span>
+                        <input v-model="bulkTglPo" type="date" class="bulk-input" />
+                    </div>
+                    <div class="bulk-field">
+                        <span class="bf-label">Expected</span>
+                        <input v-model="bulkExpected" type="date" class="bulk-input" />
+                    </div>
+                    <div class="bulk-field">
+                        <span class="bf-label">Tgl Disetujui Direksi</span>
+                        <input v-model="bulkTanggalSetuju" type="datetime-local" class="bulk-input" />
+                    </div>
                 </div>
+                <button class="btn-bulk" @click="applyBulk">Buat Semua Jadi Satu PO</button>
             </div>
 
             <!-- Item & baris PO -->
@@ -177,6 +201,9 @@ const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
 .mr-num { margin:0;font-family:monospace;font-weight:800;font-size:18px;color:#0f172a; }
 .info { font-size:13px;color:#64748b;margin:4px 0 0; }
 .bulk-card { background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px; }
+.bulk-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px; }
+.bulk-field { display:flex;flex-direction:column;gap:4px; }
+.bf-label { font-size:11px;font-weight:600;color:#64748b; }
 .field-label { font-size:12px;font-weight:700;color:#334155;text-transform:uppercase; }
 .bulk-row { display:flex;gap:8px;align-items:center; }
 .bulk-input { flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:14px;outline:none; }
