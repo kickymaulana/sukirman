@@ -701,7 +701,7 @@ class MaterialRequestController extends Controller
         $mr = MaterialRequest::with([
             'user.departemen',
             'items.departemen',
-            'items.item_po_lines',
+            'items.item_po_lines.user',
         ])->findOrFail($id);
 
         return Inertia::render('Approval/PoDetail', [
@@ -879,7 +879,7 @@ class MaterialRequestController extends Controller
         $search = $request->input('search');
         $status = $request->input('status');
 
-        $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines'])
+        $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('mr_number', 'like', "%{$search}%")
@@ -897,6 +897,7 @@ class MaterialRequestController extends Controller
                 $doneCount = 0;
                 $hasPo = false;
                 $nomorPos = collect();
+                $poUsers = collect();
                 foreach ($items as $it) {
                     $lines = $it->item_po_lines;
                     $covered = $lines->sum('qty');
@@ -904,6 +905,9 @@ class MaterialRequestController extends Controller
                     if ($covered > 0) {
                         $hasPo = true;
                         $nomorPos = $nomorPos->merge($lines->pluck('nomor_po')->filter());
+                    }
+                    foreach ($lines as $ln) {
+                        if ($ln->user?->name) { $poUsers->push($ln->user->name); }
                     }
                 }
 
@@ -917,6 +921,7 @@ class MaterialRequestController extends Controller
                     'status_workflow' => $mr->status_workflow,
                     'po_status' => $poStatus,
                     'nomor_pos' => $nomorPos->unique()->values(),
+                    'po_users' => $poUsers->unique()->values(),
                     'created_at' => $mr->created_at->format('d M Y'),
                     'pengaju' => $mr->user?->name,
                     'departemen' => $mr->user?->departemen?->nama,
@@ -991,6 +996,7 @@ class MaterialRequestController extends Controller
                 $mrItem->item_po_lines()->create([
                     'qty' => (int) $line['qty'],
                     'nomor_po' => !empty($line['nomor_po']) ? $line['nomor_po'] : null,
+                    'user_id' => auth()->id(),
                 ]);
             }
         }

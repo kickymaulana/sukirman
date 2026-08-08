@@ -10,6 +10,7 @@ interface MR {
     status_workflow: string
     po_status: string
     nomor_pos: string[]
+    po_users: string[]
     created_at: string
     pengaju: string
     departemen: string | null
@@ -81,6 +82,7 @@ const goBack = () => router.get(route('dashboard'))
                             <th>Tanggal</th>
                             <th>Status</th>
                             <th>PO</th>
+                            <th>Input PO</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
@@ -100,11 +102,15 @@ const goBack = () => router.get(route('dashboard'))
                                 <div v-for="np in mr.nomor_pos" :key="np" class="po-num">{{ np }}</div>
                             </td>
                             <td>
+                                <span v-if="mr.po_users && mr.po_users.length" class="po-users">{{ mr.po_users.join(', ') }}</span>
+                                <span v-else class="po-users none">-</span>
+                            </td>
+                            <td>
                                 <a :href="baseUrl + '/approval/purchasing/' + mr.id + '/input'" class="btn-kerja">Kerjakan / Input PO</a>
                             </td>
                         </tr>
                         <tr v-if="!requests.data.length">
-                            <td colspan="9" class="empty">Tidak ada MR</td>
+                            <td colspan="10" class="empty">Tidak ada MR</td>
                         </tr>
                     </tbody>
                 </table>
@@ -134,6 +140,8 @@ const goBack = () => router.get(route('dashboard'))
 .muted { color:#64748b; }
 .po-num { font-size:11px;color:#065f46;font-weight:700;margin-top:2px; }
 .po-date { font-size:10px;color:#64748b;margin-top:2px; }
+.po-users { font-size:11px;color:#334155; }
+.po-users.none { color:#94a3b8; }
 .empty { text-align:center;color:#94a3b8;padding:40px; }
 .btn-kerja { background:#4f46e5;color:#fff;padding:6px 14px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600;display:inline-block; }
 .btn-kerja:hover { background:#4338ca; }

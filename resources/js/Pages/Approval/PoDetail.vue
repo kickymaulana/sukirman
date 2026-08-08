@@ -48,13 +48,14 @@ const goBack = () => window.history.back()
                 </div>
 
                 <table class="tbl">
-                    <thead><tr><th>Qty</th><th>Nomor PO</th></tr></thead>
+                    <thead><tr><th>Qty</th><th>Nomor PO</th><th>Di-input oleh</th></tr></thead>
                     <tbody>
                         <tr v-for="(l, li) in it.item_po_lines" :key="li">
                             <td>{{ l.qty }}</td>
                             <td class="mono">{{ l.nomor_po || '-' }}</td>
+                            <td>{{ l.user?.name || '-' }}</td>
                         </tr>
-                        <tr v-if="!it.item_po_lines?.length"><td colspan="2" class="minor">Belum ada baris PO.</td></tr>
+                        <tr v-if="!it.item_po_lines?.length"><td colspan="3" class="minor">Belum ada baris PO.</td></tr>
                     </tbody>
                 </table>
             </div>
