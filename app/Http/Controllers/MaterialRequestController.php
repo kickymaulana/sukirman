@@ -973,6 +973,9 @@ class MaterialRequestController extends Controller
             'items.*.lines' => ['array'],
             'items.*.lines.*.qty' => ['required', 'integer', 'min:1'],
             'items.*.lines.*.nomor_po' => ['nullable', 'string', 'max:100'],
+            'items.*.lines.*.tgl_po' => ['nullable', 'date'],
+            'items.*.lines.*.expected_date' => ['nullable', 'date'],
+            'items.*.lines.*.tanggal_disetujui_direksi' => ['nullable', 'date_format:Y-m-d\TH:i'],
         ]);
 
         foreach ($validated['items'] as $itemData) {
@@ -993,9 +996,17 @@ class MaterialRequestController extends Controller
 
             $mrItem->item_po_lines()->delete();
             foreach ($lines as $line) {
+                $tglSetuju = !empty($line['tanggal_disetujui_direksi']) ? $line['tanggal_disetujui_direksi'] : null;
+                if ($tglSetuju) {
+                    $tglSetuju = str_replace('T', ' ', $tglSetuju);
+                }
+
                 $mrItem->item_po_lines()->create([
                     'qty' => (int) $line['qty'],
                     'nomor_po' => !empty($line['nomor_po']) ? $line['nomor_po'] : null,
+                    'tgl_po' => !empty($line['tgl_po']) ? $line['tgl_po'] : null,
+                    'expected_date' => !empty($line['expected_date']) ? $line['expected_date'] : null,
+                    'tanggal_disetujui_direksi' => $tglSetuju,
                     'user_id' => auth()->id(),
                 ]);
             }

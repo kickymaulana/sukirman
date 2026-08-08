@@ -10,7 +10,7 @@ const csrf = pp.csrf_token || ''
 
 const mr = props.mr
 
-interface Line { qty: string; nomor_po: string }
+interface Line { qty: string; nomor_po: string; tgl_po: string; expected_date: string; tgl_setuju: string }
 interface Row {
     id: number; kode: string; nama: string; qty: number; unit: string; dept: string
     lines: Line[]
@@ -23,7 +23,13 @@ const items = ref<Row[]>((mr.items || []).map((it: any) => ({
     qty: it.qty,
     unit: it.unit,
     dept: it.departemen?.nama || '',
-    lines: (it.item_po_lines || []).map((l: any) => ({ qty: String(l.qty), nomor_po: l.nomor_po || '' })),
+    lines: (it.item_po_lines || []).map((l: any) => ({
+        qty: String(l.qty),
+        nomor_po: l.nomor_po || '',
+        tgl_po: l.tgl_po || '',
+        expected_date: l.expected_date || '',
+        tgl_setuju: l.tanggal_disetujui_direksi ? String(l.tanggal_disetujui_direksi).slice(0, 16) : '',
+    })),
 })))
 
 const bulkPo = ref('')
@@ -38,7 +44,7 @@ const remaining = (r: Row) => r.qty - covered(r)
 
 // Tambah baris PO (isi qty sesuai sisa otomatis, biar tidak salah)
 const addLine = (r: Row) => {
-    r.lines.push({ qty: String(r.qty - covered(r)), nomor_po: bulkPo.value.trim() })
+    r.lines.push({ qty: String(r.qty - covered(r)), nomor_po: bulkPo.value.trim(), tgl_po: '', expected_date: '', tgl_setuju: '' })
 }
 const removeLine = (r: Row, i: number) => r.lines.splice(i, 1)
 
@@ -49,7 +55,7 @@ const applyBulk = () => {
     items.value.forEach(r => {
         const sisa = r.qty - covered(r)
         if (sisa > 0) {
-            r.lines.push({ qty: String(sisa), nomor_po: bulkPo.value.trim() })
+            r.lines.push({ qty: String(sisa), nomor_po: bulkPo.value.trim(), tgl_po: '', expected_date: '', tgl_setuju: '' })
             added++
         }
     })
@@ -72,7 +78,13 @@ const save = async () => {
     if (anyOver.value) { Snackbar.error('Ada item yang total qty PO melebihi qty permintaan'); return }
     const payload = items.value.map(r => ({
         id: r.id,
-        lines: r.lines.filter(l => (Number(l.qty) || 0) > 0).map(l => ({ qty: Number(l.qty), nomor_po: l.nomor_po.trim() })),
+        lines: r.lines.filter(l => (Number(l.qty) || 0) > 0).map(l => ({
+            qty: Number(l.qty),
+            nomor_po: l.nomor_po.trim(),
+            tgl_po: l.tgl_po || null,
+            expected_date: l.expected_date || null,
+            tanggal_disetujui_direksi: l.tgl_setuju || null,
+        })),
     }))
     saving.value = true
     try {
@@ -137,15 +149,18 @@ const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
 
                 <table class="tbl">
                     <thead>
-                        <tr><th>Qty</th><th>Nomor PO</th><th></th></tr>
+                        <tr><th>Qty</th><th>Nomor PO</th><th>Tgl PO</th><th>Expected</th><th>Tgl Disetujui Direksi</th><th></th></tr>
                     </thead>
                     <tbody>
                         <tr v-for="(l, li) in r.lines" :key="li">
                             <td><input v-model="l.qty" type="number" min="0" class="qty-input" /></td>
                             <td><input v-model="l.nomor_po" type="text" placeholder="Nomor PO..." class="po-input" /></td>
+                            <td><input v-model="l.tgl_po" type="date" class="po-input" /></td>
+                            <td><input v-model="l.expected_date" type="date" class="po-input" /></td>
+                            <td><input v-model="l.tgl_setuju" type="datetime-local" class="po-input" /></td>
                             <td><button class="btn-x" @click="removeLine(r, li)">✕</button></td>
                         </tr>
-                        <tr v-if="!r.lines.length"><td colspan="3" class="minor">Belum ada baris PO. Klik "＋ Tambah Baris".</td></tr>
+                        <tr v-if="!r.lines.length"><td colspan="6" class="minor">Belum ada baris PO. Klik "＋ Tambah Baris".</td></tr>
                     </tbody>
                 </table>
             </div>
