@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
-import { Snackbar } from '@varlet/ui'
+import { Snackbar, Dialog } from '@varlet/ui'
 
 const props = defineProps<{ mr: any; userRole: string; deptRole?: string | null; direksiUsers: { id: number; name: string }[]; fmGmUsers?: { id: number; name: string; nik: string }[] }>()
 const page = usePage()
@@ -53,6 +53,19 @@ const openGudangInput = () => {
 
 const openPrint = () => {
     window.location.href = `${baseUrl}/material-requests/${mr.id}/print`
+}
+
+// Hapus MR — hanya pengaju & status tertentu yang belum diproses lanjut
+const canDelete = computed(() =>
+    mr.user_id === pp.auth?.user?.id &&
+    ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD', 'Revision'].includes(mr.status_workflow)
+)
+const confirmDeleteMr = () => {
+    Dialog({
+        title: 'Hapus MR?', message: `MR ${mr.mr_number} akan dihapus permanen beserta item, riwayat approval, dan semua notifikasi terkait.`,
+        confirmButtonText: 'Ya, Hapus', cancelButtonText: 'Batal',
+        onConfirm: () => router.delete(route('material-requests.destroy', mr.id)),
+    })
 }
 
 const logLabel = (action: string) => {
@@ -190,6 +203,15 @@ const doAction = (type: string) => {
                 style="display:flex;align-items:center;justify-content:center;gap:8px;background:#0ea5e9;color:#fff;border-radius:12px;padding:14px;font-weight:700;cursor:pointer;"
             >
                 <var-icon name="printer-outline" :size="20" /> Cetak MR
+            </div>
+
+            <!-- Hapus MR (pengaju, status tertentu) -->
+            <div
+                v-if="canDelete"
+                @click="confirmDeleteMr"
+                style="display:flex;align-items:center;justify-content:center;gap:8px;background:#ef4444;color:#fff;border-radius:12px;padding:14px;font-weight:700;cursor:pointer;"
+            >
+                <var-icon name="delete" :size="20" /> Hapus MR
             </div>
 
             <!-- Input ke Accurate (Gudang) -->

@@ -38,6 +38,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/material-requests/create', 'create')->name('material-requests.create');
         Route::post('/material-requests', 'store')->name('material-requests.store');
         Route::get('/material-requests/{id}', 'show')->name('material-requests.show');
+        Route::delete('/material-requests/{id}', 'destroyByOwner')->name('material-requests.destroy');
         Route::get('/po-detail/{id}', 'poDetail')->name('material-requests.po-detail');
         Route::get('/material-requests/{id}/print', 'print')->name('material-requests.print');
         Route::get('/material-requests/{id}/xml', 'downloadXml')->name('material-requests.xml-download');

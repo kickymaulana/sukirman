@@ -15,6 +15,7 @@ use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use App\Notifications\MrNotification;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Notification;
 
 class MaterialRequestController extends Controller
@@ -50,6 +51,30 @@ class MaterialRequestController extends Controller
                 'search' => $search ?? '',
             ],
         ]);
+    }
+
+    /**
+     * Hapus MR oleh pengaju (hanya status tertentu), beserta relasi & notifikasinya.
+     */
+    public function destroyByOwner($id)
+    {
+        $mr = MaterialRequest::findOrFail($id);
+
+        abort_if($mr->user_id !== auth()->id(), 403, 'Anda bukan pengaju MR ini.');
+
+        $allowed = ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD', 'Revision'];
+        abort_if(!in_array($mr->status_workflow, $allowed), 403, 'MR tidak bisa dihapus karena sudah diproses lebih lanjut.');
+
+        DB::transaction(function () use ($mr, $id) {
+            // Hapus semua notifikasi yang merujuk MR ini (semua user)
+            DatabaseNotification::whereRaw("JSON_UNQUOTE(JSON_EXTRACT(`data`, '$.mr_id')) = ?", [(string) $id])
+                ->delete();
+
+            // Hapus MR — items, approval_logs, item_po_lines ikut terhapus (cascade)
+            $mr->delete();
+        });
+
+        return redirect()->route('material-requests.index')->with('success', "MR {$mr->mr_number} berhasil dihapus.");
     }
 
     /**
