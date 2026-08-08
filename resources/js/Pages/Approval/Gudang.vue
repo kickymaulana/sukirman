@@ -9,6 +9,8 @@ interface MR {
     factory: string
     status_workflow: string
     input_accurate: string
+    po_status: string
+    nomor_pos: string[]
     created_at: string
     pengaju: string
     departemen: string | null
@@ -41,6 +43,12 @@ const applyFilters = () => {
 }
 
 const openInput = (id: number) => { window.location.href = baseUrl + '/approval/gudang/' + id + '/input' }
+const openPoDetail = (id: number) => { window.location.href = baseUrl + '/po-detail/' + id }
+const poBadge = (s: string) => {
+    if (s === 'Sudah') return 'success'
+    if (s === 'Sebagian') return 'warning'
+    return 'default'
+}
 const goBack = () => router.get(route('dashboard'))
 </script>
 
@@ -72,6 +80,7 @@ const goBack = () => router.get(route('dashboard'))
                             <th>Tanggal</th>
                             <th>Status</th>
                             <th>Accurate</th>
+                            <th>PO</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
@@ -90,11 +99,17 @@ const goBack = () => router.get(route('dashboard'))
                                 <var-chip :type="mr.input_accurate === 'Sudah' ? 'success' : 'default'" size="mini">{{ mr.input_accurate === 'Sudah' ? '✅ Sudah' : 'Belum' }}</var-chip>
                             </td>
                             <td>
+                                <a :href="baseUrl + '/po-detail/' + mr.id" class="po-link">
+                                    <var-chip :type="poBadge(mr.po_status)" size="mini">{{ mr.po_status === 'Sudah' ? '✅' : mr.po_status }}</var-chip>
+                                    <div v-for="np in mr.nomor_pos" :key="np" class="po-num">{{ np }}</div>
+                                </a>
+                            </td>
+                            <td>
                                 <a :href="baseUrl + '/approval/gudang/' + mr.id + '/input'" class="btn-kerja">Kerjakan / Input</a>
                             </td>
                         </tr>
                         <tr v-if="!requests.data.length">
-                            <td colspan="9" class="empty">Tidak ada MR</td>
+                            <td colspan="10" class="empty">Tidak ada MR</td>
                         </tr>
                     </tbody>
                 </table>
@@ -122,6 +137,8 @@ const goBack = () => router.get(route('dashboard'))
 .link-mr { color:#4f46e5;text-decoration:underline; }
 .link-mr:hover { color:#6d28d9; }
 .muted { color:#64748b; }
+.po-link { color:#4f46e5;text-decoration:none; }
+.po-num { font-size:11px;color:#065f46;font-weight:700;margin-top:2px; }
 .empty { text-align:center;color:#94a3b8;padding:40px; }
 .btn-small { background:#4f46e5;color:#fff;padding:6px 14px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600; }
 .pagination { display:flex;align-items:center;justify-content:center;gap:16px;font-size:13px; }

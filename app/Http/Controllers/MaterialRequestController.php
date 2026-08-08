@@ -625,7 +625,7 @@ class MaterialRequestController extends Controller
         $search = $request->input('search');
         $status = $request->input('status');
 
-        $query = MaterialRequest::with(['user.departemen', 'items'])
+        $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('mr_number', 'like', "%{$search}%")
@@ -637,18 +637,38 @@ class MaterialRequestController extends Controller
             ->latest();
 
         $requests = $query->paginate(10)->withQueryString()
-            ->through(fn ($mr) => [
-                'id' => $mr->id,
-                'mr_number' => $mr->mr_number,
-                'jenis' => $mr->jenis,
-                'factory' => $mr->factory,
-                'status_workflow' => $mr->status_workflow,
-                'input_accurate' => $mr->input_accurate,
-                'created_at' => $mr->created_at->format('d M Y'),
-                'pengaju' => $mr->user?->name,
-                'departemen' => $mr->user?->departemen?->nama,
-                'items_count' => $mr->items->count(),
-            ]);
+            ->through(function ($mr) {
+                $items = $mr->items;
+                $total = $items->count();
+                $doneCount = 0;
+                $hasPo = false;
+                $nomorPos = collect();
+                foreach ($items as $it) {
+                    $lines = $it->item_po_lines;
+                    $covered = $lines->sum('qty');
+                    if ($covered >= (int) $it->qty) { $doneCount++; }
+                    if ($covered > 0) {
+                        $hasPo = true;
+                        $nomorPos = $nomorPos->merge($lines->pluck('nomor_po')->filter());
+                    }
+                }
+                $poStatus = $total === 0 ? 'Belum' : ($doneCount === $total ? 'Sudah' : ($hasPo ? 'Sebagian' : 'Belum'));
+
+                return [
+                    'id' => $mr->id,
+                    'mr_number' => $mr->mr_number,
+                    'jenis' => $mr->jenis,
+                    'factory' => $mr->factory,
+                    'status_workflow' => $mr->status_workflow,
+                    'input_accurate' => $mr->input_accurate,
+                    'po_status' => $poStatus,
+                    'nomor_pos' => $nomorPos->unique()->values(),
+                    'created_at' => $mr->created_at->format('d M Y'),
+                    'pengaju' => $mr->user?->name,
+                    'departemen' => $mr->user?->departemen?->nama,
+                    'items_count' => $total,
+                ];
+            });
 
         return Inertia::render('Approval/Gudang', [
             'requests' => $requests,
@@ -669,6 +689,22 @@ class MaterialRequestController extends Controller
         $mr = MaterialRequest::with(['user', 'items.departemen'])->findOrFail($id);
 
         return Inertia::render('Approval/GudangInput', [
+            'mr' => $mr,
+        ]);
+    }
+
+    /**
+     * Detail PO read-only (flathe lihat saja — untuk Gudang/admin/Purchasing).
+     */
+    public function poDetail($id)
+    {
+        $mr = MaterialRequest::with([
+            'user.departemen',
+            'items.departemen',
+            'items.item_po_lines',
+        ])->findOrFail($id);
+
+        return Inertia::render('Approval/PoDetail', [
             'mr' => $mr,
         ]);
     }
