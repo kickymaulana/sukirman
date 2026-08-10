@@ -86,11 +86,13 @@ class MaterialRequestController extends Controller
         abort_if(empty($item->foto), 404);
 
         $disk = Storage::disk('s3');
-        if (!$disk->exists($item->foto)) {
+        try {
+            $content = $disk->get($item->foto);
+        } catch (\Throwable $e) {
             abort(404);
         }
 
-        return response($disk->get($item->foto), 200, [
+        return response($content, 200, [
             'Content-Type' => $disk->mimeType($item->foto) ?: 'image/jpeg',
         ]);
     }
@@ -350,7 +352,7 @@ class MaterialRequestController extends Controller
                     $path = Storage::disk('s3')->putFileAs(
                         "item-foto/{$mrItem->id}",
                         $fotoFile,
-                        time() . '-' . $fotoFile->getClientOriginalName()
+                        time() . '-' . \Illuminate\Support\Str::random(8) . '.jpg'
                     );
                     $mrItem->update(['foto' => $path]);
                 }
