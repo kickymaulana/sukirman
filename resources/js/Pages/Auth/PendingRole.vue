@@ -6,6 +6,7 @@ const props = defineProps<{ user: { name: string; nik: string }; departemens: { 
 const baseUrl = (usePage().props as any).app_url || ''
 
 const roles = [
+    { name: 'User', desc: 'Membuat & mengajukan usulan barang (MR)' },
     { name: 'Supervisor', desc: 'Membuat & mengajukan usulan barang (MR)' },
     { name: 'Manager', desc: 'Menyetujui & meneruskan MR ke FM/GM' },
     { name: 'FM/GM', desc: 'Acknowledge & meneruskan MR ke Direksi' },

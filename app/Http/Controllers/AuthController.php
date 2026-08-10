@@ -148,7 +148,7 @@ class AuthController extends Controller
         }
 
         $validated = $request->validate([
-            'role' => ['required', 'in:Supervisor,Manager,FM/GM,Direksi,Gudang,Purchasing'],
+            'role' => ['required', 'in:Supervisor,Manager,FM/GM,Direksi,Gudang,Purchasing,User'],
             'departemen_id' => ['nullable', 'exists:departemens,id'],
         ], [
             'role.required' => 'Pilih posisi/jabatan Anda terlebih dahulu.',
