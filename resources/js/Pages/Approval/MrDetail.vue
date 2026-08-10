@@ -214,6 +214,7 @@ const doAction = (type: string) => {
                             <td class="tno">{{ i + 1 }}</td>
                             <td>
                                 <span class="iname">{{ item.item_name }}</span>
+                                <img v-if="item.foto" :src="`${baseUrl}/item-foto/${item.id}`" class="iimg" alt="foto" />
                                 <span v-if="item.item_code" class="icode">{{ item.item_code }}</span>
                                 <span v-if="item.specification" class="ispec">{{ item.specification }}</span>
                                 <span v-if="item.purpose" class="ipurpose">{{ item.purpose }}</span>
@@ -301,6 +302,7 @@ const doAction = (type: string) => {
 .itbl td { padding:8px;border-top:1px solid #f1f5f9;vertical-align:top; }
 .tno { width:20px;color:#94a3b8; }
 .iname { display:block;font-weight:700;color:#0f172a; }
+.iimg { display:block;width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;margin:4px 0; }
 .icode { display:block;font-size:11px;color:#4f46e5;font-family:monospace;margin-top:1px; }
 .ispec { display:block;font-size:12px;color:#64748b;font-style:italic;margin-top:1px; }
 .ipurpose { display:block;font-size:11px;color:#94a3b8;margin-top:1px; }

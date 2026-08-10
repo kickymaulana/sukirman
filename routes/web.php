@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/material-requests/{id}', 'show')->name('material-requests.show');
         Route::delete('/material-requests/{id}', 'destroyByOwner')->name('material-requests.destroy');
         Route::get('/po-detail/{id}', 'poDetail')->name('material-requests.po-detail');
+        Route::get('/item-foto/{id}', 'itemFoto')->name('material-requests.item-foto');
         Route::get('/material-requests/{id}/print', 'print')->name('material-requests.print');
         Route::get('/material-requests/{id}/xml', 'downloadXml')->name('material-requests.xml-download');
         Route::get('/material-requests/{id}/check-xml', 'checkXmlSkips')->name('material-requests.xml-check');

@@ -78,6 +78,24 @@ class MaterialRequestController extends Controller
     }
 
     /**
+     * Stream gambar item dari penyimpanan (MinIO).
+     */
+    public function itemFoto($id)
+    {
+        $item = MaterialRequestItem::findOrFail($id);
+        abort_if(empty($item->foto), 404);
+
+        $disk = Storage::disk('s3');
+        if (!$disk->exists($item->foto)) {
+            abort(404);
+        }
+
+        return response($disk->get($item->foto), 200, [
+            'Content-Type' => $disk->mimeType($item->foto) ?: 'image/jpeg',
+        ]);
+    }
+
+    /**
      * Daftar MR yang bersangkutan dengan user (pengaju / target / pernah menindak).
      */
     public function myMrs(Request $request): Response
@@ -281,6 +299,7 @@ class MaterialRequestController extends Controller
             'items.*.monthly_usage' => ['nullable', 'integer', 'min:0'],
             'items.*.stock_on_hand' => ['nullable', 'integer', 'min:0'],
             'items.*.purpose' => ['nullable', 'string'],
+            'items.*.foto' => ['nullable', 'image', 'max:10240'],
         ], [
             'manager_id.required' => 'Pilih Manager tujuan terlebih dahulu.',
             'items.required' => 'Minimal harus menambahkan 1 item barang.',
@@ -289,7 +308,7 @@ class MaterialRequestController extends Controller
             'items.*.unit.required' => 'Satuan wajib diisi.',
         ]);
 
-        DB::transaction(function () use ($validated) {
+        DB::transaction(function () use ($validated, $request) {
             // Format pendek: MR010508 (jam) — pastikan unik dengan menambahkan suffix bila dobel
             $base = 'MR' . date('His');
             $mrNumber = $base;
@@ -311,8 +330,8 @@ class MaterialRequestController extends Controller
                 'status_workflow' => 'Pending Manager',
             ]);
 
-            foreach ($validated['items'] as $item) {
-                $mr->items()->create([
+            foreach ($validated['items'] as $index => $item) {
+                $mrItem = $mr->items()->create([
                     'item_code' => isset($item['item_code']) ? mb_strtoupper($item['item_code']) : null,
                     'item_name' => mb_strtoupper($item['item_name']),
                     'specification' => isset($item['specification']) ? mb_strtoupper($item['specification']) : null,
@@ -324,6 +343,17 @@ class MaterialRequestController extends Controller
                     'stock_on_hand' => $item['stock_on_hand'] ?? 0,
                     'purpose' => isset($item['purpose']) ? mb_strtoupper($item['purpose']) : null,
                 ]);
+
+                // Upload foto item ke MinIO
+                $fotoFile = $request->file("items.{$index}.foto");
+                if ($fotoFile) {
+                    $path = Storage::disk('s3')->putFileAs(
+                        "item-foto/{$mrItem->id}",
+                        $fotoFile,
+                        time() . '-' . $fotoFile->getClientOriginalName()
+                    );
+                    $mrItem->update(['foto' => $path]);
+                }
             }
         });
 

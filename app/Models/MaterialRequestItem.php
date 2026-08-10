@@ -23,6 +23,7 @@ class MaterialRequestItem extends Model
         'monthly_usage',
         'stock_on_hand',
         'purpose',
+        'foto',
         'direksi_decision',
         'direksi_notes',
         'input_accurate',

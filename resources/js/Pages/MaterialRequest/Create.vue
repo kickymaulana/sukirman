@@ -14,6 +14,7 @@ interface RequestItem {
   monthly_usage: number
   stock_on_hand: number
   purpose: string
+  foto: File | null
 }
 
 const props = defineProps<{ managers: { id: number; name: string; nik: string }[]; departemens?: { id: number; nama: string }[] }>()
@@ -81,6 +82,7 @@ const form = useForm({
       monthly_usage: 0,
       stock_on_hand: 0,
       purpose: '',
+      foto: null,
     },
   ] as RequestItem[],
 })
@@ -104,7 +106,64 @@ const addItem = () => {
     monthly_usage: 0,
     stock_on_hand: 0,
     purpose: '',
+    foto: null,
   })
+}
+
+// Foto item: kompres di sisi frontend
+const previews = ref<(string | null)[]>([])
+const fotoLoading = ref<number[]>([])
+
+const compressImage = (file: File, maxSize = 1200, quality = 0.75): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height))
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { URL.revokeObjectURL(url); reject(new Error('no ctx')); return }
+      ctx.drawImage(img, 0, 0, w, h)
+      URL.revokeObjectURL(url)
+      canvas.toBlob((blob) => {
+        if (!blob) { reject(new Error('compress fail')); return }
+        resolve(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }))
+      }, 'image/jpeg', quality)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('load fail')) }
+    img.src = url
+  })
+}
+
+const handleFoto = async (e: Event, index: number) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  if (!/^image\//.test(file.type)) { Snackbar.warning('File harus berupa gambar'); input.value = ''; return }
+  fotoLoading.value.push(index)
+  try {
+    const compressed = await compressImage(file, 1200, 0.75)
+    form.items[index].foto = compressed
+    if (previews.value[index]) URL.revokeObjectURL(previews.value[index])
+    previews.value[index] = URL.createObjectURL(compressed)
+  } catch {
+    Snackbar.error('Gagal memproses gambar')
+  } finally {
+    fotoLoading.value = fotoLoading.value.filter(i => i !== index)
+    input.value = ''
+  }
+}
+
+const removeFoto = (index: number) => {
+  form.items[index].foto = null
+  if (previews.value[index]) {
+    URL.revokeObjectURL(previews.value[index])
+    previews.value[index] = null
+  }
 }
 
 const removeItem = (index: number) => {
@@ -319,6 +378,22 @@ const goBack = () => {
                   <var-option v-for="d in props.departemens || []" :key="d.id" :label="d.nama" :value="String(d.id)" />
                 </var-select>
               </div>
+
+              <!-- Foto item -->
+              <div class="field-group">
+                <label class="field-label">Foto Barang <span class="opt-label">(opsional)</span></label>
+                <div class="foto-row">
+                  <label class="foto-btn">
+                    <var-icon name="camera" :size="18" />
+                    {{ fotoLoading.includes(index) ? 'Memproses...' : (item.foto ? 'Ganti Foto' : 'Ambil Foto') }}
+                    <input type="file" accept="image/*" style="display:none" @change="handleFoto($event, index)" />
+                  </label>
+                  <div v-if="previews[index]" class="foto-preview">
+                    <img :src="previews[index]" class="foto-img" alt="preview" />
+                    <button class="foto-remove" @click="removeFoto(index)">✕</button>
+                  </div>
+                </div>
+              </div>
             </var-space>
           </div>
 
@@ -403,6 +478,48 @@ const goBack = () => {
   font-size: 11px;
   color: #94a3b8;
   font-weight: 400;
+}
+
+.foto-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.foto-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px dashed #a5b4fc;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.foto-btn:hover { background: #e0e7ff; }
+.foto-preview { position: relative; }
+.foto-img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  display: block;
+}
+.foto-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .item-card-header {
