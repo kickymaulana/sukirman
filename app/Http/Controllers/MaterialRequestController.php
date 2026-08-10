@@ -70,6 +70,9 @@ class MaterialRequestController extends Controller
             DatabaseNotification::whereRaw("JSON_UNQUOTE(JSON_EXTRACT(`data`, '$.mr_id')) = ?", [(string) $id])
                 ->delete();
 
+            // Hapus file foto item dari MinIO
+            $mr->deleteS3Photos();
+
             // Hapus MR — items, approval_logs, item_po_lines ikut terhapus (cascade)
             $mr->delete();
         });

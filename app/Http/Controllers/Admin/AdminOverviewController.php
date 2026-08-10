@@ -255,7 +255,10 @@ class AdminOverviewController extends Controller
             DatabaseNotification::whereRaw("JSON_UNQUOTE(JSON_EXTRACT(`data`, '$.mr_id')) = ?", [(string) $id])
                 ->delete();
 
-            // 2. Hapus MR — items & approval_logs ikut terhapus otomatis (cascade)
+            // 2. Hapus file foto item dari MinIO
+            $mr->deleteS3Photos();
+
+            // 3. Hapus MR — items & approval_logs ikut terhapus otomatis (cascade)
             $mr->delete();
         });
 

@@ -4,10 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class MaterialRequest extends Model
 {
     use HasFactory;
+
+    /**
+     * Hapus file foto semua item dari penyimpanan (MinIO) — dipanggil saat MR dihapus.
+     */
+    public function deleteS3Photos(): void
+    {
+        $paths = $this->items()->pluck('foto')->filter()->values();
+
+        foreach ($paths as $path) {
+            Storage::disk('s3')->delete($path);
+        }
+    }
 
     protected $fillable = [
         'mr_number',
