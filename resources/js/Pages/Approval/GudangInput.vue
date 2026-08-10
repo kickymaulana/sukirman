@@ -86,7 +86,10 @@ const goBack = () => window.location.href = baseUrl + '/approval/gudang'
                         <tr v-for="(it, i) in mr.items" :key="it.id">
                             <td>{{ i + 1 }}</td>
                             <td class="mono">{{ it.item_code || '-' }}</td>
-                            <td>{{ it.item_name }}</td>
+                            <td>
+                                <img v-if="it.foto" :src="`${baseUrl}/item-foto/${it.id}`" class="iimg" alt="foto" />
+                                {{ it.item_name }}
+                            </td>
                             <td>{{ it.departemen?.nama || '-' }}</td>
                             <td>{{ it.qty }}</td>
                             <td>{{ it.unit }}</td>
@@ -140,6 +143,7 @@ const goBack = () => window.location.href = baseUrl + '/approval/gudang'
 .tbl td { padding:10px 12px;border-top:1px solid #f1f5f9;color:#1e293b; }
 .tbl tr:hover td { background:#f8fafc; }
 .mono { font-family:monospace;font-weight:700; }
+.iimg { display:block;width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;margin:0 auto 4px; }
 .empty { text-align:center;color:#94a3b8;padding:40px; }
 .btn-copy { background:#e0e7ff;color:#4338ca;border:none;padding:6px 12px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer; }
 .btn-copy:hover { background:#c7d2fe; }

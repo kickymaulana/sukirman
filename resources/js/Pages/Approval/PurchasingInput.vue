@@ -12,7 +12,7 @@ const mr = props.mr
 
 interface Line { qty: string; nomor_po: string; tgl_po: string; expected_date: string; tgl_setuju: string }
 interface Row {
-    id: number; kode: string; nama: string; qty: number; unit: string; dept: string
+    id: number; kode: string; nama: string; qty: number; unit: string; dept: string; foto: string | null
     lines: Line[]
 }
 
@@ -23,6 +23,7 @@ const items = ref<Row[]>((mr.items || []).map((it: any) => ({
     qty: it.qty,
     unit: it.unit,
     dept: it.departemen?.nama || '',
+    foto: it.foto || null,
     lines: (it.item_po_lines || []).map((l: any) => ({
         qty: String(l.qty),
         nomor_po: l.nomor_po || '',
@@ -153,6 +154,7 @@ const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
             <!-- Item & baris PO -->
             <div v-for="(r, ri) in items" :key="r.id" class="item-card">
                 <div class="item-head">
+                    <img v-if="r.foto" :src="`${baseUrl}/item-foto/${r.id}`" class="iimg" alt="foto" />
                     <div>
                         <span class="item-name">{{ r.nama }}</span>
                         <span class="item-meta">{{ r.kode || '-' }} • {{ r.dept || '-' }} • diminta {{ r.qty }} {{ r.unit }}</span>
@@ -211,6 +213,7 @@ const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
 .btn-bulk { background:#4f46e5;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap; }
 .item-card { background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px; }
 .item-head { display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap; }
+.iimg { width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0; }
 .item-name { font-size:15px;font-weight:700;color:#0f172a;display:block; }
 .item-meta { font-size:12px;color:#64748b; }
 .copy { display:flex;gap:6px; }
