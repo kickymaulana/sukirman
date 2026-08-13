@@ -59,6 +59,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user,
             ],
             'app_url' => config('app.url'),
+            'sso_base_url' => config('services.sso.base_url'),
             'csrf_token' => csrf_token(),
             'notifications' => $notifications,
             'unread_count' => $unreadCount,

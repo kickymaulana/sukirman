@@ -8,6 +8,7 @@ const page = usePage()
 const errors = (page.props as any)?.errors
 const flashSuccess = (page.props as any)?.flash?.success
 const ssoUrl = (page.props as any).app_url + '/auth/sso'
+const ssoRegisterUrl = (page.props as any).sso_base_url + '/register'
 
 const lottieContainer = ref<HTMLElement | null>(null)
 let lottieInstance: any = null
@@ -60,6 +61,10 @@ onBeforeUnmount(() => {
       <p class="sso-info">
         Gunakan NIK & Password SSO yang terdaftar
       </p>
+
+      <a :href="ssoRegisterUrl" class="register-link">
+        Belum punya akun? Daftar via SSO Perusahaan
+      </a>
     </div>
 
     <div class="android-footer">
@@ -170,6 +175,18 @@ onBeforeUnmount(() => {
   color: #94a3b8;
   margin: 0;
   text-align: center;
+}
+
+.register-link {
+  font-size: 12px;
+  color: #4f46e5;
+  text-decoration: none;
+  font-weight: 600;
+  margin-top: 14px;
+}
+
+.register-link:hover {
+  text-decoration: underline;
 }
 
 .android-footer {
