@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
+import { Transition } from 'vue'
 
 const props = defineProps<{ mr: any }>()
 const pp = usePage().props as any
@@ -49,6 +50,21 @@ const markMr = async (value: 'Belum' | 'Sudah') => {
 }
 
 const goBack = () => window.location.href = baseUrl + '/approval/gudang'
+
+// Photo viewer
+const showPhotoViewer = ref(false)
+const currentPhotoUrl = ref('')
+const currentPhotoName = ref('')
+
+const openPhotoViewer = (url: string, name: string) => {
+    currentPhotoUrl.value = url
+    currentPhotoName.value = name
+    showPhotoViewer.value = true
+}
+
+const closePhotoViewer = () => {
+    showPhotoViewer.value = false
+}
 </script>
 
 <template>
@@ -87,7 +103,7 @@ const goBack = () => window.location.href = baseUrl + '/approval/gudang'
                             <td>{{ i + 1 }}</td>
                             <td class="mono">{{ it.item_code || '-' }}</td>
                             <td>
-                                <img v-if="it.foto" :src="`${baseUrl}/item-foto/${it.id}`" class="iimg" alt="foto" />
+                                <img v-if="it.foto" :src="`${baseUrl}/item-foto/${it.id}`" class="iimg" alt="foto" @click="openPhotoViewer(`${baseUrl}/item-foto/${it.id}`, it.item_name)" style="cursor: zoom-in" />
                                 {{ it.item_name }}
                             </td>
                             <td>{{ it.departemen?.nama || '-' }}</td>
@@ -117,14 +133,22 @@ const goBack = () => window.location.href = baseUrl + '/approval/gudang'
                 </table>
             </div>
 
-            <div class="done-bar">
+<div class="done-bar">
                 <button class="btn-done" :disabled="markingMr" @click="markMr('Sudah')">
-                    ✅ Tandai MR Sudah diinput ke Permintaan Barang
+                    �� Tandai MR Sudah diinput ke Permintaan Barang
                 </button>
                 <button v-if="mr.input_accurate === 'Sudah'" class="btn-undo" :disabled="markingMr" @click="markMr('Belum')">
-                    ↩ Batalkan Tanda
+                    �� Batalkan Tanda
                 </button>
             </div>
+
+            <!-- Photo Viewer Overlay -->
+            <Transition name="fade">
+                <div v-if="showPhotoViewer" class="photo-overlay" @click="closePhotoViewer">
+                    <div class="photo-title">{{ currentPhotoName }}</div>
+                    <img :src="currentPhotoUrl" alt="preview" class="photo-image" @click.stop />
+                </div>
+            </Transition>
         </main>
     </div>
 </template>
@@ -155,4 +179,40 @@ const goBack = () => window.location.href = baseUrl + '/approval/gudang'
 .btn-done { background:#10b981;color:#fff;border:none;padding:14px 20px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer; }
 .btn-done:disabled { opacity:0.5; }
 .btn-undo { background:#fff;color:#64748b;border:1px solid #cbd5e1;padding:14px 18px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer; }
+
+.photo-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.photo-title {
+  color: #fff;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  padding: 0 16px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.photo-image {
+  max-width: 100vw;
+  max-height: 85vh;
+  object-fit: contain;
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 </style>
