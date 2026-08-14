@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import { Snackbar, Dialog } from '@varlet/ui'
+import { Transition } from 'vue'
 
 const props = defineProps<{ mr: any; userRole: string; deptRole?: string | null; direksiUsers: { id: number; name: string }[]; fmGmUsers?: { id: number; name: string; nik: string }[] }>()
 const page = usePage()
@@ -90,6 +91,21 @@ const confirmDeleteMr = () => {
 const logLabel = (action: string) => {
     const map: any = { forward: 'Diteruskan', acknowledge: 'Acknowledge', approve: 'Disetujui', reject: 'Ditolak', revision: 'Revisi', stock_available: 'Stok Tersedia', stock_unavailable: 'Stok Tidak Ada', gudang_edit: 'Diedit Gudang' }
     return map[action] || action
+}
+
+// Photo viewer
+const showPhotoViewer = ref(false)
+const currentPhotoUrl = ref('')
+const currentPhotoName = ref('')
+
+const openPhotoViewer = (url: string, name: string) => {
+    currentPhotoUrl.value = url
+    currentPhotoName.value = name
+    showPhotoViewer.value = true
+}
+
+const closePhotoViewer = () => {
+    showPhotoViewer.value = false
 }
 
 // Determine available actions
@@ -223,8 +239,8 @@ const doAction = (type: string) => {
                         <tr v-for="(item, i) in mr.items" :key="item.id">
                             <td class="tno">{{ i + 1 }}</td>
                             <td>
-                                <span class="iname">{{ item.item_name }}</span>
-                                <img v-if="item.foto" :src="`${baseUrl}/item-foto/${item.id}`" class="iimg" alt="foto" />
+<span class="iname">{{ item.item_name }}</span>
+                                 <img v-if="item.foto" :src="`${baseUrl}/item-foto/${item.id}`" class="iimg" alt="foto" @click="openPhotoViewer(`${baseUrl}/item-foto/${item.id}`, item.item_name)" style="cursor: zoom-in" />
                                 <span v-if="item.item_code" class="icode">{{ item.item_code }}</span>
                                 <span v-if="item.specification" class="ispec">{{ item.specification }}</span>
                                 <span v-if="item.purpose" class="ipurpose">{{ item.purpose }}</span>
@@ -287,6 +303,14 @@ const doAction = (type: string) => {
                 <span style="font-family:monospace;color:#dc2626;flex-shrink:0;">{{ s.item_code }}</span>
             </div>
         </var-dialog>
+
+        <!-- Photo Viewer Overlay -->
+        <Transition name="fade">
+            <div v-if="showPhotoViewer" class="photo-overlay" @click="closePhotoViewer">
+                <div class="photo-title">{{ currentPhotoName }}</div>
+                <img :src="currentPhotoUrl" alt="preview" class="photo-image" @click.stop />
+            </div>
+        </Transition>
     </div>
 </template>
 
@@ -327,4 +351,40 @@ const doAction = (type: string) => {
 .lr { font-weight:700;color:#4f46e5;min-width:60px; }
 .la { color:#0f172a; } .lu { color:#64748b;margin-left:auto; }
 .empty { color:#94a3b8;font-size:13px;text-align:center;padding:12px; }
+
+.photo-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.photo-title {
+  color: #fff;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  padding: 0 16px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.photo-image {
+  max-width: 100vw;
+  max-height: 85vh;
+  object-fit: contain;
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 </style>
