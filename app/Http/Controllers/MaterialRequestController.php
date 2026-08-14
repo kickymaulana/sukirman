@@ -154,50 +154,20 @@ class MaterialRequestController extends Controller
     }
 
     /**
-     * Ubah MR menjadi struktur data untuk halaman daftar (progress + riwayat).
+     * Ubah MR menjadi struktur data ringkas untuk halaman daftar.
      */
     private function mapForList($mr): array
     {
         $status = $mr->status_workflow;
-        $rejected = $status === 'Rejected';
-        $revision = $status === 'Revision';
-
-        // Tahapan alur: 0 Pengajuan, 1 Manager, 2 FM/GM, 3 Direksi, 4 Gudang, 5 Selesai
-        $stage = match ($status) {
-            'Pending Manager' => 1,
-            'Pending FM/GM'   => 2,
-            'Pending Direksi' => 3,
-            'Verifikasi Gudang' => 4,
-            'Fully Approved'  => 5,
-            default           => 1,
-        };
-
-        $logs = $mr->approvalLogs->sortByDesc('id')->take(4)->map(fn ($l) => [
-            'role' => $l->role,
-            'action' => $l->action,
-            'user_name' => $l->user?->name ?? '-',
-            'time' => $l->created_at->format('d M H:i'),
-        ])->values();
 
         return [
             'id' => $mr->id,
             'mr_number' => $mr->mr_number,
-            'type' => $mr->type,
-            'factory' => $mr->factory,
-            'allocation' => $mr->allocation,
-            'status_pembelian' => $mr->status_pembelian,
             'status_workflow' => $status,
             'created_at' => $mr->created_at->format('d M Y'),
-            'items' => $mr->items->map(fn ($i) => [
-                'id' => $i->id,
-                'item_name' => $i->item_name,
-                'qty' => $i->qty,
-                'unit' => $i->unit,
-            ])->values(),
-            'stage' => $stage,
-            'rejected' => $rejected,
-            'revision' => $revision,
-            'logs' => $logs,
+            'user_name' => $mr->user?->name,
+            'jenis' => $mr->jenis,
+            'direksi_name' => $mr->direksi?->name,
         ];
     }
 
