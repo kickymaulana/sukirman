@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Storage;
 
 
 class MaterialRequestItem extends Model
@@ -43,5 +44,12 @@ class MaterialRequestItem extends Model
     public function item_po_lines()
     {
         return $this->hasMany(\App\Models\ItemPoLine::class, 'material_request_item_id');
+    }
+
+    public function deleteS3Photo(): void
+    {
+        if ($this->foto) {
+            Storage::disk('s3')->delete($this->foto);
+        }
     }
 }

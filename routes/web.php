@@ -38,6 +38,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/material-requests/create', 'create')->name('material-requests.create');
         Route::post('/material-requests', 'store')->name('material-requests.store');
         Route::get('/material-requests/{id}', 'show')->name('material-requests.show');
+        Route::get('/material-requests/{id}/edit', 'edit')->name('material-requests.edit');
+        Route::put('/material-requests/{id}', 'update')->name('material-requests.update');
         Route::delete('/material-requests/{id}', 'destroyByOwner')->name('material-requests.destroy');
         Route::get('/po-detail/{id}', 'poDetail')->name('material-requests.po-detail');
         Route::get('/item-foto/{id}', 'itemFoto')->name('material-requests.item-foto');

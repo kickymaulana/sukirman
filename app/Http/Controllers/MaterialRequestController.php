@@ -365,6 +365,112 @@ class MaterialRequestController extends Controller
         return redirect()->route('material-requests.index')->with('success', 'Usulan Material Request berhasil dibuat.');
     }
 
+    /**
+     * Menampilkan form edit MR (hanya status sebelum Direksi approve).
+     */
+    public function edit($id)
+    {
+        $mr = MaterialRequest::with('items')->findOrFail($id);
+
+        $allowedStatuses = ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD'];
+        abort_if(!in_array($mr->status_workflow, $allowedStatuses), 403, 'MR tidak bisa diedit pada status ini.');
+        abort_if($mr->user_id !== auth()->id(), 403, 'Anda bukan pengaju MR ini.');
+
+        $managers = User::role('Manager')->get(['id', 'name', 'nik']);
+
+        return Inertia::render('MaterialRequest/EditPending', [
+            'mr' => $mr,
+            'managers' => $managers,
+            'departemens' => \App\Models\Departemen::orderBy('nama')->get(['id', 'nama']),
+        ]);
+    }
+
+    /**
+     * Update MR (hanya status sebelum Direksi approve).
+     */
+    public function update(Request $request, $id)
+    {
+        $mr = MaterialRequest::findOrFail($id);
+
+        $allowedStatuses = ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD'];
+        abort_if(!in_array($mr->status_workflow, $allowedStatuses), 403, 'MR tidak bisa diedit pada status ini.');
+        abort_if($mr->user_id !== auth()->id(), 403, 'Anda bukan pengaju MR ini.');
+
+        $validated = $request->validate([
+            'type' => ['required', 'in:Lokal,Import'],
+            'factory' => ['required', 'in:KIM,DALU 1,DALU 2'],
+            'allocation' => ['required', 'in:Project,Proses'],
+            'status_pembelian' => ['required', 'in:Urgent,Normal'],
+            'jenis' => ['required', 'in:UMUM,MTC,IT,HRD'],
+            'manager_id' => ['required', 'exists:users,id'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.item_code' => ['nullable', 'string', 'max:50'],
+            'items.*.item_name' => ['required', 'string', 'max:255'],
+            'items.*.specification' => ['nullable', 'string'],
+            'items.*.departemen_id' => ['nullable', 'exists:departemens,id'],
+            'items.*.qty' => ['required', 'integer', 'min:1'],
+            'items.*.unit' => ['required', 'string', 'max:20'],
+            'items.*.item_status' => ['required', 'in:Urgent,Normal,New,Replace'],
+            'items.*.monthly_usage' => ['nullable', 'integer', 'min:0'],
+            'items.*.stock_on_hand' => ['nullable', 'integer', 'min:0'],
+            'items.*.purpose' => ['nullable', 'string'],
+            'items.*.foto' => ['nullable', 'image', 'max:10240'],
+        ], [
+            'manager_id.required' => 'Pilih Manager tujuan terlebih dahulu.',
+            'items.required' => 'Minimal harus menambahkan 1 item barang.',
+            'items.*.item_name.required' => 'Nama barang wajib diisi.',
+            'items.*.qty.required' => 'Jumlah (Qty) wajib diisi.',
+            'items.*.unit.required' => 'Satuan wajib diisi.',
+        ]);
+
+        DB::transaction(function () use ($validated, $request, $mr) {
+            $mr->update([
+                'manager_id' => $validated['manager_id'],
+                'type' => $validated['type'],
+                'factory' => $validated['factory'],
+                'allocation' => $validated['allocation'],
+                'status_pembelian' => $validated['status_pembelian'],
+                'jenis' => $validated['jenis'],
+                'status_workflow' => 'Pending Manager',
+                'revision_notes' => null,
+            ]);
+
+            // Hapus item lama (termasuk foto di MinIO)
+            foreach ($mr->items as $item) {
+                $item->deleteS3Photo();
+            }
+            $mr->items()->delete();
+
+            // Create item baru
+            foreach ($validated['items'] as $index => $item) {
+                $mrItem = $mr->items()->create([
+                    'item_code' => isset($item['item_code']) ? mb_strtoupper($item['item_code']) : null,
+                    'item_name' => mb_strtoupper($item['item_name']),
+                    'specification' => isset($item['specification']) ? mb_strtoupper($item['specification']) : null,
+                    'departemen_id' => $item['departemen_id'] ?? null,
+                    'qty' => $item['qty'],
+                    'unit' => mb_strtoupper($item['unit']),
+                    'item_status' => $item['item_status'],
+                    'monthly_usage' => $item['monthly_usage'] ?? 0,
+                    'stock_on_hand' => $item['stock_on_hand'] ?? 0,
+                    'purpose' => isset($item['purpose']) ? mb_strtoupper($item['purpose']) : null,
+                ]);
+
+                $fotoFile = $request->file("items.{$index}.foto");
+                if ($fotoFile) {
+                    $path = Storage::disk('s3')->putFileAs(
+                        "item-foto/{$mrItem->id}",
+                        $fotoFile,
+                        time() . '-' . \Illuminate\Support\Str::random(8) . '.jpg'
+                    );
+                    $mrItem->update(['foto' => $path]);
+                }
+            }
+        });
+
+        return redirect()->route('material-requests.index')->with('success', 'MR berhasil diperbarui dan dikembalikan ke Pending Manager.');
+    }
+
     // ============ MANAGER: Forward ke Direksi ============
 
     public function managerIndex()

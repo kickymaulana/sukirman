@@ -29,6 +29,10 @@ const showAction = ref(false); const actionType = ref(''); const actionNotes = r
 
 const back = () => router.get(route('dashboard'))
 
+const openEdit = () => {
+    window.location.href = `${baseUrl}/material-requests/${mr.id}/edit`
+}
+
 // Download XML Accurate — cek dulu item yang akan di-skip
 const showSkipDialog = ref(false)
 const skipList = ref<{ mr: string; item_name: string; item_code: string }[]>([])
@@ -69,6 +73,11 @@ const openPrint = () => {
 const canDelete = computed(() =>
     mr.user_id === pp.auth?.user?.id &&
     ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD', 'Revision'].includes(mr.status_workflow)
+)
+
+const canEdit = computed(() =>
+    mr.user_id === pp.auth?.user?.id &&
+    ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD'].includes(mr.status_workflow)
 )
 const confirmDeleteMr = () => {
     Dialog({
@@ -177,6 +186,7 @@ const doAction = (type: string) => {
                 </div>
                 <div class="actions-row">
                     <button class="mini-btn blue" @click="openPrint"><var-icon name="printer-outline" :size="14" style="margin-right:4px" /> Cetak</button>
+                    <button v-if="canEdit" class="mini-btn blue" @click="openEdit"><var-icon name="pencil" :size="14" style="margin-right:4px" /> Edit</button>
                     <button v-if="canDelete" class="mini-btn red" @click="confirmDeleteMr"><var-icon name="delete" :size="14" style="margin-right:4px" /> Hapus</button>
                     <button v-if="role === 'gudang'" class="mini-btn green" @click="openGudangInput">Accurate</button>
                     <button v-if="role === 'gudang' && mr.status_workflow === 'Verifikasi Gudang'" class="mini-btn amber" @click="openGudangEdit">Edit</button>
