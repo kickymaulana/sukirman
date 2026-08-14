@@ -29,19 +29,12 @@ class DashboardController extends Controller
             ->take(5)
             ->get()
             ->map(function ($mr) {
-                // Ambil nama item pertama sebagai judul representatif card
                 $firstItem = $mr->items->first();
-                $title = $firstItem ? $firstItem->item_name : 'Material Request';
-
-                if ($mr->items->count() > 1) {
-                    $title .= ' (+' . ($mr->items->count() - 1) . ' item)';
-                }
 
                 return [
                     'id'       => $mr->id,
                     'code'     => $mr->mr_number,
-                    'title'    => $title,
-                    'category' => $mr->factory . ' • ' . $mr->allocation,
+                    'title'    => $firstItem ? $firstItem->item_name : 'Material Request',
                     'date'     => $mr->created_at->format('d M Y'),
                     'status'   => $mr->status_workflow,
                 ];

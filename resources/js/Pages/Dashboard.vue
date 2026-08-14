@@ -58,6 +58,10 @@ const getStatusBadgeType = (status: string) => {
 const baseUrl = (usePage().props as any).app_url || ''
 const routerInertia = router
 
+const openDetail = (id: number) => {
+  routerInertia.get(baseUrl + '/material-requests/' + id)
+}
+
 const goApproval = () => {
   const r = props.user?.role?.toLowerCase()
   const routes: any = { manager: '/approval/manager', 'fm/gm': '/approval/fmgm', direksi: '/approval/direksi', gudang: '/approval/gudang', purchasing: '/approval/purchasing', mtc: '/approval/mtc', it: '/approval/it', hrd: '/approval/hrd' }
@@ -236,21 +240,16 @@ const handleTabChange = (index: number) => {
 
       <!-- List Request dari Database -->
       <div v-else class="request-list">
-        <div v-for="item in recentRequests" :key="item.id" class="request-card">
-          <div class="request-main">
-            <div class="request-header">
-              <span class="request-code">{{ item.code }}</span>
-              <var-chip :type="getStatusBadgeType(item.status)" size="small" round>
-                {{ item.status }}
-              </var-chip>
-            </div>
-            <h4 class="request-item-title">{{ item.title }}</h4>
-            <div class="request-footer">
-              <span class="request-category">
-                <var-icon name="folder-outline" :size="14" /> {{ item.category }}
-              </span>
-              <span class="request-date">{{ item.date }}</span>
-            </div>
+        <div v-for="item in recentRequests" :key="item.id" class="request-card" @click="openDetail(item.id)">
+          <div class="request-header">
+            <span class="request-code">{{ item.code }}</span>
+            <var-chip :type="getStatusBadgeType(item.status)" size="small" round>
+              {{ item.status }}
+            </var-chip>
+          </div>
+          <div class="request-meta">
+            <span>{{ item.title }}</span>
+            <span>{{ item.date }}</span>
           </div>
         </div>
       </div>
@@ -402,12 +401,11 @@ const handleTabChange = (index: number) => {
   padding: 16px;
   border: 1px solid #f1f5f9;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  cursor: pointer;
 }
-.request-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.request-code { font-size: 11px; font-family: monospace; font-weight: 700; color: #64748b; background-color: #f1f5f9; padding: 2px 8px; border-radius: 6px; }
-.request-item-title { margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #0f172a; }
-.request-footer { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #94a3b8; }
-.request-category { display: flex; align-items: center; gap: 4px; }
+.request-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.request-code { font-family: monospace; font-weight: 800; color: #0f172a; font-size: 13px; }
+.request-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #64748b; }
 
 .admin-card {
   display:flex;align-items:center;gap:14px;background:#fef3c7;border-radius:16px;padding:16px;
