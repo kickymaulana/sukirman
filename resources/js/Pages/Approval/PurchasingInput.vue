@@ -1,7 +1,8 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Head, usePage } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
+import { Transition } from 'vue'
 
 const props = defineProps<{ mr: any }>()
 const pp = usePage().props as any
@@ -46,13 +47,11 @@ const copyText = async (text: string) => {
 const covered = (r: Row) => r.lines.reduce((s, l) => s + (Number(l.qty) || 0), 0)
 const remaining = (r: Row) => r.qty - covered(r)
 
-// Tambah baris PO (isi qty sesuai sisa otomatis, biar tidak salah)
 const addLine = (r: Row) => {
     r.lines.push({ qty: String(r.qty - covered(r)), nomor_po: bulkPo.value.trim(), tgl_po: '', expected_date: '', tgl_setuju: '' })
 }
 const removeLine = (r: Row, i: number) => r.lines.splice(i, 1)
 
-// Buat semua item jadi satu PO: otomatis buat baris qty penuh + isi SEMUA kolom yang sama
 const applyBulk = () => {
     if (!bulkPo.value.trim()) { Snackbar.warning('Isi nomor PO terlebih dahulu'); return }
     let added = 0
@@ -70,10 +69,9 @@ const applyBulk = () => {
         }
     })
     if (added === 0) { Snackbar.info('Semua item sudah terisi penuh') }
-    else { Snackbar.success(`Dibuat ${added} baris PO`); bulkPo.value = '' }
+    else { Snackbar.success('Dibuat ' + added + ' baris PO'); bulkPo.value = '' }
 }
 
-// Status seluruh item
 const anyOver = computed(() => items.value.some(r => remaining(r) < 0))
 const poStatus = computed(() => {
     if (!items.value.length) return 'Belum'
@@ -98,7 +96,7 @@ const save = async () => {
     }))
     saving.value = true
     try {
-        const res = await fetch(`${baseUrl}/approval/purchasing/${mr.id}/po`, {
+        const res = await fetch(baseUrl + '/approval/purchasing/' + mr.id + '/po', {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
             body: JSON.stringify({ items: payload }),
         })
@@ -110,26 +108,40 @@ const save = async () => {
 }
 
 const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
+
+// Photo viewer
+const showPhotoViewer = ref(false)
+const currentPhotoUrl = ref('')
+const currentPhotoName = ref('')
+
+const openPhotoViewer = (url: string, name: string) => {
+    currentPhotoUrl.value = url
+    currentPhotoName.value = name
+    showPhotoViewer.value = true
+}
+
+const closePhotoViewer = () => {
+    showPhotoViewer.value = false
+}
 </script>
 
 <template>
     <Head :title="'Input PO: ' + mr.mr_number" />
     <div class="layout">
-        <var-app-bar title="🧾 Input MR menjadi PO" title-position="center">
+        <var-app-bar title="[PO] Input MR menjadi PO" title-position="center">
             <template #left><var-button round text @click="goBack"><var-icon name="arrow-left" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
             <div class="head-card">
                 <div class="head-left">
                     <h2 class="mr-num">{{ mr.mr_number }}</h2>
-                    <p class="info">{{ mr.user?.name }} • Jenis: {{ mr.jenis }} • {{ mr.factory }} • {{ mr.created_at }}</p>
+                    <p class="info">{{ mr.user?.name }} - Jenis: {{ mr.jenis }} - {{ mr.factory }} - {{ mr.created_at }}</p>
                 </div>
-                <var-chip :type="poBadgeType" size="small">{{ poStatus === 'Sudah' ? '✅ Sudah PO' : poStatus }}</var-chip>
+                <var-chip :type="poBadgeType" size="small">{{ poStatus === 'Sudah' ? '[OK] Sudah PO' : poStatus }}</var-chip>
             </div>
 
-            <!-- Buat semua item jadi satu PO (kasus 1 MR = 1 pemasok) -->
             <div class="bulk-card">
-                <label class="field-label">Buat semua item jadi satu PO — isi nilai yang sama untuk semua</label>
+                <label class="field-label">Buat semua item jadi satu PO - isi nilai yang sama untuk semua</label>
                 <div class="bulk-grid">
                     <div class="bulk-field">
                         <span class="bf-label">Nomor PO</span>
@@ -151,13 +163,12 @@ const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
                 <button class="btn-bulk" @click="applyBulk">Buat Semua Jadi Satu PO</button>
             </div>
 
-            <!-- Item & baris PO -->
             <div v-for="(r, ri) in items" :key="r.id" class="item-card">
                 <div class="item-head">
-                    <img v-if="r.foto" :src="`${baseUrl}/item-foto/${r.id}`" class="iimg" alt="foto" />
+                    <img v-if="r.foto" :src="baseUrl + '/item-foto/' + r.id" class="iimg" alt="foto" @click="openPhotoViewer(baseUrl + '/item-foto/' + r.id, r.nama)" style="cursor: zoom-in" />
                     <div>
                         <span class="item-name">{{ r.nama }}</span>
-                        <span class="item-meta">{{ r.kode || '-' }} • {{ r.dept || '-' }} • diminta {{ r.qty }} {{ r.unit }}</span>
+                        <span class="item-meta">{{ r.kode || '-' }} - {{ r.dept || '-' }} - diminta {{ r.qty }} {{ r.unit }}</span>
                     </div>
                     <div class="item-copy">
                         <button class="btn-copy" @click="copyText(r.kode)">Kode</button>
@@ -168,9 +179,9 @@ const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
                 <div class="line-head">
                     <span>Baris PO</span>
                     <span class="remaining" :class="{ over: remaining(r) < 0 }">
-                        {{ remaining(r) < 0 ? '⚠️ Melebihi!' : 'Sisa: ' + remaining(r) }}
+                        {{ remaining(r) < 0 ? '[!] Melebihi!' : 'Sisa: ' + remaining(r) }}
                     </span>
-                    <button class="btn-line" @click="addLine(r)">＋ Tambah Baris</button>
+                    <button class="btn-line" @click="addLine(r)">+ Tambah Baris</button>
                 </div>
 
                 <table class="tbl">
@@ -184,14 +195,21 @@ const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
                             <td><input v-model="l.tgl_po" type="date" class="po-input" /></td>
                             <td><input v-model="l.expected_date" type="date" class="po-input" /></td>
                             <td><input v-model="l.tgl_setuju" type="datetime-local" class="po-input" /></td>
-                            <td><button class="btn-x" @click="removeLine(r, li)">✕</button></td>
+                            <td><button class="btn-x" @click="removeLine(r, li)">X</button></td>
                         </tr>
-                        <tr v-if="!r.lines.length"><td colspan="6" class="minor">Belum ada baris PO. Klik "＋ Tambah Baris".</td></tr>
+                        <tr v-if="!r.lines.length"><td colspan="6" class="minor">Belum ada baris PO. Klik "+ Tambah Baris".</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <button class="btn-save" :disabled="saving" @click="save">💾 Simpan Baris PO Semua Item</button>
+            <button class="btn-save" :disabled="saving" @click="save">[SAVE] Simpan Baris PO Semua Item</button>
+
+            <Transition name="fade">
+                <div v-if="showPhotoViewer" class="photo-overlay" @click="closePhotoViewer">
+                    <div class="photo-title">{{ currentPhotoName }}</div>
+                    <img :src="currentPhotoUrl" alt="preview" class="photo-image" @click.stop />
+                </div>
+            </Transition>
         </main>
     </div>
 </template>
@@ -233,4 +251,40 @@ const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
 .minor { color:#94a3b8;font-style:italic; }
 .btn-save { background:#10b981;color:#fff;border:none;padding:14px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer; }
 .btn-save:disabled { opacity:0.5; }
+
+.photo-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.photo-title {
+  color: #fff;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  padding: 0 16px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.photo-image {
+  max-width: 100vw;
+  max-height: 85vh;
+  object-fit: contain;
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 </style>
