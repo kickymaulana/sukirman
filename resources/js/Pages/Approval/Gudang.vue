@@ -20,13 +20,13 @@ interface MR {
 
 const props = defineProps<{
     requests: { data: MR[]; links: any[]; from: number; to: number; total: number; prev_page_url: string|null; next_page_url: string|null }
-    filters?: { search?: string; status?: string }
-    allStatuses: string[]
+    filters?: { search?: string; factory?: string }
+    allFactories: string[]
 }>()
 
 const baseUrl = (usePage().props as any).app_url || ''
 const searchVal = ref(props.filters?.search || '')
-const statusVal = ref(props.filters?.status || '')
+const factoryVal = ref(props.filters?.factory || '')
 
 const statusBadge = (s: string) => {
     if (['Fully Approved'].includes(s)) return 'success'
@@ -39,7 +39,7 @@ const statusBadge = (s: string) => {
 const applyFilters = () => {
     router.get(baseUrl + '/approval/gudang', {
         search: searchVal.value || undefined,
-        status: statusVal.value || undefined,
+        factory: factoryVal.value || undefined,
     }, { preserveState: true })
 }
 
@@ -62,9 +62,9 @@ const goBack = () => router.get(route('dashboard'))
         <main class="content">
             <div class="filter-bar">
                 <var-input v-model="searchVal" placeholder="Cari MR / nama / NIK..." clearable @keyup.enter="applyFilters" style="flex:1;max-width:320px" />
-                <var-select v-model="statusVal" placeholder="Semua Status" style="width:220px" @change="applyFilters">
-                    <var-option label="Semua Status" value="" />
-                    <var-option v-for="s in allStatuses" :key="s" :label="s" :value="s" />
+                <var-select v-model="factoryVal" placeholder="Semua Factory" style="width:200px" @change="applyFilters">
+                    <var-option label="Semua Factory" value="" />
+                    <var-option v-for="f in allFactories" :key="f" :label="f" :value="f" />
                 </var-select>
                 <var-button type="primary" @click="applyFilters"><var-icon name="magnify" :size="16" /></var-button>
             </div>
@@ -79,7 +79,6 @@ const goBack = () => router.get(route('dashboard'))
                             <th>Factory</th>
                             <th>Jenis</th>
                             <th>Tanggal</th>
-                            <th>Status</th>
                             <th>Accurate</th>
                             <th>PO</th>
                             <th>Aksi</th>
@@ -95,7 +94,6 @@ const goBack = () => router.get(route('dashboard'))
                             <td>{{ mr.factory }}</td>
                             <td>{{ mr.jenis }}</td>
                             <td class="muted">{{ mr.created_at }}</td>
-                            <td><var-chip :type="statusBadge(mr.status_workflow)" size="mini">{{ mr.status_workflow }}</var-chip></td>
                             <td>
                                 <var-chip :type="mr.input_accurate === 'Sudah' ? 'success' : 'default'" size="mini">{{ mr.input_accurate === 'Sudah' ? '✅ Sudah' : 'Belum' }}</var-chip>
                             </td>
@@ -111,7 +109,7 @@ const goBack = () => router.get(route('dashboard'))
                             </td>
                         </tr>
                         <tr v-if="!requests.data.length">
-                            <td colspan="10" class="empty">Tidak ada MR</td>
+                            <td colspan="9" class="empty">Tidak ada MR</td>
                         </tr>
                     </tbody>
                 </table>
@@ -144,6 +142,8 @@ const goBack = () => router.get(route('dashboard'))
 .po-users { font-size:11px;color:#334155;margin-top:3px; }
 .empty { text-align:center;color:#94a3b8;padding:40px; }
 .btn-small { background:#4f46e5;color:#fff;padding:6px 14px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600; }
+.btn-kerja { background:#4f46e5;color:#fff;padding:6px 14px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600;display:inline-block; }
+.btn-kerja:hover { background:#4338ca; }
 .pagination { display:flex;align-items:center;justify-content:center;gap:16px;font-size:13px; }
 .page-btn { padding:6px 16px;border-radius:8px;background:#e0e7ff;color:#4f46e5;text-decoration:none;font-weight:600; }
 .page-info { color:#64748b; }

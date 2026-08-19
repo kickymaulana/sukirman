@@ -756,20 +756,21 @@ class MaterialRequestController extends Controller
 
     // ============ GUDANG: Verifikasi Stok ============
 
-    public function gudangIndex(Request $request)
+public function gudangIndex(Request $request)
     {
         $search = $request->input('search');
-        $status = $request->input('status');
+        $factory = $request->input('factory');
 
         $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user'])
+            ->where('status_workflow', 'Verifikasi Gudang')
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('mr_number', 'like', "%{$search}%")
                       ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
-                              ->orWhere('nik', 'like', "%{$search}%"));
+                            ->orWhere('nik', 'like', "%{$search}%"));
                 });
             })
-            ->when($status, fn ($q) => $q->where('status_workflow', $status))
+            ->when($factory, fn ($q) => $q->where('factory', $factory))
             ->latest();
 
         $requests = $query->paginate(10)->withQueryString()
@@ -806,12 +807,8 @@ class MaterialRequestController extends Controller
 
         return Inertia::render('Approval/Gudang', [
             'requests' => $requests,
-            'filters' => ['search' => $search ?? '', 'status' => $status ?? ''],
-            'allStatuses' => [
-                'Pending Manager', 'Pending FM/GM', 'Pending Direksi',
-                'Pending MTC', 'Pending IT', 'Pending HRD',
-                'Verifikasi Gudang', 'Fully Approved', 'Purchasing', 'Rejected', 'Revision',
-            ],
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? ''],
+            'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
         ]);
     }
 
