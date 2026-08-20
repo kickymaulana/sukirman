@@ -1005,10 +1005,11 @@ public function gudangIndex(Request $request)
 
     // ============ PURCHASING: Export Excel ============
 
-public function purchasingIndex(Request $request)
+    public function purchasingIndex(Request $request)
     {
         $search = $request->input('search');
         $factory = $request->input('factory');
+        $poStatus = $request->input('po_status');
 
         $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user'])
             ->where('status_workflow', 'Purchasing')
@@ -1020,6 +1021,20 @@ public function purchasingIndex(Request $request)
                 });
             })
             ->when($factory, fn ($q) => $q->where('factory', $factory))
+            ->when($poStatus === 'Belum', function ($q) {
+                $q->whereDoesntHave('items.item_po_lines');
+            })
+            ->when($poStatus === 'Sudah', function ($q) {
+                $q->whereDoesntHave('items', function ($it) {
+                    $it->whereRaw('(SELECT COALESCE(SUM(qty), 0) FROM item_po_lines WHERE material_request_item_id = material_request_items.id) < material_request_items.qty');
+                });
+            })
+            ->when($poStatus === 'Sebagian', function ($q) {
+                $q->whereHas('items.item_po_lines')
+                  ->whereHas('items', function ($it) {
+                      $it->whereRaw('(SELECT COALESCE(SUM(qty), 0) FROM item_po_lines WHERE material_request_item_id = material_request_items.id) < material_request_items.qty');
+                  });
+            })
             ->latest();
 
         $requests = $query->paginate(10)->withQueryString()
@@ -1071,7 +1086,7 @@ public function purchasingIndex(Request $request)
 
         return Inertia::render('Approval/Purchasing', [
             'requests' => $requests,
-            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? ''],
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'po_status' => $poStatus ?? ''],
             'topUsers' => $topUsers,
             'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
         ]);

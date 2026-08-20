@@ -19,7 +19,7 @@ interface MR {
 
 const props = defineProps<{
     requests: { data: MR[]; links: any[]; from: number; to: number; total: number; prev_page_url: string|null; next_page_url: string|null }
-    filters?: { search?: string; factory?: string }
+    filters?: { search?: string; factory?: string; po_status?: string }
     allFactories: string[]
     topUsers?: { name: string; total: number }[]
 }>()
@@ -27,6 +27,14 @@ const props = defineProps<{
 const baseUrl = (usePage().props as any).app_url || ''
 const searchVal = ref(props.filters?.search || '')
 const factoryVal = ref(props.filters?.factory || '')
+const poStatusVal = ref(props.filters?.po_status || '')
+
+const poStatusOptions = [
+    { label: 'Semua PO Status', value: '' },
+    { label: 'Belum', value: 'Belum' },
+    { label: 'Sudah', value: 'Sudah' },
+    { label: 'Sebagian', value: 'Sebagian' },
+]
 
 const statusBadge = (s: string) => {
     if (['Fully Approved'].includes(s)) return 'success'
@@ -40,6 +48,7 @@ const applyFilters = () => {
     router.get(baseUrl + '/approval/purchasing', {
         search: searchVal.value || undefined,
         factory: factoryVal.value || undefined,
+        po_status: poStatusVal.value || undefined,
     }, { preserveState: true })
 }
 
@@ -67,6 +76,9 @@ const goBack = () => router.get(route('dashboard'))
                 <var-select v-model="factoryVal" placeholder="Semua Factory" style="width:200px" @change="applyFilters">
                     <var-option label="Semua Factory" value="" />
                     <var-option v-for="f in allFactories" :key="f" :label="f" :value="f" />
+                </var-select>
+                <var-select v-model="poStatusVal" placeholder="Semua PO Status" style="width:180px" @change="applyFilters">
+                    <var-option v-for="p in poStatusOptions" :key="p.value" :label="p.label" :value="p.value" />
                 </var-select>
                 <var-button type="primary" @click="applyFilters"><var-icon name="magnify" :size="16" /></var-button>
             </div>
