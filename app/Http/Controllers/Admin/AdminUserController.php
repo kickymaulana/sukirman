@@ -35,12 +35,14 @@ class AdminUserController extends Controller
 
     public function show($id)
     {
-        $user = User::with('roles', 'departemen')->findOrFail($id);
+        $user = User::with('roles', 'permissions', 'departemen')->findOrFail($id);
         $roles = \Spatie\Permission\Models\Role::pluck('name');
+        $permissions = \Spatie\Permission\Models\Permission::pluck('name');
         $departemens = Departemen::orderBy('nama')->get(['id', 'nama']);
         return Inertia::render('Admin/UserDetail', [
             'user' => $user,
             'allRoles' => $roles,
+            'allPermissions' => $permissions,
             'departemens' => $departemens,
         ]);
     }
@@ -77,6 +79,17 @@ class AdminUserController extends Controller
         ]);
         $user->syncRoles($request->roles);
         return response()->json(['ok' => true, 'message' => "Role {$user->name} diperbarui: " . implode(', ', $request->roles)]);
+    }
+
+    public function assignPermissions(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $request->validate([
+            'permissions' => ['nullable', 'array'],
+            'permissions.*' => ['exists:permissions,name'],
+        ]);
+        $user->syncPermissions($request->permissions ?? []);
+        return response()->json(['ok' => true, 'message' => "Permission {$user->name} diperbarui"]);
     }
 
     public function destroy($id)

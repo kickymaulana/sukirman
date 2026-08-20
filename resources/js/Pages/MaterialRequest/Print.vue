@@ -10,6 +10,7 @@ const props = defineProps<{
     managerApproverName?: string | null
     fmGmApproved?: boolean
     fmGmApproverName?: string | null
+    skipFmGm?: boolean
     direksiApproved?: boolean
     direksiApproverName?: string | null
 }>()
@@ -166,7 +167,7 @@ const goBack = () => window.history.back()
           <div v-if="deptApproved" class="approved-stamp"><span class="stamp-txt">✓ Approved</span></div>
           <p class="sign-name">{{ deptApproverName || '( belum ditandatangani )' }}</p>
         </div>
-        <div class="sign-box">
+        <div v-if="!skipFmGm" class="sign-box">
           <p class="sign-role">FM/GM</p>
           <div v-if="fmGmApproved" class="approved-stamp"><span class="stamp-txt">✓ Approved</span></div>
           <p class="sign-name">{{ fmGmApproverName || mr.fm_gm?.name || '( belum ditandatangani )' }}</p>

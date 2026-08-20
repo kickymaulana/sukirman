@@ -132,6 +132,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/users/{id}', [AdminUserController::class, 'show'])->name('users.show');
         Route::post('/users/{id}/approve', [AdminUserController::class, 'approve'])->name('users.approve');
         Route::post('/users/{id}/role', [AdminUserController::class, 'assignRole'])->name('users.role');
+        Route::post('/users/{id}/permission', [AdminUserController::class, 'assignPermissions'])->name('users.permission');
         Route::post('/users/{id}/departemen', [AdminUserController::class, 'updateDepartemen'])->name('users.departemen');
         Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->name('users.destroy');
         Route::get('/master/departemens', [DepartemenController::class, 'index'])->name('departemens.index');

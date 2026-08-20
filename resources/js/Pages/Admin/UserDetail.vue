@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
 
-const props = defineProps<{ user: any; allRoles: string[]; departemens?: { id: number; nama: string }[] }>()
+const props = defineProps<{ user: any; allRoles: string[]; allPermissions?: string[]; departemens?: { id: number; nama: string }[] }>()
 const page = usePage()
 const pp = page.props as any
 const baseUrl = pp.app_url || ''
@@ -15,6 +15,30 @@ if (props.user.requested_role && !currentRoles.includes(props.user.requested_rol
     selectedRoles.value.push(props.user.requested_role)
 }
 const saving = ref(false)
+
+const permissionLabels: Record<string, string> = {
+    'teruskan-ke-direksi': 'Bisa teruskan ke direksi',
+}
+const currentPermissions = (props.user.permissions || []).map((p: any) => typeof p === 'string' ? p : p.name)
+const selectedPermissions = ref<string[]>([...currentPermissions])
+const savingPerm = ref(false)
+
+const togglePermission = (p: string) => {
+    const i = selectedPermissions.value.indexOf(p)
+    if (i > -1) selectedPermissions.value.splice(i, 1)
+    else selectedPermissions.value.push(p)
+}
+
+const savePermission = async () => {
+    savingPerm.value = true
+    const res = await fetch(`${baseUrl}/admin/users/${props.user.id}/permission`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+        body: JSON.stringify({ permissions: selectedPermissions.value }),
+    })
+    savingPerm.value = false
+    if (res.ok) { Snackbar.success('Permission diperbarui'); window.location.reload() }
+    else { Snackbar.error('Gagal') }
+}
 
 const selectedDepartemen = ref(props.user.departemen_id ? String(props.user.departemen_id) : '')
 const savingDept = ref(false)
@@ -114,6 +138,26 @@ const saveRole = async () => {
                         </label>
                     </div>
                     <var-button type="primary" :loading="saving" @click="saveRole">Simpan Role</var-button>
+                </div>
+
+                <!-- Permissions -->
+                <div v-if="allPermissions?.length" class="action-row" style="align-items:flex-start;">
+                    <div class="role-checkboxes">
+                        <label
+                            v-for="p in allPermissions"
+                            :key="p"
+                            class="role-check"
+                            :class="{ checked: selectedPermissions.includes(p) }"
+                        >
+                            <input
+                                type="checkbox"
+                                :checked="selectedPermissions.includes(p)"
+                                @change="togglePermission(p)"
+                            />
+                            <span>{{ permissionLabels[p] || p }}</span>
+                        </label>
+                    </div>
+                    <var-button type="primary" :loading="savingPerm" @click="savePermission">Simpan Permission</var-button>
                 </div>
 
                 <!-- Departemen -->

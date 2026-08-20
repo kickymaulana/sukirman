@@ -4,7 +4,7 @@ import { Head, router, usePage } from '@inertiajs/vue3'
 import { Snackbar, Dialog } from '@varlet/ui'
 import { Transition } from 'vue'
 
-const props = defineProps<{ mr: any; userRole: string; deptRole?: string | null; direksiUsers: { id: number; name: string }[]; fmGmUsers?: { id: number; name: string; nik: string }[] }>()
+const props = defineProps<{ mr: any; userRole: string; deptRole?: string | null; canForwardDireksi?: boolean; direksiUsers: { id: number; name: string }[]; fmGmUsers?: { id: number; name: string; nik: string }[] }>()
 const page = usePage()
 const pp = page.props as any
 const baseUrl = pp.app_url || ''
@@ -26,6 +26,7 @@ const targetText = computed(() =>
 // Dialog state
 const showForward = ref(false); const selectedDireksi = ref(''); const forwardNotes = ref('')
 const showFmGm = ref(false); const selectedFmGm = ref('')
+const showDirectDireksi = ref(false)
 const showAction = ref(false); const actionType = ref(''); const actionNotes = ref('')
 
 const back = () => router.get(route('dashboard'))
@@ -113,6 +114,9 @@ const actions = computed(() => {
     const a: { label: string; type: string; action: string }[] = []
     if (role === 'manager' && mr.status_workflow === 'Pending Manager') {
         a.push({ label: 'Lanjut ke FM/GM', type: 'manager_lanjut', action: '' })
+        if (props.canForwardDireksi) {
+            a.push({ label: 'Langsung ke Direksi', type: 'manager_direksi', action: '' })
+        }
         a.push({ label: 'Tolak', type: 'manager_tolak', action: '' })
     }
     if (props.deptRole && mr.status_workflow === `Pending ${props.deptRole}`) {
@@ -140,6 +144,12 @@ const confirmAction = async () => {
         url = `${baseUrl}/approval/manager/${mr.id}/forward`
         body.action = 'lanjut'
         body.fm_gm_id = selectedFmGm.value
+    } else if (actionType.value === 'manager_direksi') {
+        if (!selectedDireksi.value) { Snackbar.warning('Pilih Direksi tujuan'); return }
+        url = `${baseUrl}/approval/manager/${mr.id}/forward`
+        body.action = 'lanjut_direksi'
+        body.direksi_id = selectedDireksi.value
+        body.notes = actionNotes.value
     } else if (actionType.value === 'manager_tolak') {
         url = `${baseUrl}/approval/manager/${mr.id}/forward`
         body.action = 'tolak'
@@ -182,6 +192,7 @@ const doAction = (type: string) => {
     if (type === 'revision') { window.location.href = baseUrl + '/approval/direksi/' + mr.id + '/revision'; return }
     if (type === 'fmgm_forward') { showForward.value = true; return }
     if (type === 'manager_lanjut') { showFmGm.value = true; return }
+    if (type === 'manager_direksi') { showDirectDireksi.value = true; return }
     if (['manager_tolak', 'fmgm_tolak', 'stock_yes', 'stock_no', 'dept_approve', 'dept_reject'].includes(type)) { actionType.value = type; confirmAction(); return }
     actionType.value = type; showAction.value = true
 }
@@ -286,6 +297,14 @@ const doAction = (type: string) => {
             <var-select v-model="selectedFmGm" placeholder="Ketik & Pilih FM/GM" filterable style="margin-bottom:12px">
                 <var-option v-for="f in (fmGmUsers || [])" :key="f.id" :label="f.name + ' (' + f.nik + ')'" :value="f.id" />
             </var-select>
+        </var-dialog>
+
+        <!-- Direct ke Direksi Dialog (Manager dengan permission skip FM/GM) -->
+        <var-dialog :show="showDirectDireksi" title="Langsung ke Direksi" @confirm="actionType='manager_direksi';confirmAction()" @close="showDirectDireksi=false" @cancel="showDirectDireksi=false" confirm-button-text="Kirim" cancel-button-text="Batal">
+            <var-select v-model="selectedDireksi" placeholder="Ketik & Pilih Direksi" filterable style="margin-bottom:12px">
+                <var-option v-for="d in direksiUsers" :key="d.id" :label="d.name" :value="d.id" />
+            </var-select>
+            <var-input v-model="actionNotes" placeholder="Catatan (opsional)" />
         </var-dialog>
 
         <!-- Tolak / Revision Dialog -->

@@ -208,6 +208,14 @@ class MaterialRequestController extends Controller
         $fmGmApproverName    = $fmGmLog?->user?->name;
         $direksiApproverName = $direksiLog?->user?->name;
 
+        // MR tidak melewati FM/GM (skip langsung ke Direksi) — sembunyikan blok tanda tangan FM/GM
+        $hasFmGmLog = $logs->where('role', 'FM/GM')->isNotEmpty();
+        $skipFmGm = !$hasFmGmLog
+            && !in_array($mr->status_workflow, [
+                'Pending Manager', 'Pending FM/GM',
+                'Pending MTC', 'Pending IT', 'Pending HRD',
+            ]);
+
         // Departemen: approve dari log departemen, ATAU skip otomatis jika manager sudah approve & punya role tsb
         $deptApproved = false;
         $deptApproverName = null;
@@ -234,6 +242,7 @@ class MaterialRequestController extends Controller
             'managerApproverName' => $managerApproverName,
             'fmGmApproved' => $fmGmApproved,
             'fmGmApproverName' => $fmGmApproverName,
+            'skipFmGm' => $skipFmGm,
             'direksiApproved' => $direksiApproved,
             'direksiApproverName' => $direksiApproverName,
         ]);
@@ -462,8 +471,9 @@ class MaterialRequestController extends Controller
     {
         $mr = MaterialRequest::findOrFail($id);
         $request->validate([
-            'action' => 'required|in:tolak,lanjut',
+            'action' => 'required|in:tolak,lanjut,lanjut_direksi',
             'fm_gm_id' => 'required_if:action,lanjut|exists:users,id',
+            'direksi_id' => 'required_if:action,lanjut_direksi|exists:users,id',
             'notes' => 'nullable|string',
         ]);
 
@@ -481,6 +491,33 @@ class MaterialRequestController extends Controller
             $mr->user->notify(new MrNotification($mr, "MR {$mr->mr_number} ditolak Manager: {$request->notes}"));
 
             return redirect()->route('approval.manager')->with('success', 'MR ditolak');
+        }
+
+        // Manager langsung ke Direksi (skip FM/GM) — butuh permission khusus
+        if ($request->action === 'lanjut_direksi') {
+            abort_unless(auth()->user()->hasPermissionTo('teruskan-ke-direksi'), 403);
+
+            $mr->update([
+                'manager_id' => auth()->id(),
+                'fm_gm_id' => null,
+                'direksi_id' => $request->direksi_id,
+                'status_workflow' => 'Pending Direksi',
+            ]);
+
+            ApprovalLog::create([
+                'material_request_id' => $mr->id,
+                'user_id' => auth()->id(),
+                'role' => 'Manager',
+                'action' => 'forward',
+                'notes' => $request->notes,
+            ]);
+
+            $direksiUser = User::find($request->direksi_id);
+            if ($direksiUser) {
+                $direksiUser->notify(new MrNotification($mr, "MR {$mr->mr_number} menunggu keputusan Anda"));
+            }
+
+            return redirect()->route('approval.manager')->with('success', 'MR diteruskan langsung ke Direksi');
         }
 
         // Tentukan role departemen sesuai jenis MR
@@ -1237,6 +1274,9 @@ public function gudangIndex(Request $request)
         // Role departemen yang dimiliki user (MTC/IT/HRD) — untuk aksi approval departemen
         $deptRole = collect(['MTC', 'IT', 'HRD'])->first(fn ($r) => $user->hasRole($r));
 
+        // Manager dengan permission bisa forward langsung ke Direksi (skip FM/GM)
+        $canForwardDireksi = $user->hasPermissionTo('teruskan-ke-direksi');
+
         // Data pendukung untuk action
         $direksiUsers = collect();
         $fmGmUsers = collect();
@@ -1245,12 +1285,16 @@ public function gudangIndex(Request $request)
         }
         if (strtolower($role) === 'manager' && $mr->status_workflow === 'Pending Manager') {
             $fmGmUsers = User::role('FM/GM')->get(['id', 'name', 'nik']);
+            if ($canForwardDireksi) {
+                $direksiUsers = User::role('Direksi')->get(['id', 'name']);
+            }
         }
 
         return Inertia::render('Approval/MrDetail', [
             'mr' => $mr,
             'userRole' => $role,
             'deptRole' => $deptRole,
+            'canForwardDireksi' => $canForwardDireksi,
             'direksiUsers' => $direksiUsers,
             'fmGmUsers' => $fmGmUsers,
         ]);
