@@ -120,6 +120,9 @@ Route::middleware('auth')->group(function () {
     // Statistik Pengaju (admin, Purchasing, Gudang)
     Route::get('/statistik-pengaju', [StatistikPengajuController::class, 'index'])->name('statistik-pengaju');
 
+    // Monitoring MR (admin, Purchasing, Gudang) — lihat semua MR non-Purchasing, read-only
+    Route::middleware('role:admin|Purchasing|Gudang')->get('/monitoring-mr', [MaterialRequestController::class, 'monitoringIndex'])->name('monitoring.mr');
+
         // Overview: admin bisa edit, Purchasing & Gudang hanya melihat
     Route::middleware('role:admin|Purchasing|Gudang')->get('/admin/overview', [AdminOverviewController::class, 'index'])->name('admin.overview');
 

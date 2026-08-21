@@ -1130,6 +1130,51 @@ public function gudangIndex(Request $request)
     }
 
     /**
+     * Monitoring MR (admin, Purchasing, Gudang) — read-only, semua status kecuali Purchasing.
+     */
+    public function monitoringIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $factory = $request->input('factory');
+
+        $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user'])
+            ->where('status_workflow', '!=', 'Purchasing')
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($w) use ($search) {
+                    $w->where('mr_number', 'like', "%{$search}%")
+                      ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
+                            ->orWhere('nik', 'like', "%{$search}%"));
+                });
+            })
+            ->when($factory, fn ($q) => $q->where('factory', $factory))
+            ->latest();
+
+        $requests = $query->paginate(10)->withQueryString()
+            ->through(function ($mr) {
+                $items = $mr->items;
+                $total = $items->count();
+
+                return [
+                    'id' => $mr->id,
+                    'mr_number' => $mr->mr_number,
+                    'jenis' => $mr->jenis,
+                    'factory' => $mr->factory,
+                    'status_workflow' => $mr->status_workflow,
+                    'created_at' => $mr->created_at->format('d M Y'),
+                    'pengaju' => $mr->user?->name,
+                    'departemen' => $mr->user?->departemen?->nama,
+                    'items_count' => $total,
+                ];
+            });
+
+        return Inertia::render('Approval/Monitoring', [
+            'requests' => $requests,
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? ''],
+            'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
+        ]);
+    }
+
+    /**
      * Halaman kerja Purchasing: input MR menjadi PO.
      */
     public function purchasingInput($id)

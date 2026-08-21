@@ -206,6 +206,16 @@ const handleTabChange = (index: number) => {
         <var-icon name="chevron-right" :size="24" color="#94a3b8" />
       </div>
 
+      <!-- Monitoring MR (Gudang, Purchasing, admin) -->
+      <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="monitoring-card" @click="router.get(baseUrl + '/monitoring-mr')">
+        <div class="monitoring-icon">📋</div>
+        <div class="monitoring-text">
+          <span class="monitoring-title">Monitoring MR</span>
+          <span class="monitoring-count">Lihat semua MR (non-Purchasing)</span>
+        </div>
+        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
+      </div>
+
       <!-- Manajemen Barang (Gudang, Purchasing, admin) -->
       <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="barang-card" @click="router.get(baseUrl + '/barangs')">
         <div class="barang-icon">📦</div>
@@ -442,6 +452,15 @@ const handleTabChange = (index: number) => {
 .approval-text { flex:1;display:flex;flex-direction:column; }
 .approval-title { font-size:14px;font-weight:700;color:#4f46e5; }
 .approval-count { font-size:12px;color:#6366f1; }
+
+.monitoring-card {
+  display:flex;align-items:center;gap:14px;background:#f0fdf4;border-radius:16px;padding:16px;
+  border:2px solid #bbf7d0;cursor:pointer;margin-bottom:12px;
+}
+.monitoring-icon { font-size:32px; }
+.monitoring-text { flex:1;display:flex;flex-direction:column; }
+.monitoring-title { font-size:14px;font-weight:700;color:#166534; }
+.monitoring-count { font-size:12px;color:#16a34a; }
 
 .barang-card {
   display:flex;align-items:center;gap:14px;background:#ecfdf5;border-radius:16px;padding:16px;
