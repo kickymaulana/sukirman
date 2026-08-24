@@ -61,6 +61,16 @@ class HandleInertiaRequests extends Middleware
             'app_url' => config('app.url'),
             'sso_base_url' => config('services.sso.base_url'),
             'csrf_token' => csrf_token(),
+            'firebase_config' => [
+                'apiKey' => config('firebase.api_key'),
+                'authDomain' => config('firebase.auth_domain'),
+                'projectId' => config('firebase.project_id'),
+                'storageBucket' => config('firebase.storage_bucket'),
+                'messagingSenderId' => config('firebase.messaging_sender_id'),
+                'appId' => config('firebase.app_id'),
+                'measurementId' => config('firebase.measurement_id'),
+                'vapidKey' => config('firebase.vapid_key'),
+            ],
             'notifications' => $notifications,
             'unread_count' => $unreadCount,
             'flash' => [

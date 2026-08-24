@@ -24,6 +24,7 @@
         "@inertiajs/vue3": "^3.6.1",
         "@varlet/ui": "^3.19.3",
         "@vitejs/plugin-vue": "^6.0.8",
+        "firebase": "^12.18.0",
         "lottie-web": "^5.13.0",
         "ziggy-js": "^2.6.3"
     }

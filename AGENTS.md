@@ -37,6 +37,56 @@ vendor/bin/pint       # formatter (Laravel Pint)
 - **Routes**: 92 total — `routes/web.php` (Inertia/web) + `routes/api.php` (Sanctum API).
   Lihat via `php artisan route:list` atau MCP `laravel-sukirman`.
 
+## Firebase Cloud Messaging (push notification)
+
+Web push notification via Firebase (FCM) — menyala **di samping** bell (database
+notification), bukan menggantikan.
+
+- **Frontend**: `resources/js/firebase.ts` (init Firebase + ambil FCM token) +
+  `resources/js/AppInit.vue` (dipanggil setelah login) +
+  `public/firebase-messaging-sw.js` (service worker, handle push saat app di background).
+- **Backend**: `app/Notifications/FcmChannel.php` (kirim push via FCM HTTP v1) +
+  `MrNotification.php` `via()` = `['database', FcmChannel::class]` → bell + push sekaligus.
+- **DB**: `users.fcm_token` (migration `add_fcm_token_to_users`).
+- **Config**: `config/firebase.php` + `.env` `VITE_FIREBASE_*` + `VITE_FIREBASE_VAPID_KEY`.
+  `FIREBASE_SERVICE_ACCOUNT` default ke `storage/app/firebase/service-account.json`
+  (folder dibuat saat setup, file di-gitignore — jangan commit).
+- **Route**: `POST /fcm-token` (web, CSRF) — frontend simpan token setelah Allow.
+
+### Setup env baru / server
+
+```bash
+# 1. Firebase Console → Project settings → Cloud Messaging → Web Push certificates → Generate key pair
+# 2. isi .env: VITE_FIREBASE_VAPID_KEY="..."
+# 3. Firebase Console → Project settings → Service accounts → Generate new private key
+# 4. taruh hasil download sbg storage/app/firebase/service-account.json
+# 5. php artisan migrate          # add_fcm_token_to_users
+# 6. npm run build                # VITE_* di-bundle saat build
+# 7. php artisan config:clear
+```
+
+### Quirks (hard-earned — jangan diulang)
+
+- **Chrome menolak `Notification.requestPermission()` tanpa user gesture** →
+  `AppInit.vue` attach `pointerdown` sekali; prompt "Allow" muncul setelah user
+  klik/tap. Jangan ubah jadi auto-on-load.
+- **`FcmChannel` pakai `->withoutVerifying()`** (skip SSL verify) — diperlukan di
+  local (cert issuer lokal). Di server HTTPS dengan cert valid, bisa dihapus atau
+  dibuat conditional `APP_ENV=local`.
+- **`AppInit.vue` di-render sebagai sibling root** → `onMounted` hanya jalan sekali;
+  wajib `watch(page.props)` agar inisialisasi dipicu saat login (`auth.user` berubah).
+- **iOS Safari tidak support FCM web push** — hanya Android Chrome + desktop browser;
+  bell tetap jadi fallback untuk pengguna iPhone.
+- Base URL di `firebase.ts` ambil dari shared prop `app_url` (subpath `/sukirman/public`),
+  jangan hardcode `/`.
+- FCM token tidak dihapus saat logout — token tetap valid per device.
+
+### Test cepat
+
+1. Login → dashboard → klik di halaman → dialog "Allow" → token tersimpan di
+   `users.fcm_token`.
+2. Trigger notif (mis. Direksi approve) → push muncul di browser + bell terisi.
+
 ## Domain rules
 
 **6 role utama** (alur MR sesuai `ALUR_SUKIRMAN.md`):

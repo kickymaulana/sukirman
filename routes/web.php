@@ -164,6 +164,13 @@ Route::middleware('auth')->group(function () {
         return response()->json(['ok' => true]);
     })->name('notifications.read-all');
 
+    // Simpan token FCM untuk push notification (dipanggil dari frontend setelah login)
+    Route::post('/fcm-token', function (\Illuminate\Http\Request $request) {
+        $validated = $request->validate(['fcm_token' => ['required', 'string']]);
+        auth()->user()->update(['fcm_token' => $validated['fcm_token']]);
+        return response()->json(['ok' => true]);
+    })->name('fcm-token');
+
     // Profile
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');
     Route::get('/profile/edit', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');

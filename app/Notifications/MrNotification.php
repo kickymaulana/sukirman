@@ -20,7 +20,7 @@ class MrNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', FcmChannel::class];
     }
 
     public function toArray(object $notifiable): array
@@ -30,6 +30,16 @@ class MrNotification extends Notification
             'mr_number' => $this->materialRequest->mr_number,
             'message' => $this->message,
             'action' => $this->action,
+        ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return [
+            'title' => 'SUKIRMAN',
+            'body' => $this->message,
+            'mr_id' => $this->materialRequest->id,
+            'url' => url('/material-requests/' . $this->materialRequest->id),
         ];
     }
 }
