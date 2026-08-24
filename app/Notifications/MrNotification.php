@@ -3,13 +3,10 @@
 namespace App\Notifications;
 
 use App\Models\MaterialRequest;
-use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 class MrNotification extends Notification
 {
-    use Queueable;
-
     public MaterialRequest $materialRequest;
     public string $message;
     public string $action;

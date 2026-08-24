@@ -733,6 +733,9 @@ class MaterialRequestController extends Controller
         if ($request->action === 'approve') {
             $gudangUsers = User::role('Gudang')->get();
             Notification::send($gudangUsers, new MrNotification($mr, "MR {$mr->mr_number} disetujui, perlu verifikasi gudang"));
+
+            $purchasingUsers = User::role('Purchasing')->get();
+            Notification::send($purchasingUsers, new MrNotification($mr, "MR {$mr->mr_number} disetujui Direksi, mohon pantau progres"));
         } elseif ($request->action === 'reject') {
             $mr->user->notify(new MrNotification($mr, "MR {$mr->mr_number} ditolak: {$request->notes}"));
         }
