@@ -177,6 +177,16 @@ const handleTabChange = (index: number) => {
         <var-icon name="chevron-right" :size="24" color="#94a3b8" />
       </div>
 
+      <!-- Statistik Direksi (admin, Purchasing) -->
+      <div v-if="user?.role && ['admin','Purchasing'].includes(user.role)" class="overview-card" @click="router.get(baseUrl + '/statistik-direksi')">
+        <div class="overview-icon">👁️</div>
+        <div class="overview-text">
+          <span class="overview-title">Statistik Direksi</span>
+          <span class="overview-count">Lihat MR Pending Direksi per direksi</span>
+        </div>
+        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
+      </div>
+
       <div v-if="user?.role === 'admin'" class="admin-card" @click="router.get(baseUrl + '/admin/users')">
         <div class="admin-icon">👥</div>
         <div class="admin-text">

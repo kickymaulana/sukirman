@@ -1178,6 +1178,72 @@ public function gudangIndex(Request $request)
     }
 
     /**
+     * Statistik Direksi — daftar direksi + jumlah MR Pending Direksi per orang.
+     */
+    public function statistikDireksi()
+    {
+        $direksiUsers = User::role('Direksi')->get(['id', 'name', 'nik']);
+
+        $rows = $direksiUsers->map(function ($u) {
+            return [
+                'id' => $u->id,
+                'name' => $u->name,
+                'nik' => $u->nik,
+                'total' => MaterialRequest::where('status_workflow', 'Pending Direksi')
+                    ->where('direksi_id', $u->id)->count(),
+            ];
+        });
+
+        return Inertia::render('StatistikDireksi', [
+            'direksis' => $rows,
+            'total_all' => $rows->sum('total'),
+        ]);
+    }
+
+    /**
+     * MR Pending Direksi per direksi — read-only, mirip Monitoring.
+     */
+    public function pendingDireksiIndex(Request $request, $id)
+    {
+        $search = $request->input('search');
+        $factory = $request->input('factory');
+
+        $query = MaterialRequest::with(['user.departemen', 'items'])
+            ->where('status_workflow', 'Pending Direksi')
+            ->where('direksi_id', $id)
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($w) use ($search) {
+                    $w->where('mr_number', 'like', "%{$search}%")
+                      ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
+                            ->orWhere('nik', 'like', "%{$search}%"));
+                });
+            })
+            ->when($factory, fn ($q) => $q->where('factory', $factory))
+            ->latest();
+
+        $requests = $query->paginate(10)->withQueryString()
+            ->through(function ($mr) {
+                return [
+                    'id' => $mr->id,
+                    'mr_number' => $mr->mr_number,
+                    'jenis' => $mr->jenis,
+                    'factory' => $mr->factory,
+                    'status_workflow' => $mr->status_workflow,
+                    'created_at' => $mr->created_at->format('d M Y'),
+                    'pengaju' => $mr->user?->name,
+                    'items_count' => $mr->items->count(),
+                ];
+            });
+
+        return Inertia::render('PendingDireksi', [
+            'requests' => $requests,
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? ''],
+            'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
+            'direksi' => User::find($id, ['id', 'name']),
+        ]);
+    }
+
+    /**
      * Halaman kerja Purchasing: input MR menjadi PO.
      */
     public function purchasingInput($id)

@@ -123,6 +123,12 @@ Route::middleware('auth')->group(function () {
     // Monitoring MR (admin, Purchasing, Gudang) — lihat semua MR non-Purchasing, read-only
     Route::middleware('role:admin|Purchasing|Gudang')->get('/monitoring-mr', [MaterialRequestController::class, 'monitoringIndex'])->name('monitoring.mr');
 
+    // Statistik Direksi + MR Pending Direksi per direksi (admin, Purchasing)
+    Route::middleware('role:admin|Purchasing')->group(function () {
+        Route::get('/statistik-direksi', [MaterialRequestController::class, 'statistikDireksi'])->name('statistik-direksi');
+        Route::get('/pending-direksi/{id}', [MaterialRequestController::class, 'pendingDireksiIndex'])->name('pending-direksi');
+    });
+
         // Overview: admin bisa edit, Purchasing & Gudang hanya melihat
     Route::middleware('role:admin|Purchasing|Gudang')->get('/admin/overview', [AdminOverviewController::class, 'index'])->name('admin.overview');
 
