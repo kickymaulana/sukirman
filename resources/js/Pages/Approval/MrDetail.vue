@@ -71,6 +71,10 @@ const openPrint = () => {
     window.location.href = `${baseUrl}/material-requests/${mr.id}/print`
 }
 
+const openRevisionEdit = () => {
+    window.location.href = `${baseUrl}/material-requests/${mr.id}/edit-revision`
+}
+
 // Hapus MR — hanya pengaju & status tertentu yang belum diproses lanjut
 const canDelete = computed(() =>
     mr.user_id === pp.auth?.user?.id &&
@@ -80,6 +84,11 @@ const canDelete = computed(() =>
 const canEdit = computed(() =>
     mr.user_id === pp.auth?.user?.id &&
     ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD'].includes(mr.status_workflow)
+)
+
+const canRevisionEdit = computed(() =>
+    mr.user_id === pp.auth?.user?.id &&
+    mr.status_workflow === 'Revision'
 )
 const confirmDeleteMr = () => {
     Dialog({
@@ -214,6 +223,7 @@ const doAction = (type: string) => {
                 <div class="actions-row">
                     <button class="mini-btn blue" @click="openPrint"><var-icon name="printer-outline" :size="14" style="margin-right:4px" /> Cetak</button>
                     <button v-if="canEdit" class="mini-btn blue" @click="openEdit"><var-icon name="pencil" :size="14" style="margin-right:4px" /> Edit</button>
+                    <button v-if="canRevisionEdit" class="mini-btn amber" @click="openRevisionEdit"><var-icon name="pencil" :size="14" style="margin-right:4px" /> Perbaiki & Kirim Ulang</button>
                     <button v-if="canDelete" class="mini-btn red" @click="confirmDeleteMr"><var-icon name="delete" :size="14" style="margin-right:4px" /> Hapus</button>
                     <button v-if="role === 'gudang'" class="mini-btn green" @click="openGudangInput">Accurate</button>
                     <button v-if="role === 'gudang' && mr.status_workflow === 'Verifikasi Gudang'" class="mini-btn amber" @click="openGudangEdit">Edit</button>
@@ -232,6 +242,7 @@ const doAction = (type: string) => {
                     <span>Tujuan</span><span>{{ targetText }}</span>
                 </div>
                 <div v-if="mr.revision_notes" class="revision-box">{{ mr.revision_notes }}</div>
+                <p v-if="canRevisionEdit" class="revision-hint">Klik tombol "Perbaiki & Kirim Ulang" di atas untuk memperbaiki item sesuai catatan Direksi, lalu kirim ulang.</p>
             </div>
 
             <!-- Aksi approval -->
@@ -350,6 +361,7 @@ const doAction = (type: string) => {
 .lbl { font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px; }
 .info-grid { display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:13px;color:#475569; }
 .revision-box { margin-top:8px;padding:10px;background:#fef3c7;border-radius:8px;font-size:12px;color:#92400e; }
+.revision-hint { margin-top:8px;padding:10px;background:#eef2ff;border-radius:8px;font-size:12px;color:#4f46e5;font-weight:600; }
 .itbl { width:100%;border-collapse:collapse;font-size:13px; }
 .itbl th { background:#f8fafc;color:#334155;text-align:left;padding:8px;font-size:11px;text-transform:uppercase; }
 .itbl td { padding:8px;border-top:1px solid #f1f5f9;vertical-align:top; }
