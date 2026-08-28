@@ -14,7 +14,7 @@ const baseUrl = (page.props as any).app_url || ''
 const csrf = (page.props as any).csrf_token || ''
 
 const items = ref(props.mr.items.map(i => ({
-    id: i.id, item_code: '', item_name: i.item_name, specification: i.specification || '', qty: i.qty, unit: i.unit, purpose: i.purpose || '',
+    id: i.id, item_code: i.item_code || '', item_name: i.item_name, specification: i.specification || '', qty: i.qty, unit: i.unit, purpose: i.purpose || '',
     direksi_decision: i.direksi_decision, direksi_notes: i.direksi_notes,
 })))
 
@@ -95,6 +95,11 @@ const submit = async () => {
                 <strong>Catatan Revisi:</strong> {{ mr.revision_notes }}
             </div>
 
+            <div class="guide-box">
+                Item yang <strong>ditolak Direksi</strong> akan otomatis dihapus saat kirim ulang.
+                Edit item yang disetujui/diganti, atau klik <strong>Tambah Barang</strong> sebagai pengganti, lalu klik <strong>Kirim Ulang MR</strong>.
+            </div>
+
             <div v-for="(item, i) in items" :key="i" class="item-card" :class="{ 'rejected-item': item.direksi_decision === 'tolak' }">
                 <div class="item-header">
                     <span class="item-title">Barang #{{ i + 1 }}</span>
@@ -106,7 +111,15 @@ const submit = async () => {
 
                 <div v-if="item.direksi_notes" class="direksi-note">📝 {{ item.direksi_notes }}</div>
 
-                <div v-if="item.direksi_decision === 'tolak'" class="rejected-note">Item ini ditolak Direksi dan akan dihapus.</div>
+                <div v-if="item.direksi_decision === 'tolak'" class="rejected-note">Item ini ditolak Direksi dan akan dihapus. Klik "Tambah Barang" untuk menambah item pengganti jika perlu.</div>
+
+                <div v-if="item.direksi_decision === 'tolak'" class="rejected-detail">
+                    <div class="detail-row"><span class="detail-label">Nama Barang</span><span class="detail-value">{{ item.item_name || '-' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">Kode Barang</span><span class="detail-value">{{ item.item_code || '-' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">Spesifikasi</span><span class="detail-value">{{ item.specification || '-' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">Qty</span><span class="detail-value">{{ item.qty }} {{ item.unit }}</span></div>
+                    <div class="detail-row"><span class="detail-label">Keperluan</span><span class="detail-value">{{ item.purpose || '-' }}</span></div>
+                </div>
 
                 <div v-else class="grid">
                     <div class="autocomplete-wrap full-width">
@@ -136,6 +149,7 @@ const submit = async () => {
 .layout { display:flex;flex-direction:column;min-height:100vh;background:#f8fafc;font-family:Roboto,sans-serif; }
 .content { flex:1;padding:16px 20px 80px;display:flex;flex-direction:column;gap:12px; }
 .revision-box { background:#fef3c7;border-radius:12px;padding:14px;font-size:13px;color:#92400e; }
+.guide-box { background:#eef2ff;border-radius:12px;padding:14px;font-size:13px;color:#4f46e5;line-height:1.5; }
 .item-card { background:#fff;border-radius:16px;padding:16px;border:1px solid #f1f5f9; }
 .item-card.rejected-item { opacity:0.6;background:#fef2f2;border-color:#fecaca; }
 .item-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;font-weight:600; }
@@ -143,6 +157,7 @@ const submit = async () => {
 .item-title { font-weight:600; }
 .direksi-note { background:#eef2ff;border-radius:8px;padding:8px 12px;font-size:12px;color:#4f46e5;margin-bottom:8px; }
 .rejected-note { font-size:12px;color:#dc2626;padding:8px; }
+.rejected-detail { margin-top:8px;padding:10px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0; }
 .grid { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
 .full-width { grid-column:span 2; }
 .autocomplete-wrap { position:relative; }
@@ -152,4 +167,7 @@ const submit = async () => {
 .suggestion-item:hover, .suggestion-item:active { background:#f0f5ff; }
 .sug-kode { flex-shrink:0;font-size:12px;font-weight:700;color:#1d6bf0;background:#eef4ff;padding:2px 8px;border-radius:6px;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .sug-nama { font-size:13px;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.detail-row { display:flex;gap:10px;padding:3px 0;font-size:12px; }
+.detail-label { width:100px;flex-shrink:0;color:#64748b;font-weight:600; }
+.detail-value { color:#1e293b; }
 </style>

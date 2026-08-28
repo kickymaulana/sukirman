@@ -1342,7 +1342,11 @@ public function gudangIndex(Request $request)
         ]);
 
         DB::transaction(function () use ($request, $mr) {
-            // Hapus item yang ditolak oleh Direksi
+            // Hapus item yang ditolak Direksi beserta foto-nya di MinIO
+            $rejected = $mr->items()->where('direksi_decision', 'tolak')->get();
+            foreach ($rejected as $rejectedItem) {
+                $rejectedItem->deleteS3Photo();
+            }
             $mr->items()->where('direksi_decision', 'tolak')->delete();
 
             // Update item yang dikirim ulang (setuju & ganti) + buat item baru
