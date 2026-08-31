@@ -105,7 +105,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Purchasing: Export
-    Route::middleware('role:Purchasing')->group(function () {
+    Route::middleware('role:Purchasing|admin')->group(function () {
         Route::get('/approval/purchasing', [MaterialRequestController::class, 'purchasingIndex'])->name('approval.purchasing');
         Route::get('/approval/purchasing/export', [MaterialRequestController::class, 'exportXml'])->name('approval.export');
         Route::get('/approval/purchasing/check-xml', [MaterialRequestController::class, 'checkXmlSkips'])->name('approval.export-check');
