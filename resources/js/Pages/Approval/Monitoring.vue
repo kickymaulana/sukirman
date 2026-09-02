@@ -16,13 +16,15 @@ interface MR {
 
 const props = defineProps<{
     requests: { data: MR[]; links: any[]; from: number; to: number; total: number; prev_page_url: string|null; next_page_url: string|null }
-    filters?: { search?: string; factory?: string }
+    filters?: { search?: string; factory?: string; status?: string }
     allFactories: string[]
+    allStatuses: string[]
 }>()
 
 const baseUrl = (usePage().props as any).app_url || ''
 const searchVal = ref(props.filters?.search || '')
 const factoryVal = ref(props.filters?.factory || '')
+const statusVal = ref(props.filters?.status || '')
 
 const statusBadge = (s: string) => {
     if (['Fully Approved'].includes(s)) return 'success'
@@ -36,6 +38,7 @@ const applyFilters = () => {
     router.get(baseUrl + '/monitoring-mr', {
         search: searchVal.value || undefined,
         factory: factoryVal.value || undefined,
+        status: statusVal.value || undefined,
     }, { preserveState: true })
 }
 
@@ -54,6 +57,10 @@ const goBack = () => router.get(route('dashboard'))
                 <var-select v-model="factoryVal" placeholder="Semua Factory" style="width:200px" @change="applyFilters">
                     <var-option label="Semua Factory" value="" />
                     <var-option v-for="f in allFactories" :key="f" :label="f" :value="f" />
+                </var-select>
+                <var-select v-model="statusVal" placeholder="Semua Status" style="width:200px" @change="applyFilters">
+                    <var-option label="Semua Status" value="" />
+                    <var-option v-for="s in allStatuses" :key="s" :label="s" :value="s" />
                 </var-select>
                 <var-button type="primary" @click="applyFilters"><var-icon name="magnify" :size="16" /></var-button>
             </div>

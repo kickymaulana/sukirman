@@ -1139,9 +1139,10 @@ public function gudangIndex(Request $request)
     {
         $search = $request->input('search');
         $factory = $request->input('factory');
+        $status = $request->input('status');
 
         $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user'])
-            ->where('status_workflow', '!=', 'Purchasing')
+            ->when($status, fn ($q) => $q->where('status_workflow', $status))
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('mr_number', 'like', "%{$search}%")
@@ -1172,8 +1173,13 @@ public function gudangIndex(Request $request)
 
         return Inertia::render('Approval/Monitoring', [
             'requests' => $requests,
-            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? ''],
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'status' => $status ?? ''],
             'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
+            'allStatuses' => [
+                'Pending Manager', 'Pending FM/GM', 'Pending Direksi',
+                'Pending MTC', 'Pending IT', 'Pending HRD',
+                'Verifikasi Gudang', 'Fully Approved', 'Purchasing', 'Rejected', 'Revision',
+            ],
         ]);
     }
 
