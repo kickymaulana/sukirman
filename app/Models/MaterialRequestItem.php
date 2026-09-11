@@ -13,6 +13,7 @@ class MaterialRequestItem extends Model
 
     protected $fillable = [
         'material_request_id',
+        'type',
         'item_code',
         'item_name',
         'specification',

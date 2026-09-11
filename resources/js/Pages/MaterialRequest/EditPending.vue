@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { computed, ref, nextTick } from 'vue'
 import { Head, useForm, router, usePage } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
 
 interface RequestItem {
+  type: '' | 'Lokal' | 'Import'
   item_code: string
   item_name: string
   specification: string
@@ -28,8 +29,9 @@ const props = defineProps<{
     jenis: string
     manager_id: number
     items: {
-      id: number
-      item_code: string | null
+       id: number
+       type: 'Lokal' | 'Import' | null
+       item_code: string | null
       item_name: string
       specification: string | null
       departemen_id: number | null
@@ -98,6 +100,7 @@ const form = useForm({
   jenis: props.mr.jenis,
   manager_id: props.mr.manager_id,
   items: props.mr.items.map((item) => ({
+    type: item.type || '',
     item_code: item.item_code || '',
     item_name: item.item_name,
     specification: item.specification || '',
@@ -119,9 +122,11 @@ const allocationOptions = ['Project', 'Proses']
 const urgencyOptions = ['Normal', 'Urgent']
 const jenisOptions = ['UMUM', 'MTC', 'IT', 'HRD']
 const itemStatusOptions = ['Normal', 'Urgent', 'New', 'Replace']
+const canSubmit = computed(() => form.items.every(item => item.type === 'Lokal' || item.type === 'Import'))
 
 const addItem = () => {
   form.items.push({
+    type: '',
     item_code: '',
     item_name: '',
     specification: '',
@@ -203,6 +208,11 @@ const removeItem = (index: number) => {
 }
 
 const handleSubmit = () => {
+  if (!canSubmit.value) {
+    Snackbar.warning('Pilih tipe pembelian untuk setiap item terlebih dahulu')
+    return
+  }
+
   form.put(route('material-requests.update', props.mr.id), {
     onError: (errors) => {
       const first = Object.values(errors)[0]
@@ -320,6 +330,12 @@ const goBack = () => {
                 </div>
               </div>
 
+              <var-select v-model="item.type" variant="outlined" placeholder="Pilih Jenis" :error-message="form.errors[`items.${index}.type`]">
+                <var-option label="Pilih Jenis" value="" />
+                <var-option label="Lokal" value="Lokal" />
+                <var-option label="Import" value="Import" />
+              </var-select>
+
               <div class="grid-2-col">
                 <div class="autocomplete-wrap">
                   <var-input
@@ -433,6 +449,7 @@ const goBack = () => {
         form="mrForm"
         native-type="submit"
         :loading="form.processing"
+        :disabled="form.processing || !canSubmit"
         class="submit-btn"
       >
         SIMPAN PERUBAHAN

@@ -274,6 +274,7 @@ class MaterialRequestController extends Controller
             'manager_id' => ['required', 'exists:users,id'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.item_code' => ['nullable', 'string', 'max:50'],
+            'items.*.type' => ['required', 'in:Lokal,Import'],
             'items.*.item_name' => ['required', 'string', 'max:255'],
             'items.*.specification' => ['nullable', 'string'],
             'items.*.departemen_id' => ['nullable', 'exists:departemens,id'],
@@ -288,6 +289,7 @@ class MaterialRequestController extends Controller
             'manager_id.required' => 'Pilih Manager tujuan terlebih dahulu.',
             'items.required' => 'Minimal harus menambahkan 1 item barang.',
             'items.*.item_name.required' => 'Nama barang wajib diisi.',
+            'items.*.type.required' => 'Tipe pembelian item wajib dipilih.',
             'items.*.qty.required' => 'Jumlah (Qty) wajib diisi.',
             'items.*.unit.required' => 'Satuan wajib diisi.',
         ]);
@@ -317,6 +319,7 @@ class MaterialRequestController extends Controller
             foreach ($validated['items'] as $index => $item) {
                 $mrItem = $mr->items()->create([
                     'item_code' => isset($item['item_code']) ? mb_strtoupper($item['item_code']) : null,
+                    'type' => $item['type'],
                     'item_name' => mb_strtoupper($item['item_name']),
                     'specification' => isset($item['specification']) ? mb_strtoupper($item['specification']) : null,
                     'departemen_id' => $item['departemen_id'] ?? null,
@@ -384,6 +387,7 @@ class MaterialRequestController extends Controller
             'manager_id' => ['required', 'exists:users,id'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.item_code' => ['nullable', 'string', 'max:50'],
+            'items.*.type' => ['required', 'in:Lokal,Import'],
             'items.*.item_name' => ['required', 'string', 'max:255'],
             'items.*.specification' => ['nullable', 'string'],
             'items.*.departemen_id' => ['nullable', 'exists:departemens,id'],
@@ -398,6 +402,7 @@ class MaterialRequestController extends Controller
             'manager_id.required' => 'Pilih Manager tujuan terlebih dahulu.',
             'items.required' => 'Minimal harus menambahkan 1 item barang.',
             'items.*.item_name.required' => 'Nama barang wajib diisi.',
+            'items.*.type.required' => 'Tipe pembelian item wajib dipilih.',
             'items.*.qty.required' => 'Jumlah (Qty) wajib diisi.',
             'items.*.unit.required' => 'Satuan wajib diisi.',
         ]);
@@ -424,6 +429,7 @@ class MaterialRequestController extends Controller
             foreach ($validated['items'] as $index => $item) {
                 $mrItem = $mr->items()->create([
                     'item_code' => isset($item['item_code']) ? mb_strtoupper($item['item_code']) : null,
+                    'type' => $item['type'],
                     'item_name' => mb_strtoupper($item['item_name']),
                     'specification' => isset($item['specification']) ? mb_strtoupper($item['specification']) : null,
                     'departemen_id' => $item['departemen_id'] ?? null,
@@ -958,6 +964,7 @@ public function gudangIndex(Request $request)
                     if ($mrItem && $mrItem->material_request_id === $mr->id) {
                         $mrItem->update([
                             'item_code' => $item['item_code'] ?? null,
+                            'type' => $item['type'] ?? null,
                             'item_name' => $item['item_name'],
                             'specification' => $item['specification'] ?? null,
                             'qty' => $item['qty'],
