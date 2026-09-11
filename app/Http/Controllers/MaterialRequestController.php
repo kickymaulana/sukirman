@@ -1049,6 +1049,7 @@ public function gudangIndex(Request $request)
     {
         $search = $request->input('search');
         $factory = $request->input('factory');
+        $type = $request->input('type');
         $poStatus = $request->input('po_status');
 
         $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user'])
@@ -1061,6 +1062,7 @@ public function gudangIndex(Request $request)
                 });
             })
             ->when($factory, fn ($q) => $q->where('factory', $factory))
+            ->when($type, fn ($q) => $q->where('type', $type))
             ->when($poStatus === 'Belum', function ($q) {
                 $q->whereDoesntHave('items.item_po_lines');
             })
@@ -1103,7 +1105,7 @@ public function gudangIndex(Request $request)
                 return [
                     'id' => $mr->id,
                     'mr_number' => $mr->mr_number,
-                    'jenis' => $mr->jenis,
+                    'type' => $mr->type,
                     'factory' => $mr->factory,
                     'status_workflow' => $mr->status_workflow,
                     'po_status' => $poStatus,
@@ -1126,7 +1128,7 @@ public function gudangIndex(Request $request)
 
         return Inertia::render('Approval/Purchasing', [
             'requests' => $requests,
-            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'po_status' => $poStatus ?? ''],
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'type' => $type ?? '', 'po_status' => $poStatus ?? ''],
             'topUsers' => $topUsers,
             'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
         ]);

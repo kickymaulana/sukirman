@@ -5,7 +5,7 @@ import { Head, router, usePage } from '@inertiajs/vue3'
 interface MR {
     id: number
     mr_number: string
-    jenis: string
+    type: 'Lokal' | 'Import'
     factory: string
     status_workflow: string
     po_status: string
@@ -19,7 +19,7 @@ interface MR {
 
 const props = defineProps<{
     requests: { data: MR[]; links: any[]; from: number; to: number; total: number; prev_page_url: string|null; next_page_url: string|null }
-    filters?: { search?: string; factory?: string; po_status?: string }
+    filters?: { search?: string; factory?: string; type?: string; po_status?: string }
     allFactories: string[]
     topUsers?: { name: string; total: number }[]
 }>()
@@ -27,6 +27,7 @@ const props = defineProps<{
 const baseUrl = (usePage().props as any).app_url || ''
 const searchVal = ref(props.filters?.search || '')
 const factoryVal = ref(props.filters?.factory || '')
+const typeVal = ref(props.filters?.type || '')
 const poStatusVal = ref(props.filters?.po_status || '')
 
 const poStatusOptions = [
@@ -48,6 +49,7 @@ const applyFilters = () => {
     router.get(baseUrl + '/approval/purchasing', {
         search: searchVal.value || undefined,
         factory: factoryVal.value || undefined,
+        type: typeVal.value || undefined,
         po_status: poStatusVal.value || undefined,
     }, { preserveState: true })
 }
@@ -77,6 +79,11 @@ const goBack = () => router.get(route('dashboard'))
                     <var-option label="Semua Factory" value="" />
                     <var-option v-for="f in allFactories" :key="f" :label="f" :value="f" />
                 </var-select>
+                <var-select v-model="typeVal" placeholder="Semua Tipe" style="width:150px" @change="applyFilters">
+                    <var-option label="Semua Tipe" value="" />
+                    <var-option label="Lokal" value="Lokal" />
+                    <var-option label="Import" value="Import" />
+                </var-select>
                 <var-select v-model="poStatusVal" placeholder="Semua PO Status" style="width:180px" @change="applyFilters">
                     <var-option v-for="p in poStatusOptions" :key="p.value" :label="p.label" :value="p.value" />
                 </var-select>
@@ -91,7 +98,7 @@ const goBack = () => router.get(route('dashboard'))
                             <th>Pengaju</th>
                             <th>Departemen</th>
                             <th>Factory</th>
-                            <th>Jenis</th>
+                            <th>Tipe Pembelian</th>
                             <th>Tanggal</th>
                             <th>PO Status</th>
                             <th>Input PO</th>
@@ -106,7 +113,7 @@ const goBack = () => router.get(route('dashboard'))
                             <td>{{ mr.pengaju }}</td>
                             <td>{{ mr.departemen || '-' }}</td>
                             <td>{{ mr.factory }}</td>
-                            <td>{{ mr.jenis }}</td>
+                            <td>{{ mr.type }}</td>
                             <td class="muted">{{ mr.created_at }}</td>
                             <td>
                                 <var-chip :type="poBadge(mr.po_status)" size="mini">{{ mr.po_status === 'Sudah' ? '✅ PO' : mr.po_status }}</var-chip>
