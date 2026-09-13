@@ -14,15 +14,7 @@ class DashboardController extends Controller
     {
         $userId = auth()->id();
 
-        // 1. Hitung ringkasan status berdasarkan workflow
-        $summary = [
-            'pending'    => MaterialRequest::where('user_id', $userId)->where('status_workflow', 'Pending Manager')->count(),
-            'processing' => MaterialRequest::where('user_id', $userId)->whereIn('status_workflow', ['Pending FM/GM', 'Pending Direksi', 'Verifikasi Gudang'])->count(),
-            'approved'   => MaterialRequest::where('user_id', $userId)->where('status_workflow', 'Fully Approved')->count(),
-            'rejected'   => MaterialRequest::where('user_id', $userId)->where('status_workflow', 'Rejected')->count(),
-        ];
-
-        // 2. Ambil 5 usulan Material Request terbaru milik user
+        // 1. Ambil 5 usulan Material Request terbaru milik user
         $recentRequests = MaterialRequest::with('items')
             ->where('user_id', $userId)
             ->latest()
@@ -71,7 +63,6 @@ class DashboardController extends Controller
                 'role'  => $role,
             ],
             'pending_count' => $pendingCount,
-            'summary' => $summary,
             'recentRequests' => $recentRequests,
         ]);
     }

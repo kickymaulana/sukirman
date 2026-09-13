@@ -1,14 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
-
-// Interface Data
-interface SummaryCount {
-  pending: number
-  processing: number
-  approved: number
-  rejected: number
-}
 
 interface RecentRequest {
   id: number
@@ -27,20 +19,11 @@ const props = defineProps<{
     role?: string
   }
   pending_count?: number | null
-  summary?: SummaryCount
   recentRequests?: RecentRequest[]
 }>()
 
 // Bottom Navigation Active State (0: Beranda, 1: Riwayat, 2: Notifikasi, 3: Profil)
 const activeTab = ref(0)
-
-// Format data statistik dari props
-const summaryData = computed(() => [
-  { title: 'Menunggu', count: props.summary?.pending ?? 0, icon: 'time-out', color: '#f59e0b', bgColor: '#fef3c7' },
-  { title: 'Diproses', count: props.summary?.processing ?? 0, icon: 'cog-outline', color: '#3b82f6', bgColor: '#dbeafe' },
-  { title: 'Disetujui', count: props.summary?.approved ?? 0, icon: 'checkbox-marked-circle-outline', color: '#10b981', bgColor: '#d1fae5' },
-  { title: 'Ditolak', count: props.summary?.rejected ?? 0, icon: 'close-circle-outline', color: '#ef4444', bgColor: '#fee2e2' },
-])
 
 // Mapping Badge Varlet berdasarkan workflow
 const getStatusBadgeType = (status: string) => {
@@ -130,120 +113,76 @@ const handleTabChange = (index: number) => {
         <var-icon name="clipboard-text-outline" class="welcome-icon" />
       </div>
 
-      <!-- MR Saya (untuk semua user) -->
-      <div class="my-mr-card" @click="router.get(baseUrl + '/my-mrs')">
-        <div class="my-mr-icon">📋</div>
-        <div class="my-mr-text">
-          <span class="my-mr-title">MR Saya</span>
-          <span class="my-mr-count">Lihat semua MR yang terkait dengan Anda</span>
+      <!-- Menu Cards -->
+      <div class="menu-grid">
+        <!-- MR Saya (untuk semua user) -->
+        <div class="menu-card" @click="router.get(baseUrl + '/my-mrs')">
+          <span class="menu-icon">📋</span>
+          <span class="menu-title">MR Saya</span>
+          <span class="menu-desc">Lihat semua MR yang terkait dengan Anda</span>
         </div>
-        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
-      </div>
 
-      <!-- Stats Grid -->
-      <div class="section-header">
-        <h3 class="section-title">Status Pengajuan</h3>
-      </div>
-
-      <div class="stats-grid">
-        <div v-for="(stat, index) in summaryData" :key="index" class="stat-card">
-          <div class="stat-icon-wrapper" :style="{ backgroundColor: stat.bgColor }">
-            <var-icon :name="stat.icon" :size="22" :color="stat.color" />
-          </div>
-          <div class="stat-info">
-            <span class="stat-count">{{ stat.count }}</span>
-            <span class="stat-title">{{ stat.title }}</span>
-          </div>
+        <!-- Dashboard Admin (khusus admin: edit MR & tujuan) -->
+        <div v-if="user?.role === 'admin'" class="menu-card" @click="router.get(baseUrl + '/admin/overview')">
+          <span class="menu-icon">⚙️</span>
+          <span class="menu-title">Dashboard Admin</span>
+          <span class="menu-desc">Pantau MR & ubah tujuan approval</span>
         </div>
-      </div>
 
-      <!-- Dashboard Admin (khusus admin: edit MR & tujuan) -->
-      <div v-if="user?.role === 'admin'" class="overview-card" @click="router.get(baseUrl + '/admin/overview')">
-        <div class="overview-icon">⚙️</div>
-        <div class="overview-text">
-          <span class="overview-title">Dashboard Admin</span>
-          <span class="overview-count">Pantau MR & ubah tujuan approval</span>
+        <!-- Statistik Pengaju (semua user) -->
+        <div v-if="user" class="menu-card" @click="router.get(baseUrl + '/statistik-pengaju')">
+          <span class="menu-icon">📊</span>
+          <span class="menu-title">Statistik Pengaju</span>
+          <span class="menu-desc">Lihat daftar pengaju & semua MR-nya</span>
         </div>
-        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
-      </div>
 
-      <!-- Statistik Pengaju (semua user) -->
-      <div v-if="user" class="overview-card" @click="router.get(baseUrl + '/statistik-pengaju')">
-        <div class="overview-icon">📊</div>
-        <div class="overview-text">
-          <span class="overview-title">Statistik Pengaju</span>
-          <span class="overview-count">Lihat daftar pengaju & semua MR-nya</span>
+        <!-- Statistik Direksi (admin, Purchasing) -->
+        <div v-if="user?.role && ['admin','Purchasing'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/statistik-direksi')">
+          <span class="menu-icon">👁️</span>
+          <span class="menu-title">Statistik Direksi</span>
+          <span class="menu-desc">Lihat MR Pending Direksi per direksi</span>
         </div>
-        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
-      </div>
 
-      <!-- Statistik Direksi (admin, Purchasing) -->
-      <div v-if="user?.role && ['admin','Purchasing'].includes(user.role)" class="overview-card" @click="router.get(baseUrl + '/statistik-direksi')">
-        <div class="overview-icon">👁️</div>
-        <div class="overview-text">
-          <span class="overview-title">Statistik Direksi</span>
-          <span class="overview-count">Lihat MR Pending Direksi per direksi</span>
+        <div v-if="user?.role === 'admin'" class="menu-card" @click="router.get(baseUrl + '/admin/users')">
+          <span class="menu-icon">👥</span>
+          <span class="menu-title">Kelola User</span>
+          <span class="menu-desc">{{ pending_count ?? 0 }} user baru menunggu</span>
         </div>
-        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
-      </div>
 
-      <div v-if="user?.role === 'admin'" class="admin-card" @click="router.get(baseUrl + '/admin/users')">
-        <div class="admin-icon">👥</div>
-        <div class="admin-text">
-          <span class="admin-title">Kelola User</span>
-          <span class="admin-count">{{ pending_count ?? 0 }} user baru menunggu</span>
+        <!-- Kelola Departemen (khusus admin) -->
+        <div v-if="user?.role === 'admin'" class="menu-card" @click="router.get(baseUrl + '/admin/master/departemens')">
+          <span class="menu-icon">🏷️</span>
+          <span class="menu-title">Kelola Departemen</span>
+          <span class="menu-desc">Tambah/ubah daftar departemen</span>
         </div>
-        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
-      </div>
 
-      <!-- Kelola Departemen (khusus admin) -->
-      <div v-if="user?.role === 'admin'" class="admin-card" @click="router.get(baseUrl + '/admin/master/departemens')">
-        <div class="admin-icon">🏷️</div>
-        <div class="admin-text">
-          <span class="admin-title">Kelola Departemen</span>
-          <span class="admin-count">Tambah/ubah daftar departemen</span>
+        <!-- Approval Card (untuk approver) -->
+        <div v-if="user?.role && ['Manager','FM/GM','Direksi','Gudang','Purchasing','MTC','IT','HRD','admin'].includes(user.role)" class="menu-card approval" @click="goApproval()">
+          <span class="menu-icon">✅</span>
+          <span class="menu-title">Approval {{ user.role }}</span>
+          <span class="menu-desc">{{ pending_count ?? 0 }} MR menunggu</span>
         </div>
-        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
-      </div>
 
-      <!-- Approval Card (untuk approver) -->
-      <div v-if="user?.role && ['Manager','FM/GM','Direksi','Gudang','Purchasing','MTC','IT','HRD','admin'].includes(user.role)" class="approval-card" @click="goApproval()">
-        <div class="approval-icon"><var-icon name="clipboard-check" :size="28" color="#4f46e5" /></div>
-        <div class="approval-text">
-          <span class="approval-title">Approval {{ user.role }}</span>
-          <span class="approval-count">{{ pending_count ?? 0 }} MR menunggu</span>
+        <!-- Monitoring MR (Gudang, Purchasing, admin) -->
+        <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/monitoring-mr')">
+          <span class="menu-icon">📋</span>
+          <span class="menu-title">Monitoring MR</span>
+          <span class="menu-desc">Lihat semua MR (non-Purchasing)</span>
         </div>
-        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
-      </div>
 
-      <!-- Monitoring MR (Gudang, Purchasing, admin) -->
-      <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="monitoring-card" @click="router.get(baseUrl + '/monitoring-mr')">
-        <div class="monitoring-icon">📋</div>
-        <div class="monitoring-text">
-          <span class="monitoring-title">Monitoring MR</span>
-          <span class="monitoring-count">Lihat semua MR (non-Purchasing)</span>
+        <!-- Manajemen Barang (Gudang, Purchasing, admin) -->
+        <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/barangs')">
+          <span class="menu-icon">📦</span>
+          <span class="menu-title">Manajemen Barang</span>
+          <span class="menu-desc">Kelola data barang</span>
         </div>
-        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
-      </div>
 
-      <!-- Manajemen Barang (Gudang, Purchasing, admin) -->
-      <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="barang-card" @click="router.get(baseUrl + '/barangs')">
-        <div class="barang-icon">📦</div>
-        <div class="barang-text">
-          <span class="barang-title">Manajemen Barang</span>
-          <span class="barang-count">Kelola data barang</span>
+        <!-- Pengaturan (Gudang, Purchasing, admin) -->
+        <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/settings')">
+          <span class="menu-icon">⚙️</span>
+          <span class="menu-title">Pengaturan</span>
+          <span class="menu-desc">Set ID Cabang Accurate</span>
         </div>
-        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
-      </div>
-
-      <!-- Pengaturan (Gudang, Purchasing, admin) -->
-      <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="settings-card" @click="router.get(baseUrl + '/settings')">
-        <div class="settings-icon">⚙️</div>
-        <div class="settings-text">
-          <span class="settings-title">Pengaturan</span>
-          <span class="settings-count">Set ID Cabang Accurate</span>
-        </div>
-        <var-icon name="chevron-right" :size="24" color="#94a3b8" />
       </div>
 
       <!-- Request List -->
@@ -352,31 +291,6 @@ const handleTabChange = (index: number) => {
 .section-title { font-size: 15px; font-weight: 700; color: #1e293b; margin: 0; }
 .see-all-link { font-size: 12px; color: var(--color-primary, #6200ee); text-decoration: none; font-weight: 600; }
 
-.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-.stat-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 14px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid #f1f5f9;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-}
-
-.stat-icon-wrapper {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-info { display: flex; flex-direction: column; }
-.stat-count { font-size: 18px; font-weight: 800; color: #0f172a; line-height: 1.2; }
-.stat-title { font-size: 11px; color: #64748b; font-weight: 500; }
-
 .category-scroll {
   display: flex;
   gap: 16px;
@@ -427,68 +341,18 @@ const handleTabChange = (index: number) => {
 .request-code { font-family: monospace; font-weight: 800; color: #0f172a; font-size: 13px; }
 .request-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #64748b; }
 
-.admin-card {
-  display:flex;align-items:center;gap:14px;background:#fef3c7;border-radius:16px;padding:16px;
-  border:2px solid #fde68a;cursor:pointer;margin-bottom:12px;
+.menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.menu-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; background: #ffffff; border-radius: 18px; padding: 18px;
+  border: 1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  cursor: pointer; min-height: 118px; text-align: center;
 }
-.admin-icon { font-size:32px; }
-.admin-text { flex:1;display:flex;flex-direction:column; }
-.admin-title { font-size:14px;font-weight:700;color:#92400e; }
-.admin-count { font-size:12px;color:#b45309; }
-
-.overview-card {
-  display:flex;align-items:center;gap:14px;background:#f3f0ff;border-radius:16px;padding:16px;
-  border:2px solid #ddd6fe;cursor:pointer;margin-bottom:12px;
-}
-.overview-icon { font-size:32px; }
-.overview-text { flex:1;display:flex;flex-direction:column; }
-.overview-title { font-size:14px;font-weight:700;color:#6d28d9; }
-.overview-count { font-size:12px;color:#7c3aed; }
-
-.my-mr-card {
-  display:flex;align-items:center;gap:14px;background:#ecfeff;border-radius:16px;padding:16px;
-  border:2px solid #a5f3fc;cursor:pointer;margin-bottom:12px;
-}
-.my-mr-icon { font-size:32px; }
-.my-mr-text { flex:1;display:flex;flex-direction:column; }
-.my-mr-title { font-size:14px;font-weight:700;color:#0e7490; }
-.my-mr-count { font-size:12px;color:#06b6d4; }
-
-.approval-card {
-  display:flex;align-items:center;gap:14px;background:#eef2ff;border-radius:16px;padding:16px;
-  border:2px solid #c7d2fe;cursor:pointer;margin-bottom:12px;
-}
-.approval-icon { width:44px;height:44px;border-radius:12px;background:#e0e7ff;display:flex;align-items:center;justify-content:center; }
-.approval-text { flex:1;display:flex;flex-direction:column; }
-.approval-title { font-size:14px;font-weight:700;color:#4f46e5; }
-.approval-count { font-size:12px;color:#6366f1; }
-
-.monitoring-card {
-  display:flex;align-items:center;gap:14px;background:#f0fdf4;border-radius:16px;padding:16px;
-  border:2px solid #bbf7d0;cursor:pointer;margin-bottom:12px;
-}
-.monitoring-icon { font-size:32px; }
-.monitoring-text { flex:1;display:flex;flex-direction:column; }
-.monitoring-title { font-size:14px;font-weight:700;color:#166534; }
-.monitoring-count { font-size:12px;color:#16a34a; }
-
-.barang-card {
-  display:flex;align-items:center;gap:14px;background:#ecfdf5;border-radius:16px;padding:16px;
-  border:2px solid #a7f3d0;cursor:pointer;margin-bottom:12px;
-}
-.barang-icon { font-size:32px; }
-.barang-text { flex:1;display:flex;flex-direction:column; }
-.barang-title { font-size:14px;font-weight:700;color:#047857; }
-.barang-count { font-size:12px;color:#059669; }
-
-.settings-card {
-  display:flex;align-items:center;gap:14px;background:#f0f9ff;border-radius:16px;padding:16px;
-  border:2px solid #bae6fd;cursor:pointer;margin-bottom:12px;
-}
-.settings-icon { font-size:32px; }
-.settings-text { flex:1;display:flex;flex-direction:column; }
-.settings-title { font-size:14px;font-weight:700;color:#0369a1; }
-.settings-count { font-size:12px;color:#0284c7; }
+.menu-card:active { transform: scale(0.97); }
+.menu-card.approval { background: #eef2ff; border-color: #c7d2fe; }
+.menu-icon { font-size: 26px; }
+.menu-title { font-size: 13px; font-weight: 700; color: #1e293b; }
+.menu-desc { font-size: 11px; color: #64748b; line-height: 1.3; }
 
 .notif-badge {
   position:absolute;top:-2px;right:-4px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;
