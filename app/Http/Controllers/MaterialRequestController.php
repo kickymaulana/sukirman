@@ -1193,6 +1193,73 @@ public function gudangIndex(Request $request)
     }
 
     /**
+     * Monitoring Item (admin, Purchasing, Gudang) — daftar semua item dari semua MR, read-only.
+     */
+    public function monitoringItemsIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $factory = $request->input('factory');
+        $jenis = $request->input('jenis');
+        $status = $request->input('status');
+
+        $query = MaterialRequestItem::with('materialRequest.user.departemen')
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($w) use ($search) {
+                    $w->where('item_name', 'like', "%{$search}%")
+                      ->orWhere('item_code', 'like', "%{$search}%")
+                      ->orWhereHas('materialRequest', function ($m) use ($search) {
+                          $m->where('mr_number', 'like', "%{$search}%")
+                            ->orWhereHas('user', function ($u) use ($search) {
+                                $u->where('name', 'like', "%{$search}%")
+                                  ->orWhere('nik', 'like', "%{$search}%");
+                            });
+                      });
+                });
+            })
+            ->when($factory, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('factory', $factory)))
+            ->when($jenis, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('jenis', $jenis)))
+            ->when($status, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('status_workflow', $status)))
+            ->latest();
+
+        $items = $query->paginate(10)->withQueryString()
+            ->through(function ($item) {
+                $mr = $item->materialRequest;
+
+                return [
+                    'id' => $item->id,
+                    'item_code' => $item->item_code,
+                    'item_name' => $item->item_name,
+                    'specification' => $item->specification,
+                    'purpose' => $item->purpose,
+                    'qty' => $item->qty,
+                    'qty_tersedia' => $item->qty_tersedia,
+                    'unit' => $item->unit,
+                    'has_foto' => !empty($item->foto),
+                    'mr_id' => $mr?->id,
+                    'mr_number' => $mr?->mr_number,
+                    'jenis' => $mr?->jenis,
+                    'factory' => $mr?->factory,
+                    'status_workflow' => $mr?->status_workflow,
+                    'created_at' => $mr?->created_at?->format('d M Y'),
+                    'pengaju' => $mr?->user?->name,
+                    'departemen' => $mr?->user?->departemen?->nama,
+                ];
+            });
+
+        return Inertia::render('Approval/MonitoringItems', [
+            'items' => $items,
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'jenis' => $jenis ?? '', 'status' => $status ?? ''],
+            'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
+            'allJenis' => ['UMUM', 'MTC', 'IT', 'HRD'],
+            'allStatuses' => [
+                'Pending Manager', 'Pending FM/GM', 'Pending Direksi',
+                'Pending MTC', 'Pending IT', 'Pending HRD',
+                'Verifikasi Gudang', 'Fully Approved', 'Purchasing', 'Rejected', 'Revision',
+            ],
+        ]);
+    }
+
+    /**
      * Statistik Direksi — daftar direksi + jumlah MR Pending Direksi per orang.
      */
     public function statistikDireksi()

@@ -123,6 +123,9 @@ Route::middleware('auth')->group(function () {
     // Monitoring MR (admin, Purchasing, Gudang) — lihat semua MR non-Purchasing, read-only
     Route::middleware('role:admin|Purchasing|Gudang')->get('/monitoring-mr', [MaterialRequestController::class, 'monitoringIndex'])->name('monitoring.mr');
 
+    // Monitoring Item (admin, Purchasing, Gudang) — lihat semua item dari semua MR, read-only
+    Route::middleware('role:admin|Purchasing|Gudang')->get('/monitoring-items', [MaterialRequestController::class, 'monitoringItemsIndex'])->name('monitoring.items');
+
     // Statistik Direksi + MR Pending Direksi per direksi (admin, Purchasing)
     Route::middleware('role:admin|Purchasing')->group(function () {
         Route::get('/statistik-direksi', [MaterialRequestController::class, 'statistikDireksi'])->name('statistik-direksi');

@@ -4,6 +4,10 @@ SUKIRMAN — Sistem Usulan Kebutuhan Barang Internal Manajemen.
 Laravel 13 + Inertia.js 3 + Vue 3 + Vite 8 + Tailwind 4 + Varlet UI.
 PHP `^8.3`. Auth: Sanctum (API token) + Spatie Permission (role).
 
+## Bahasa koordinasi
+
+Koordinasi dengan user wajib pakai **bahasa Indonesia yang jelas** — kalimat lengkap, baku, ramah. Jangan pakai caveman style, jangan Inggris/Malay mix kriptik, jangan jawaban terse ambigu. Kode, nama file, nama route, error string tetap asli (English/as-is). Bahasa Indonesia untuk penjelas, bukan untuk kode.
+
 ## Ringkasan Cepat (supaya tidak bingung)
 
 - **99 route** total — `routes/web.php` (Inertia/web) + `routes/api.php` (Sanctum API).
