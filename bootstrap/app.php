@@ -26,6 +26,6 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*') || (in_array($request->method(), ['PATCH', 'POST'], true) && $request->is('monitoring-items/*/po-lines*')),
         );
     })->create();

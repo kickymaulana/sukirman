@@ -1206,9 +1206,7 @@ public function gudangIndex(Request $request)
         $query = MaterialRequestItem::with([
             'materialRequest.user.departemen',
             'item_po_lines' => fn ($q) => $q
-                ->select('id', 'material_request_item_id', 'nomor_po', 'user_id')
-                ->whereNotNull('nomor_po')
-                ->whereRaw("TRIM(nomor_po) <> ''")
+                ->select('id', 'material_request_item_id', 'qty', 'nomor_po', 'tgl_po', 'expected_date', 'tanggal_disetujui_direksi', 'user_id')
                 ->with('user:id,name')
                 ->orderBy('id'),
         ])
@@ -1234,6 +1232,7 @@ public function gudangIndex(Request $request)
         $items = $query->paginate(10)->withQueryString()
             ->through(function ($item) {
                 $mr = $item->materialRequest;
+                $remainingQty = max(0, (int) $item->qty - $item->item_po_lines->sum('qty'));
 
                 return [
                     'id' => $item->id,
@@ -1242,11 +1241,16 @@ public function gudangIndex(Request $request)
                     'specification' => $item->specification,
                     'purpose' => $item->purpose,
                     'qty' => $item->qty,
+                    'remaining_qty' => $remainingQty,
                     'qty_tersedia' => $item->qty_tersedia,
                     'unit' => $item->unit,
                     'type' => $item->type ?: 'Belum ditentukan',
                     'po_lines' => $item->item_po_lines->map(fn ($line) => [
+                        'id' => $line->id,
                         'nomor_po' => $line->nomor_po,
+                        'tgl_po' => $line->tgl_po,
+                        'expected_date' => $line->expected_date,
+                        'tanggal_disetujui_direksi' => $line->tanggal_disetujui_direksi,
                         'purchasing' => $line->user?->name ?? 'Tidak diketahui',
                     ])->values(),
                     'has_foto' => !empty($item->foto),
@@ -1262,6 +1266,7 @@ public function gudangIndex(Request $request)
             });
 
         return Inertia::render('Approval/MonitoringItems', [
+            'can_edit_po' => $request->user()?->hasAnyRole('Purchasing|admin') ?? false,
             'items' => $items,
             'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'jenis' => $jenis ?? '', 'status' => $status ?? '', 'type' => $type],
             'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
@@ -1274,9 +1279,117 @@ public function gudangIndex(Request $request)
         ]);
     }
 
-    /**
-     * Statistik Direksi — daftar direksi + jumlah MR Pending Direksi per orang.
-     */
+    public function createMonitoringItemPo(Request $request, MaterialRequestItem $item)
+    {
+        $item->load(['materialRequest', 'item_po_lines:id,material_request_item_id,qty']);
+        abort_if($item->materialRequest?->status_workflow !== 'Purchasing', 403, 'PO hanya dapat ditambahkan untuk item berstatus Purchasing.');
+        $remainingQty = max(0, (int) $item->qty - $item->item_po_lines->sum('qty'));
+        abort_if($remainingQty === 0, 422, 'Seluruh kuantitas item sudah tercakup dalam PO.');
+
+        return Inertia::render('Approval/EditMonitoringItemPo', [
+            'item' => [
+                'id' => $item->id,
+                'item_code' => $item->item_code,
+                'item_name' => $item->item_name,
+                'mr_number' => $item->materialRequest?->mr_number,
+            ],
+            'line' => null,
+            'remaining_qty' => $remainingQty,
+            'return_url' => route('monitoring.items', $this->monitoringItemFilters($request)),
+        ]);
+    }
+
+    public function storeMonitoringItemPo(Request $request, MaterialRequestItem $item)
+    {
+        $validated = $request->validate([
+            'qty' => ['required', 'integer', 'min:1'],
+            'nomor_po' => ['nullable', 'string', 'max:100'],
+            'tgl_po' => ['nullable', 'date'],
+            'expected_date' => ['nullable', 'date'],
+            'tanggal_disetujui_direksi' => ['nullable', 'date_format:Y-m-d\TH:i'],
+        ]);
+
+        DB::transaction(function () use ($request, $item, $validated) {
+            $lockedItem = MaterialRequestItem::query()->with('materialRequest')->lockForUpdate()->findOrFail($item->id);
+            abort_if($lockedItem->materialRequest?->status_workflow !== 'Purchasing', 403, 'PO hanya dapat ditambahkan untuk item berstatus Purchasing.');
+            $remainingQty = max(0, (int) $lockedItem->qty - (int) $lockedItem->item_po_lines()->sum('qty'));
+            validator(['qty' => $validated['qty']], ['qty' => ['integer', 'max:'.$remainingQty]], [
+                'qty.max' => "Kuantitas melebihi sisa kuantitas {$remainingQty}.",
+            ])->validate();
+
+            $nomorPo = isset($validated['nomor_po']) ? trim($validated['nomor_po']) : null;
+            $lockedItem->item_po_lines()->create([
+                'qty' => $validated['qty'],
+                'nomor_po' => $nomorPo !== '' ? $nomorPo : null,
+                'tgl_po' => $validated['tgl_po'] ?? null,
+                'expected_date' => $validated['expected_date'] ?? null,
+                'tanggal_disetujui_direksi' => isset($validated['tanggal_disetujui_direksi'])
+                    ? str_replace('T', ' ', $validated['tanggal_disetujui_direksi'])
+                    : null,
+                'user_id' => $request->user()->id,
+            ]);
+        });
+
+        return response()->json(['ok' => true, 'message' => 'Baris PO ditambahkan.']);
+    }
+
+    public function editMonitoringItemPo(Request $request, MaterialRequestItem $item, $line)
+    {
+        $poLine = $item->item_po_lines()->findOrFail($line);
+
+        return Inertia::render('Approval/EditMonitoringItemPo', [
+            'item' => [
+                'id' => $item->id,
+                'item_code' => $item->item_code,
+                'item_name' => $item->item_name,
+                'mr_number' => $item->materialRequest?->mr_number,
+            ],
+            'line' => [
+                'id' => $poLine->id,
+                'nomor_po' => $poLine->nomor_po,
+                'tgl_po' => $poLine->tgl_po ? substr($poLine->tgl_po, 0, 10) : null,
+                'expected_date' => $poLine->expected_date ? substr($poLine->expected_date, 0, 10) : null,
+                'tanggal_disetujui_direksi' => $poLine->tanggal_disetujui_direksi ? substr(str_replace(' ', 'T', $poLine->tanggal_disetujui_direksi), 0, 16) : null,
+            ],
+            'remaining_qty' => null,
+            'return_url' => route('monitoring.items', $this->monitoringItemFilters($request)),
+        ]);
+    }
+
+    private function monitoringItemFilters(Request $request): array
+    {
+        return $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'factory' => ['nullable', 'string', 'max:255'],
+            'jenis' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'string', 'max:255'],
+            'type' => ['nullable', 'in:Lokal,Import'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+    }
+
+    public function updateMonitoringItemPo(Request $request, MaterialRequestItem $item, $line)
+    {
+        $poLine = $item->item_po_lines()->findOrFail($line);
+        $validated = $request->validate([
+            'nomor_po' => ['nullable', 'string', 'max:100'],
+            'tgl_po' => ['nullable', 'date'],
+            'expected_date' => ['nullable', 'date'],
+            'tanggal_disetujui_direksi' => ['nullable', 'date_format:Y-m-d\TH:i'],
+        ]);
+
+        if (array_key_exists('nomor_po', $validated)) {
+            $validated['nomor_po'] = trim($validated['nomor_po'] ?? '') ?: null;
+        }
+        if (isset($validated['tanggal_disetujui_direksi'])) {
+            $validated['tanggal_disetujui_direksi'] = str_replace('T', ' ', $validated['tanggal_disetujui_direksi']);
+        }
+
+        $poLine->update($validated + ['user_id' => $request->user()->id]);
+
+        return response()->json(['ok' => true, 'message' => 'Baris PO diperbarui.']);
+    }
+
     public function statistikDireksi()
     {
         $direksiUsers = User::role('Direksi')->get(['id', 'name', 'nik']);

@@ -111,6 +111,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/approval/purchasing/check-xml', [MaterialRequestController::class, 'checkXmlSkips'])->name('approval.export-check');
         Route::get('/approval/purchasing/{id}/input', [MaterialRequestController::class, 'purchasingInput'])->name('purchasing.input');
         Route::post('/approval/purchasing/{id}/po', [MaterialRequestController::class, 'updateItemsPo'])->name('purchasing.po');
+        Route::get('/monitoring-items/{item}/po-lines/create', [MaterialRequestController::class, 'createMonitoringItemPo'])->name('monitoring.items.po.create');
+        Route::post('/monitoring-items/{item}/po-lines', [MaterialRequestController::class, 'storeMonitoringItemPo'])->name('monitoring.items.po.store');
+        Route::get('/monitoring-items/{item}/po-lines/{line}/edit', [MaterialRequestController::class, 'editMonitoringItemPo'])->name('monitoring.items.po.edit');
+        Route::patch('/monitoring-items/{item}/po-lines/{line}', [MaterialRequestController::class, 'updateMonitoringItemPo'])->name('monitoring.items.po.update');
     });
 
     // Pengaturan (admin, Purchasing, Gudang)

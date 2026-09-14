@@ -3,6 +3,15 @@ import { ref } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import { Transition } from 'vue'
 
+interface PoLine {
+    id: number
+    nomor_po: string | null
+    tgl_po: string | null
+    expected_date: string | null
+    tanggal_disetujui_direksi: string | null
+    purchasing: string
+}
+
 interface Item {
     id: number
     item_code: string | null
@@ -10,10 +19,11 @@ interface Item {
     specification: string | null
     purpose: string | null
     qty: number
+    remaining_qty: number
     qty_tersedia: number | null
     unit: string
     type: string
-    po_lines: { nomor_po: string; purchasing: string }[]
+    po_lines: PoLine[]
     has_foto: boolean
     mr_id: number | null
     mr_number: string | null
@@ -28,6 +38,7 @@ interface Item {
 const props = defineProps<{
     items: { data: Item[]; links: any[]; from: number; to: number; total: number; prev_page_url: string|null; next_page_url: string|null }
     filters?: { search?: string; factory?: string; jenis?: string; status?: string; type?: string }
+    can_edit_po: boolean
     allFactories: string[]
     allJenis: string[]
     allStatuses: string[]
@@ -39,6 +50,13 @@ const factoryVal = ref(props.filters?.factory || '')
 const jenisVal = ref(props.filters?.jenis || '')
 const statusVal = ref(props.filters?.status || '')
 const typeVal = ref(props.filters?.type || '')
+
+const poPageParams = () => {
+    const query = new URLSearchParams(window.location.search)
+    return { ...props.filters, page: query.get('page') || '1' }
+}
+const createPo = (item: Item) => router.get(`${baseUrl}/monitoring-items/${item.id}/po-lines/create`, poPageParams())
+const editPo = (item: Item, line: PoLine) => router.get(`${baseUrl}/monitoring-items/${item.id}/po-lines/${line.id}/edit`, poPageParams())
 
 const statusBadge = (s: string | null) => {
     if (['Fully Approved'].includes(s || '')) return 'success'
@@ -122,8 +140,12 @@ const showPhoto = (id: number, name: string) => {
                     <div class="item-info">
                         <span class="iname">{{ it.item_name }}</span>
                         <span class="ispec">Tipe: {{ it.type }}</span>
-                        <span v-for="(po, index) in it.po_lines" :key="index" class="ispec">PO: {{ po.nomor_po }} · Purchasing: {{ po.purchasing }}</span>
+                        <div v-for="po in it.po_lines" :key="po.id" class="ispec">
+                            PO: {{ po.nomor_po?.trim() || 'Nomor belum diisi' }} · Purchasing: {{ po.purchasing }}
+                            <var-button v-if="can_edit_po" size="mini" text type="primary" :aria-label="`Edit PO ${po.nomor_po?.trim() || po.id} untuk ${it.item_name}`" @click="editPo(it, po)">Edit PO</var-button>
+                        </div>
                         <span v-if="!it.po_lines.length" class="ispec">Belum ada PO</span>
+                        <var-button v-if="can_edit_po && it.status_workflow === 'Purchasing' && it.remaining_qty > 0" size="small" type="primary" :aria-label="`${it.po_lines.length ? 'Tambah' : 'Isi'} PO untuk ${it.item_name}`" @click="createPo(it)">{{ it.po_lines.length ? 'Tambah PO' : 'Isi PO' }}</var-button>
                         <span v-if="it.specification" class="ispec">{{ it.specification }}</span>
                         <span v-if="it.purpose" class="ipurpose">{{ it.purpose }}</span>
                         <span class="iqty">{{ it.qty }} {{ it.unit }}<template v-if="it.qty_tersedia != null"> · stok {{ it.qty_tersedia }}</template></span>
