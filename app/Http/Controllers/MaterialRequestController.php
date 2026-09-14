@@ -1201,8 +1201,17 @@ public function gudangIndex(Request $request)
         $factory = $request->input('factory');
         $jenis = $request->input('jenis');
         $status = $request->input('status');
+        $type = in_array($request->query('type'), ['Lokal', 'Import'], true) ? $request->query('type') : '';
 
-        $query = MaterialRequestItem::with('materialRequest.user.departemen')
+        $query = MaterialRequestItem::with([
+            'materialRequest.user.departemen',
+            'item_po_lines' => fn ($q) => $q
+                ->select('id', 'material_request_item_id', 'nomor_po', 'user_id')
+                ->whereNotNull('nomor_po')
+                ->whereRaw("TRIM(nomor_po) <> ''")
+                ->with('user:id,name')
+                ->orderBy('id'),
+        ])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('item_name', 'like', "%{$search}%")
@@ -1217,6 +1226,7 @@ public function gudangIndex(Request $request)
                 });
             })
             ->when($factory, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('factory', $factory)))
+            ->when($type, fn ($q) => $q->where('type', $type))
             ->when($jenis, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('jenis', $jenis)))
             ->when($status, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('status_workflow', $status)))
             ->latest();
@@ -1234,6 +1244,11 @@ public function gudangIndex(Request $request)
                     'qty' => $item->qty,
                     'qty_tersedia' => $item->qty_tersedia,
                     'unit' => $item->unit,
+                    'type' => $item->type ?: 'Belum ditentukan',
+                    'po_lines' => $item->item_po_lines->map(fn ($line) => [
+                        'nomor_po' => $line->nomor_po,
+                        'purchasing' => $line->user?->name ?? 'Tidak diketahui',
+                    ])->values(),
                     'has_foto' => !empty($item->foto),
                     'mr_id' => $mr?->id,
                     'mr_number' => $mr?->mr_number,
@@ -1248,7 +1263,7 @@ public function gudangIndex(Request $request)
 
         return Inertia::render('Approval/MonitoringItems', [
             'items' => $items,
-            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'jenis' => $jenis ?? '', 'status' => $status ?? ''],
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'jenis' => $jenis ?? '', 'status' => $status ?? '', 'type' => $type],
             'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
             'allJenis' => ['UMUM', 'MTC', 'IT', 'HRD'],
             'allStatuses' => [

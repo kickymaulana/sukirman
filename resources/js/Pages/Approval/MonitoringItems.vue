@@ -12,6 +12,8 @@ interface Item {
     qty: number
     qty_tersedia: number | null
     unit: string
+    type: string
+    po_lines: { nomor_po: string; purchasing: string }[]
     has_foto: boolean
     mr_id: number | null
     mr_number: string | null
@@ -25,7 +27,7 @@ interface Item {
 
 const props = defineProps<{
     items: { data: Item[]; links: any[]; from: number; to: number; total: number; prev_page_url: string|null; next_page_url: string|null }
-    filters?: { search?: string; factory?: string; jenis?: string; status?: string }
+    filters?: { search?: string; factory?: string; jenis?: string; status?: string; type?: string }
     allFactories: string[]
     allJenis: string[]
     allStatuses: string[]
@@ -36,6 +38,7 @@ const searchVal = ref(props.filters?.search || '')
 const factoryVal = ref(props.filters?.factory || '')
 const jenisVal = ref(props.filters?.jenis || '')
 const statusVal = ref(props.filters?.status || '')
+const typeVal = ref(props.filters?.type || '')
 
 const statusBadge = (s: string | null) => {
     if (['Fully Approved'].includes(s || '')) return 'success'
@@ -51,6 +54,7 @@ const applyFilters = () => {
         factory: factoryVal.value || undefined,
         jenis: jenisVal.value || undefined,
         status: statusVal.value || undefined,
+        type: typeVal.value || undefined,
     }, { preserveState: true })
 }
 
@@ -88,6 +92,11 @@ const showPhoto = (id: number, name: string) => {
                     <var-option label="Semua Jenis" value="" />
                     <var-option v-for="j in allJenis" :key="j" :label="j" :value="j" />
                 </var-select>
+                <var-select v-model="typeVal" placeholder="Tipe Item" aria-label="Tipe Item" style="width:200px" @change="applyFilters">
+                    <var-option label="Semua" value="" />
+                    <var-option label="Lokal" value="Lokal" />
+                    <var-option label="Import" value="Import" />
+                </var-select>
                 <var-select v-model="statusVal" placeholder="Semua Status" style="width:200px" @change="applyFilters">
                     <var-option label="Semua Status" value="" />
                     <var-option v-for="s in allStatuses" :key="s" :label="s" :value="s" />
@@ -112,6 +121,9 @@ const showPhoto = (id: number, name: string) => {
                 <div class="item-body">
                     <div class="item-info">
                         <span class="iname">{{ it.item_name }}</span>
+                        <span class="ispec">Tipe: {{ it.type }}</span>
+                        <span v-for="(po, index) in it.po_lines" :key="index" class="ispec">PO: {{ po.nomor_po }} · Purchasing: {{ po.purchasing }}</span>
+                        <span v-if="!it.po_lines.length" class="ispec">Belum ada PO</span>
                         <span v-if="it.specification" class="ispec">{{ it.specification }}</span>
                         <span v-if="it.purpose" class="ipurpose">{{ it.purpose }}</span>
                         <span class="iqty">{{ it.qty }} {{ it.unit }}<template v-if="it.qty_tersedia != null"> · stok {{ it.qty_tersedia }}</template></span>
