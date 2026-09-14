@@ -164,14 +164,14 @@ const handleTabChange = (index: number) => {
         </div>
 
         <!-- Monitoring MR (Gudang, Purchasing, admin) -->
-        <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/monitoring-mr')">
+        <div v-if="user?.role && ['Gudang','Purchasing','admin','FM/GM'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/monitoring-mr')">
           <span class="menu-icon">📋</span>
           <span class="menu-title">Monitoring MR</span>
           <span class="menu-desc">Lihat semua MR (non-Purchasing)</span>
         </div>
 
         <!-- Monitoring Item (Gudang, Purchasing, admin) -->
-        <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/monitoring-items')">
+        <div v-if="user?.role && ['Gudang','Purchasing','admin','FM/GM'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/monitoring-items')">
           <span class="menu-icon">🏷️</span>
           <span class="menu-title">Monitoring Item</span>
           <span class="menu-desc">Lihat semua item & foto dari semua MR</span>
