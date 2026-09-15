@@ -1,15 +1,17 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\MaterialRequestController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\BarangController;
-use App\Http\Controllers\SettingController;
-use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminOverviewController;
+use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BarangController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Master\DepartemenController;
+use App\Http\Controllers\MaterialRequestController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StatistikPengajuController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 // 💡 Redirect root '/' langsung ke dashboard (nanti otomatis ke login jika belum auth)
@@ -133,13 +135,14 @@ Route::middleware('auth')->group(function () {
     // Statistik Direksi + MR Pending Direksi per direksi (admin, Purchasing)
     Route::middleware('role:admin|Purchasing')->group(function () {
         Route::get('/statistik-direksi', [MaterialRequestController::class, 'statistikDireksi'])->name('statistik-direksi');
+        Route::get('/statistik-purchasing', [MaterialRequestController::class, 'statistikPurchasing'])->name('statistik-purchasing');
         Route::get('/pending-direksi/{id}', [MaterialRequestController::class, 'pendingDireksiIndex'])->name('pending-direksi');
     });
 
-        // Overview: admin bisa edit, Purchasing & Gudang hanya melihat
+    // Overview: admin bisa edit, Purchasing & Gudang hanya melihat
     Route::middleware('role:admin|Purchasing|Gudang')->get('/admin/overview', [AdminOverviewController::class, 'index'])->name('admin.overview');
 
-        // Admin Panel
+    // Admin Panel
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/overview/{id}/edit', [AdminOverviewController::class, 'edit'])->name('overview.edit');
         Route::post('/overview/{id}/update', [AdminOverviewController::class, 'update'])->name('overview.update');
@@ -161,33 +164,40 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', function () {
         $notifications = auth()->user()->unreadNotifications()->latest()->get()->map(function ($n) {
             $data = $n->data;
+
             return ['id' => $n->id, 'message' => $data['message'] ?? '', 'mr_id' => $data['mr_id'] ?? null, 'mr_number' => $data['mr_number'] ?? '', 'time' => $n->created_at->diffForHumans()];
         });
+
         return Inertia::render('Notification/Index', ['notifications' => $notifications]);
     })->name('notifications.index');
 
     Route::post('/notifications/{id}/read', function ($id) {
         $notification = auth()->user()->notifications()->find($id);
-        if ($notification) { $notification->markAsRead(); }
+        if ($notification) {
+            $notification->markAsRead();
+        }
+
         return response()->json(['ok' => true]);
     })->name('notifications.read');
 
     Route::post('/notifications/read-all', function () {
         auth()->user()->unreadNotifications()->update(['read_at' => now()]);
+
         return response()->json(['ok' => true]);
     })->name('notifications.read-all');
 
     // Simpan token FCM untuk push notification (dipanggil dari frontend setelah login)
-    Route::post('/fcm-token', function (\Illuminate\Http\Request $request) {
+    Route::post('/fcm-token', function (Request $request) {
         $validated = $request->validate(['fcm_token' => ['required', 'string']]);
         auth()->user()->update(['fcm_token' => $validated['fcm_token']]);
+
         return response()->json(['ok' => true]);
     })->name('fcm-token');
 
     // Profile
-    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');
-    Route::get('/profile/edit', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
-    Route::post('/profile/update', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
 
     // Auth Actions
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

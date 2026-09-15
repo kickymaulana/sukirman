@@ -136,8 +136,15 @@ const handleTabChange = (index: number) => {
           <span class="menu-desc">Lihat daftar pengaju & semua MR-nya</span>
         </div>
 
-        <!-- Statistik Direksi (admin, Purchasing) -->
-        <div v-if="user?.role && ['admin','Purchasing'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/statistik-direksi')">
+         <!-- Statistik Purchasing (admin, Purchasing) -->
+         <div v-if="user?.role && ['admin','Purchasing'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/statistik-purchasing')">
+           <span class="menu-icon">🛒</span>
+           <span class="menu-title">Statistik Purchasing</span>
+           <span class="menu-desc">Lihat jumlah item yang di-PO per Purchasing</span>
+         </div>
+
+         <!-- Statistik Direksi (admin, Purchasing) -->
+         <div v-if="user?.role && ['admin','Purchasing'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/statistik-direksi')">
           <span class="menu-icon">👁️</span>
           <span class="menu-title">Statistik Direksi</span>
           <span class="menu-desc">Lihat MR Pending Direksi per direksi</span>

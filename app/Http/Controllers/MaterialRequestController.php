@@ -2,26 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApprovalLog;
+use App\Models\Barang;
+use App\Models\Departemen;
+use App\Models\ItemPoLine;
 use App\Models\MaterialRequest;
 use App\Models\MaterialRequestItem;
-use App\Models\ItemPoLine;
-use App\Models\ApprovalLog;
 use App\Models\Setting;
-use App\Models\Barang;
 use App\Models\User;
+use App\Notifications\MrNotification;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
-use App\Notifications\MrNotification;
-use Illuminate\Notifications\DatabaseNotification;
-use Illuminate\Support\Facades\Notification;
 
 class MaterialRequestController extends Controller
 {
-
     public function index(Request $request): Response
     {
         $search = $request->input('search');
@@ -32,12 +33,12 @@ class MaterialRequestController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('mr_number', 'like', "%{$search}%")
-                  ->orWhere('factory', 'like', "%{$search}%")
-                  ->orWhere('type', 'like', "%{$search}%")
-                  ->orWhereHas('items', function ($itemQuery) use ($search) {
-                      $itemQuery->where('item_name', 'like', "%{$search}%")
-                                ->orWhere('item_code', 'like', "%{$search}%");
-                  });
+                    ->orWhere('factory', 'like', "%{$search}%")
+                    ->orWhere('type', 'like', "%{$search}%")
+                    ->orWhereHas('items', function ($itemQuery) use ($search) {
+                        $itemQuery->where('item_name', 'like', "%{$search}%")
+                            ->orWhere('item_code', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -48,7 +49,7 @@ class MaterialRequestController extends Controller
 
         return Inertia::render('MaterialRequest/Index', [
             'requests' => $materialRequests,
-            'filters'  => [
+            'filters' => [
                 'search' => $search ?? '',
             ],
         ]);
@@ -64,7 +65,7 @@ class MaterialRequestController extends Controller
         abort_if($mr->user_id !== auth()->id(), 403, 'Anda bukan pengaju MR ini.');
 
         $allowed = ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD', 'Revision'];
-        abort_if(!in_array($mr->status_workflow, $allowed), 403, 'MR tidak bisa dihapus karena sudah diproses lebih lanjut.');
+        abort_if(! in_array($mr->status_workflow, $allowed), 403, 'MR tidak bisa dihapus karena sudah diproses lebih lanjut.');
 
         DB::transaction(function () use ($mr, $id) {
             // Hapus semua notifikasi yang merujuk MR ini (semua user)
@@ -111,17 +112,17 @@ class MaterialRequestController extends Controller
         $query = MaterialRequest::with(['user', 'manager', 'fmGm', 'direksi', 'items'])
             ->where(function ($q) {
                 $q->where('user_id', auth()->id())
-                  ->orWhere('manager_id', auth()->id())
-                  ->orWhere('fm_gm_id', auth()->id())
-                  ->orWhere('direksi_id', auth()->id())
-                  ->orWhereHas('approvalLogs', fn ($l) => $l->where('user_id', auth()->id()));
+                    ->orWhere('manager_id', auth()->id())
+                    ->orWhere('fm_gm_id', auth()->id())
+                    ->orWhere('direksi_id', auth()->id())
+                    ->orWhereHas('approvalLogs', fn ($l) => $l->where('user_id', auth()->id()));
             });
 
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('mr_number', 'like', "%{$search}%")
-                  ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
-                          ->orWhere('nik', 'like', "%{$search}%"));
+                    ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
+                        ->orWhere('nik', 'like', "%{$search}%"));
             });
         }
 
@@ -131,10 +132,18 @@ class MaterialRequestController extends Controller
             ->through(function ($mr) {
                 $myId = auth()->id();
                 $roles = [];
-                if ($mr->user_id === $myId) $roles[] = 'Pengaju';
-                if ($mr->manager_id === $myId) $roles[] = 'Manager';
-                if ($mr->fm_gm_id === $myId) $roles[] = 'FM/GM';
-                if ($mr->direksi_id === $myId) $roles[] = 'Direksi';
+                if ($mr->user_id === $myId) {
+                    $roles[] = 'Pengaju';
+                }
+                if ($mr->manager_id === $myId) {
+                    $roles[] = 'Manager';
+                }
+                if ($mr->fm_gm_id === $myId) {
+                    $roles[] = 'FM/GM';
+                }
+                if ($mr->direksi_id === $myId) {
+                    $roles[] = 'Direksi';
+                }
 
                 return [
                     'id' => $mr->id,
@@ -191,28 +200,28 @@ class MaterialRequestController extends Controller
         // Role departemen sesuai jenis MR
         $deptRole = match ($mr->jenis) {
             'MTC' => 'MTC',
-            'IT'   => 'IT',
-            'HRD'  => 'HRD',
+            'IT' => 'IT',
+            'HRD' => 'HRD',
             default => null,
         };
 
         // Persetujuan hanya dihitung jika ada LOG approval (bukan sekadar ditugaskan)
         $managerLog = $logs->where('role', 'Manager')->where('action', 'forward')->first();
-        $fmGmLog    = $logs->where('role', 'FM/GM')->where('action', 'forward')->first();
+        $fmGmLog = $logs->where('role', 'FM/GM')->where('action', 'forward')->first();
         $direksiLog = $logs->where('role', 'Direksi')->where('action', 'approve')->first();
 
         $managerApproved = (bool) $managerLog;
-        $fmGmApproved    = (bool) $fmGmLog;
+        $fmGmApproved = (bool) $fmGmLog;
         $direksiApproved = (bool) $direksiLog;
 
         $managerApproverName = $managerLog?->user?->name;
-        $fmGmApproverName    = $fmGmLog?->user?->name;
+        $fmGmApproverName = $fmGmLog?->user?->name;
         $direksiApproverName = $direksiLog?->user?->name;
 
         // MR tidak melewati FM/GM (skip langsung ke Direksi) — sembunyikan blok tanda tangan FM/GM
         $hasFmGmLog = $logs->where('role', 'FM/GM')->isNotEmpty();
-        $skipFmGm = !$hasFmGmLog
-            && !in_array($mr->status_workflow, [
+        $skipFmGm = ! $hasFmGmLog
+            && ! in_array($mr->status_workflow, [
                 'Pending Manager', 'Pending FM/GM',
                 'Pending MTC', 'Pending IT', 'Pending HRD',
             ]);
@@ -255,9 +264,10 @@ class MaterialRequestController extends Controller
     public function create(): Response
     {
         $managers = User::role('Manager')->get(['id', 'name', 'nik']);
+
         return Inertia::render('MaterialRequest/Create', [
             'managers' => $managers,
-            'departemens' => \App\Models\Departemen::orderBy('nama')->get(['id', 'nama']),
+            'departemens' => Departemen::orderBy('nama')->get(['id', 'nama']),
         ]);
     }
 
@@ -297,12 +307,12 @@ class MaterialRequestController extends Controller
 
         DB::transaction(function () use ($validated, $request) {
             // Format pendek: MR010508 (jam) — pastikan unik dengan menambahkan suffix bila dobel
-            $base = 'MR' . date('His');
+            $base = 'MR'.date('His');
             $mrNumber = $base;
             $suffix = 0;
             while (MaterialRequest::where('mr_number', $mrNumber)->exists()) {
                 $suffix++;
-                $mrNumber = $base . $suffix;
+                $mrNumber = $base.$suffix;
             }
 
             $mr = MaterialRequest::create([
@@ -338,7 +348,7 @@ class MaterialRequestController extends Controller
                     $path = Storage::disk('s3')->putFileAs(
                         "item-foto/{$mrItem->id}",
                         $fotoFile,
-                        time() . '-' . \Illuminate\Support\Str::random(8) . '.jpg'
+                        time().'-'.Str::random(8).'.jpg'
                     );
                     $mrItem->update(['foto' => $path]);
                 }
@@ -356,7 +366,7 @@ class MaterialRequestController extends Controller
         $mr = MaterialRequest::with('items')->findOrFail($id);
 
         $allowedStatuses = ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD'];
-        abort_if(!in_array($mr->status_workflow, $allowedStatuses), 403, 'MR tidak bisa diedit pada status ini.');
+        abort_if(! in_array($mr->status_workflow, $allowedStatuses), 403, 'MR tidak bisa diedit pada status ini.');
         abort_if($mr->user_id !== auth()->id(), 403, 'Anda bukan pengaju MR ini.');
 
         $managers = User::role('Manager')->get(['id', 'name', 'nik']);
@@ -364,7 +374,7 @@ class MaterialRequestController extends Controller
         return Inertia::render('MaterialRequest/EditPending', [
             'mr' => $mr,
             'managers' => $managers,
-            'departemens' => \App\Models\Departemen::orderBy('nama')->get(['id', 'nama']),
+            'departemens' => Departemen::orderBy('nama')->get(['id', 'nama']),
         ]);
     }
 
@@ -376,7 +386,7 @@ class MaterialRequestController extends Controller
         $mr = MaterialRequest::findOrFail($id);
 
         $allowedStatuses = ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD'];
-        abort_if(!in_array($mr->status_workflow, $allowedStatuses), 403, 'MR tidak bisa diedit pada status ini.');
+        abort_if(! in_array($mr->status_workflow, $allowedStatuses), 403, 'MR tidak bisa diedit pada status ini.');
         abort_if($mr->user_id !== auth()->id(), 403, 'Anda bukan pengaju MR ini.');
 
         $validated = $request->validate([
@@ -447,7 +457,7 @@ class MaterialRequestController extends Controller
                     $path = Storage::disk('s3')->putFileAs(
                         "item-foto/{$mrItem->id}",
                         $fotoFile,
-                        time() . '-' . \Illuminate\Support\Str::random(8) . '.jpg'
+                        time().'-'.Str::random(8).'.jpg'
                     );
                     $mrItem->update(['foto' => $path]);
                 }
@@ -530,16 +540,16 @@ class MaterialRequestController extends Controller
         // Tentukan role departemen sesuai jenis MR
         $deptRole = match ($mr->jenis) {
             'MTC' => 'MTC',
-            'IT'   => 'IT',
-            'HRD'  => 'HRD',
+            'IT' => 'IT',
+            'HRD' => 'HRD',
             default => null,
         };
 
         // Jika MR non-UMUM dan Manager yang approve BUKAN role departemen itu → wajib langkah departemen.
         // Jika Manager sudah punya role departemen tersebut → langkah departemen otomatis terpenuhi (skip).
         $nextStatus = 'Pending FM/GM';
-        if ($deptRole && !auth()->user()->hasRole($deptRole)) {
-            $nextStatus = 'Pending ' . $deptRole;
+        if ($deptRole && ! auth()->user()->hasRole($deptRole)) {
+            $nextStatus = 'Pending '.$deptRole;
         }
 
         $mr->update([
@@ -581,7 +591,7 @@ class MaterialRequestController extends Controller
         $deptRole = $this->deptRoleUser();
 
         $requests = MaterialRequest::with(['user', 'items', 'manager'])
-            ->where('status_workflow', 'Pending ' . $deptRole)
+            ->where('status_workflow', 'Pending '.$deptRole)
             ->latest()->paginate(10);
 
         return Inertia::render('Approval/Departemen', [
@@ -595,14 +605,14 @@ class MaterialRequestController extends Controller
         $mr = MaterialRequest::findOrFail($id);
         $deptRole = $this->deptRoleUser();
 
-        abort_if($mr->status_workflow !== 'Pending ' . $deptRole, 404);
+        abort_if($mr->status_workflow !== 'Pending '.$deptRole, 404);
 
         $request->validate(['action' => 'required|in:approve,reject']);
 
         $route = match ($deptRole) {
             'MTC' => 'approval.mtc',
-            'IT'   => 'approval.it',
-            'HRD'  => 'approval.hrd',
+            'IT' => 'approval.it',
+            'HRD' => 'approval.hrd',
             default => 'approval.manager',
         };
 
@@ -803,7 +813,7 @@ class MaterialRequestController extends Controller
 
     // ============ GUDANG: Verifikasi Stok ============
 
-public function gudangIndex(Request $request)
+    public function gudangIndex(Request $request)
     {
         $search = $request->input('search');
         $factory = $request->input('factory');
@@ -813,7 +823,7 @@ public function gudangIndex(Request $request)
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('mr_number', 'like', "%{$search}%")
-                      ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
                             ->orWhere('nik', 'like', "%{$search}%"));
                 });
             })
@@ -830,7 +840,9 @@ public function gudangIndex(Request $request)
                     $lines = $it->item_po_lines;
                     $nomorPos = $nomorPos->merge($lines->pluck('nomor_po')->filter());
                     foreach ($lines as $ln) {
-                        if ($ln->user?->name) { $poUsers->push($ln->user->name); }
+                        if ($ln->user?->name) {
+                            $poUsers->push($ln->user->name);
+                        }
                     }
                 }
                 $poStatus = $nomorPos->count() > 0 ? ($nomorPos->count() === $total ? 'Sudah' : 'Sebagian') : 'Belum';
@@ -895,6 +907,7 @@ public function gudangIndex(Request $request)
         $mrItem = MaterialRequestItem::findOrFail($id);
         $validated = $request->validate(['value' => 'required|in:Belum,Sudah']);
         $mrItem->update(['input_accurate' => $validated['value']]);
+
         return response()->json(['ok' => true, 'message' => "Item ditandai: {$validated['value']}"]);
     }
 
@@ -960,7 +973,7 @@ public function gudangIndex(Request $request)
         DB::transaction(function () use ($mr, $validated) {
             $keepIds = [];
             foreach ($validated['items'] as $item) {
-                if (!empty($item['id'])) {
+                if (! empty($item['id'])) {
                     $mrItem = MaterialRequestItem::find($item['id']);
                     if ($mrItem && $mrItem->material_request_id === $mr->id) {
                         $mrItem->update([
@@ -1065,7 +1078,7 @@ public function gudangIndex(Request $request)
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('mr_number', 'like', "%{$search}%")
-                      ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
                             ->orWhere('nik', 'like', "%{$search}%"));
                 });
             })
@@ -1081,9 +1094,9 @@ public function gudangIndex(Request $request)
             })
             ->when($poStatus === 'Sebagian', function ($q) {
                 $q->whereHas('items.item_po_lines')
-                  ->whereHas('items', function ($it) {
-                      $it->whereRaw('(SELECT COALESCE(SUM(qty), 0) FROM item_po_lines WHERE material_request_item_id = material_request_items.id) < material_request_items.qty');
-                  });
+                    ->whereHas('items', function ($it) {
+                        $it->whereRaw('(SELECT COALESCE(SUM(qty), 0) FROM item_po_lines WHERE material_request_item_id = material_request_items.id) < material_request_items.qty');
+                    });
             })
             ->latest();
 
@@ -1098,13 +1111,17 @@ public function gudangIndex(Request $request)
                 foreach ($items as $it) {
                     $lines = $it->item_po_lines;
                     $covered = $lines->sum('qty');
-                    if ($covered >= (int) $it->qty) { $doneCount++; }
+                    if ($covered >= (int) $it->qty) {
+                        $doneCount++;
+                    }
                     if ($covered > 0) {
                         $hasPo = true;
                         $nomorPos = $nomorPos->merge($lines->pluck('nomor_po')->filter());
                     }
                     foreach ($lines as $ln) {
-                        if ($ln->user?->name) { $poUsers->push($ln->user->name); }
+                        if ($ln->user?->name) {
+                            $poUsers->push($ln->user->name);
+                        }
                     }
                 }
 
@@ -1156,7 +1173,7 @@ public function gudangIndex(Request $request)
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('mr_number', 'like', "%{$search}%")
-                      ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
                             ->orWhere('nik', 'like', "%{$search}%"));
                 });
             })
@@ -1217,22 +1234,22 @@ public function gudangIndex(Request $request)
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('item_name', 'like', "%{$search}%")
-                      ->orWhere('item_code', 'like', "%{$search}%")
-                      ->orWhereHas('materialRequest', function ($m) use ($search) {
-                          $m->where('mr_number', 'like', "%{$search}%")
-                            ->orWhereHas('user', function ($u) use ($search) {
-                                $u->where('name', 'like', "%{$search}%")
-                                  ->orWhere('nik', 'like', "%{$search}%");
-                            });
-                      });
+                        ->orWhere('item_code', 'like', "%{$search}%")
+                        ->orWhereHas('materialRequest', function ($m) use ($search) {
+                            $m->where('mr_number', 'like', "%{$search}%")
+                                ->orWhereHas('user', function ($u) use ($search) {
+                                    $u->where('name', 'like', "%{$search}%")
+                                        ->orWhere('nik', 'like', "%{$search}%");
+                                });
+                        });
                 });
             })
             ->when($factory, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('factory', $factory)))
             ->when($type, fn ($q) => $q->where('type', $type))
             ->when($jenis, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('jenis', $jenis)))
-             ->when($status, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('status_workflow', $status)))
-             ->when($purchasingUserId, fn ($q) => $q->whereHas('item_po_lines', fn ($po) => $po->where('user_id', $purchasingUserId)))
-             ->latest();
+            ->when($status, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('status_workflow', $status)))
+            ->when($purchasingUserId, fn ($q) => $q->whereHas('item_po_lines', fn ($po) => $po->where('user_id', $purchasingUserId)))
+            ->latest();
 
         $items = $query->paginate(10)->withQueryString()
             ->through(function ($item) {
@@ -1245,10 +1262,10 @@ public function gudangIndex(Request $request)
                     'item_name' => $item->item_name,
                     'specification' => $item->specification,
                     'purpose' => $item->purpose,
-'qty' => $item->qty,
-                     'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
-                     'purchasing_note' => $item->purchasing_note,
-                     'remaining_qty' => $remainingQty,
+                    'qty' => $item->qty,
+                    'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
+                    'purchasing_note' => $item->purchasing_note,
+                    'remaining_qty' => $remainingQty,
                     'qty_tersedia' => $item->qty_tersedia,
                     'unit' => $item->unit,
                     'type' => $item->type ?: 'Belum ditentukan',
@@ -1260,7 +1277,7 @@ public function gudangIndex(Request $request)
                         'tanggal_disetujui_direksi' => $line->tanggal_disetujui_direksi,
                         'purchasing' => $line->user?->name ?? 'Tidak diketahui',
                     ])->values(),
-                    'has_foto' => !empty($item->foto),
+                    'has_foto' => ! empty($item->foto),
                     'mr_id' => $mr?->id,
                     'mr_number' => $mr?->mr_number,
                     'jenis' => $mr?->jenis,
@@ -1302,11 +1319,11 @@ public function gudangIndex(Request $request)
                 'id' => $item->id,
                 'item_code' => $item->item_code,
                 'item_name' => $item->item_name,
-'mr_number' => $item->materialRequest?->mr_number,
-                 'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
-                 'purchasing_note' => $item->purchasing_note,
-             ],
-             'line' => null,
+                'mr_number' => $item->materialRequest?->mr_number,
+                'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
+                'purchasing_note' => $item->purchasing_note,
+            ],
+            'line' => null,
             'remaining_qty' => $remainingQty,
             'return_url' => route('monitoring.items', $this->monitoringItemFilters($request)),
         ]);
@@ -1363,19 +1380,19 @@ public function gudangIndex(Request $request)
                 'id' => $item->id,
                 'item_code' => $item->item_code,
                 'item_name' => $item->item_name,
-'mr_number' => $item->materialRequest?->mr_number,
-                 'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
-                 'purchasing_note' => $item->purchasing_note,
-             ],
-             'line' => [
+                'mr_number' => $item->materialRequest?->mr_number,
+                'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
+                'purchasing_note' => $item->purchasing_note,
+            ],
+            'line' => [
                 'id' => $poLine->id,
                 'nomor_po' => $poLine->nomor_po,
                 'tgl_po' => $poLine->tgl_po ? substr($poLine->tgl_po, 0, 10) : null,
                 'expected_date' => $poLine->expected_date ? substr($poLine->expected_date, 0, 10) : null,
-'tanggal_disetujui_direksi' => $poLine->tanggal_disetujui_direksi ? substr(str_replace(' ', 'T', $poLine->tanggal_disetujui_direksi), 0, 16) : null,
-             ],
-             'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
-             'purchasing_note' => $item->purchasing_note,
+                'tanggal_disetujui_direksi' => $poLine->tanggal_disetujui_direksi ? substr(str_replace(' ', 'T', $poLine->tanggal_disetujui_direksi), 0, 16) : null,
+            ],
+            'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
+            'purchasing_note' => $item->purchasing_note,
 
             'remaining_qty' => null,
             'return_url' => route('monitoring.items', $this->monitoringItemFilters($request)),
@@ -1446,6 +1463,29 @@ public function gudangIndex(Request $request)
         ]);
     }
 
+    public function statistikPurchasing()
+    {
+        $rows = ItemPoLine::query()
+            ->whereNotNull('user_id')
+            ->selectRaw('user_id, count(distinct material_request_item_id) as total')
+            ->with('user:id,name,nik')
+            ->groupBy('user_id')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn (ItemPoLine $line) => [
+                'id' => $line->user_id,
+                'name' => $line->user?->name ?? 'Tidak diketahui',
+                'nik' => $line->user?->nik,
+                'total' => (int) $line->total,
+            ])
+            ->values();
+
+        return Inertia::render('StatistikPurchasing', [
+            'purchasings' => $rows,
+            'total_all' => ItemPoLine::query()->whereNotNull('user_id')->distinct('material_request_item_id')->count('material_request_item_id'),
+        ]);
+    }
+
     /**
      * MR Pending Direksi per direksi — read-only, mirip Monitoring.
      */
@@ -1460,7 +1500,7 @@ public function gudangIndex(Request $request)
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('mr_number', 'like', "%{$search}%")
-                      ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
                             ->orWhere('nik', 'like', "%{$search}%"));
                 });
             })
@@ -1520,7 +1560,7 @@ public function gudangIndex(Request $request)
 
         foreach ($validated['items'] as $itemData) {
             $mrItem = MaterialRequestItem::find($itemData['id']);
-            if (!$mrItem || $mrItem->material_request_id !== $mr->id) {
+            if (! $mrItem || $mrItem->material_request_id !== $mr->id) {
                 continue;
             }
 
@@ -1536,16 +1576,16 @@ public function gudangIndex(Request $request)
 
             $mrItem->item_po_lines()->delete();
             foreach ($lines as $line) {
-                $tglSetuju = !empty($line['tanggal_disetujui_direksi']) ? $line['tanggal_disetujui_direksi'] : null;
+                $tglSetuju = ! empty($line['tanggal_disetujui_direksi']) ? $line['tanggal_disetujui_direksi'] : null;
                 if ($tglSetuju) {
                     $tglSetuju = str_replace('T', ' ', $tglSetuju);
                 }
 
                 $mrItem->item_po_lines()->create([
                     'qty' => (int) $line['qty'],
-                    'nomor_po' => !empty($line['nomor_po']) ? $line['nomor_po'] : null,
-                    'tgl_po' => !empty($line['tgl_po']) ? $line['tgl_po'] : null,
-                    'expected_date' => !empty($line['expected_date']) ? $line['expected_date'] : null,
+                    'nomor_po' => ! empty($line['nomor_po']) ? $line['nomor_po'] : null,
+                    'tgl_po' => ! empty($line['tgl_po']) ? $line['tgl_po'] : null,
+                    'expected_date' => ! empty($line['expected_date']) ? $line['expected_date'] : null,
                     'tanggal_disetujui_direksi' => $tglSetuju,
                     'user_id' => auth()->id(),
                 ]);
@@ -1672,11 +1712,11 @@ public function gudangIndex(Request $request)
 
         $xml = $this->buildAccurateXml(collect($requests));
 
-        $filename = 'accurate-' . date('YmdHis') . '.xml';
+        $filename = 'accurate-'.date('YmdHis').'.xml';
 
         return response($xml, 200, [
             'Content-Type' => 'application/xml',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -1686,11 +1726,11 @@ public function gudangIndex(Request $request)
 
         $xml = $this->buildAccurateXml(collect([$mr]));
 
-        $filename = 'accurate-' . $mr->mr_number . '.xml';
+        $filename = 'accurate-'.$mr->mr_number.'.xml';
 
         return response($xml, 200, [
             'Content-Type' => 'application/xml',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -1722,7 +1762,7 @@ public function gudangIndex(Request $request)
             foreach ($mr->items as $item) {
                 // Hanya export item yang kodenya valid (terdaftar di tabel Barang)
                 $code = trim((string) ($item->item_code ?? ''));
-                if ($code === '' || !$validCodes->has($code)) {
+                if ($code === '' || ! $validCodes->has($code)) {
                     continue;
                 }
 
@@ -1762,7 +1802,7 @@ public function gudangIndex(Request $request)
         foreach ($mrs as $mr) {
             foreach ($mr->items as $item) {
                 $code = trim((string) ($item->item_code ?? ''));
-                if ($code === '' || !$validCodes->has($code)) {
+                if ($code === '' || ! $validCodes->has($code)) {
                     $skips[] = [
                         'mr' => $mr->mr_number,
                         'item_name' => $item->item_name,
