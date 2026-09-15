@@ -11,7 +11,7 @@ interface PoLine {
 }
 
 const props = defineProps<{
-    item: { id: number; item_code: string | null; item_name: string; mr_number: string | null }
+    item: { id: number; item_code: string | null; item_name: string; mr_number: string | null; purchasing_status: string; purchasing_note: string | null }
     line: PoLine | null
     remaining_qty: number | null
     return_url: string
@@ -27,7 +27,9 @@ const form = ref({
     nomor_po: props.line?.nomor_po || '',
     tgl_po: props.line?.tgl_po || '',
     expected_date: props.line?.expected_date || '',
-    tanggal_disetujui_direksi: props.line?.tanggal_disetujui_direksi || '',
+     tanggal_disetujui_direksi: props.line?.tanggal_disetujui_direksi || '',
+     purchasing_status: props.item.purchasing_status || 'Menunggu',
+     purchasing_note: props.item.purchasing_note || '',
 })
 const fields = [
     { key: 'nomor_po', label: 'Nomor PO', type: 'text' },
@@ -88,6 +90,20 @@ const save = async () => {
                         <input id="qty" v-model="form.qty" type="number" min="1" :max="remaining_qty || undefined" required :aria-invalid="!!errors.qty" :aria-describedby="errors.qty ? 'qty-error' : undefined" />
                         <span v-if="errors.qty" id="qty-error" class="error">{{ errors.qty.join(' ') }}</span>
                     </div>
+                    <div class="po-field">
+                        <label for="purchasing_status">Status Purchasing</label>
+                        <select id="purchasing_status" v-model="form.purchasing_status" required>
+                            <option value="Menunggu">Menunggu</option>
+                            <option value="Diproses">Diproses</option>
+                            <option value="Ditutup">Ditutup</option>
+                        </select>
+                        <span v-if="errors.purchasing_status" class="error">{{ errors.purchasing_status.join(' ') }}</span>
+                    </div>
+                    <div class="po-field">
+                        <label for="purchasing_note">Keterangan Purchasing<span v-if="form.purchasing_status === 'Ditutup'"> *</span></label>
+                        <textarea id="purchasing_note" v-model="form.purchasing_note" maxlength="5000" :required="form.purchasing_status === 'Ditutup'" />
+                        <span v-if="errors.purchasing_note" class="error">{{ errors.purchasing_note.join(' ') }}</span>
+                    </div>
                     <div v-for="field in fields" :key="field.key" class="po-field">
                         <label :for="field.key">{{ field.label }}</label>
                         <input :id="field.key" v-model="form[field.key]" :type="field.type" :maxlength="field.type === 'text' ? 100 : undefined" :aria-invalid="!!errors[field.key]" :aria-describedby="errors[field.key] ? `${field.key}-error` : undefined" />
@@ -112,7 +128,8 @@ h1 { font-size:20px;color:#0f172a; }
 p { font-size:13px;color:#64748b; }
 fieldset { border:0;padding:0;min-width:0; }
 .po-field { display:flex;flex-direction:column;gap:6px;margin:14px 0; }
-input { border:1px solid #94a3b8;border-radius:6px;padding:8px;min-width:0; }
+input, select, textarea { border:1px solid #94a3b8;border-radius:6px;padding:8px;min-width:0; }
+textarea { min-height:80px;resize:vertical; }
 .error { color:#b91c1c;font-size:12px; }
 .actions { display:flex;justify-content:flex-end;gap:12px; }
 button { padding:8px 16px;border:1px solid #94a3b8;border-radius:6px;cursor:pointer; }

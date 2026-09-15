@@ -22,6 +22,8 @@ class MaterialRequestItem extends Model
         'keterangan_gudang',
         'unit',
         'item_status',
+        'purchasing_status',
+        'purchasing_note',
         'monthly_usage',
         'stock_on_hand',
         'purpose',

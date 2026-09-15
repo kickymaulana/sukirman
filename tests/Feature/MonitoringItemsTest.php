@@ -41,8 +41,11 @@ class MonitoringItemsTest extends TestCase
                 $table->unsignedBigInteger('material_request_id')->nullable();
                 $table->string('item_name');
                 $table->string('item_code')->nullable();
-                $table->string('type')->nullable();
-                $table->integer('qty')->default(20);
+                 $table->string('type')->nullable();
+                 $table->string('item_status')->default('Normal');
+                 $table->string('purchasing_status')->default('Menunggu');
+                 $table->text('purchasing_note')->nullable();
+                 $table->integer('qty')->default(20);
                 $table->string('unit')->default('PCS');
                 $table->timestamps();
             });

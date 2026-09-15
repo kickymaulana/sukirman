@@ -269,7 +269,9 @@ const doAction = (type: string) => {
                             </td>
                             <td class="iqty">{{ item.qty }} {{ item.unit }}</td>
                             <td>
-                                <div v-for="l in item.item_po_lines || []" :key="l.id" class="po-line">
+                                <div class="purchasing-status">Status Purchasing: <strong>{{ item.purchasing_status || 'Menunggu' }}</strong></div>
+                                 <div v-if="item.purchasing_note" class="purchasing-note">Keterangan: {{ item.purchasing_note }}</div>
+                                 <div v-for="l in item.item_po_lines || []" :key="l.id" class="po-line">
                                     <span class="po-no">{{ l.nomor_po || '-' }}</span>
                                     <span class="po-qty">{{ l.qty }}</span>
                                     <span v-if="l.tgl_po" class="po-dt">PO {{ l.tgl_po }}</span>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\MaterialRequest;
 use App\Models\MaterialRequestItem;
+use App\Models\ItemPoLine;
 use App\Models\ApprovalLog;
 use App\Models\Setting;
 use App\Models\Barang;
@@ -1202,6 +1203,9 @@ public function gudangIndex(Request $request)
         $jenis = $request->input('jenis');
         $status = $request->input('status');
         $type = in_array($request->query('type'), ['Lokal', 'Import'], true) ? $request->query('type') : '';
+        $purchasingUserId = $request->validate([
+            'purchasing_user_id' => ['nullable', 'integer', 'exists:users,id'],
+        ])['purchasing_user_id'] ?? null;
 
         $query = MaterialRequestItem::with([
             'materialRequest.user.departemen',
@@ -1226,8 +1230,9 @@ public function gudangIndex(Request $request)
             ->when($factory, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('factory', $factory)))
             ->when($type, fn ($q) => $q->where('type', $type))
             ->when($jenis, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('jenis', $jenis)))
-            ->when($status, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('status_workflow', $status)))
-            ->latest();
+             ->when($status, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('status_workflow', $status)))
+             ->when($purchasingUserId, fn ($q) => $q->whereHas('item_po_lines', fn ($po) => $po->where('user_id', $purchasingUserId)))
+             ->latest();
 
         $items = $query->paginate(10)->withQueryString()
             ->through(function ($item) {
@@ -1240,8 +1245,10 @@ public function gudangIndex(Request $request)
                     'item_name' => $item->item_name,
                     'specification' => $item->specification,
                     'purpose' => $item->purpose,
-                    'qty' => $item->qty,
-                    'remaining_qty' => $remainingQty,
+'qty' => $item->qty,
+                     'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
+                     'purchasing_note' => $item->purchasing_note,
+                     'remaining_qty' => $remainingQty,
                     'qty_tersedia' => $item->qty_tersedia,
                     'unit' => $item->unit,
                     'type' => $item->type ?: 'Belum ditentukan',
@@ -1268,7 +1275,11 @@ public function gudangIndex(Request $request)
         return Inertia::render('Approval/MonitoringItems', [
             'can_edit_po' => $request->user()?->hasAnyRole('Purchasing|admin') ?? false,
             'items' => $items,
-            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'jenis' => $jenis ?? '', 'status' => $status ?? '', 'type' => $type],
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'jenis' => $jenis ?? '', 'status' => $status ?? '', 'type' => $type, 'purchasing_user_id' => $purchasingUserId ?? ''],
+            'allPoInputUsers' => User::query()
+                ->whereIn('id', ItemPoLine::query()->whereNotNull('user_id')->select('user_id'))
+                ->orderBy('name')
+                ->get(['id', 'name']),
             'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
             'allJenis' => ['UMUM', 'MTC', 'IT', 'HRD'],
             'allStatuses' => [
@@ -1291,9 +1302,11 @@ public function gudangIndex(Request $request)
                 'id' => $item->id,
                 'item_code' => $item->item_code,
                 'item_name' => $item->item_name,
-                'mr_number' => $item->materialRequest?->mr_number,
-            ],
-            'line' => null,
+'mr_number' => $item->materialRequest?->mr_number,
+                 'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
+                 'purchasing_note' => $item->purchasing_note,
+             ],
+             'line' => null,
             'remaining_qty' => $remainingQty,
             'return_url' => route('monitoring.items', $this->monitoringItemFilters($request)),
         ]);
@@ -1307,7 +1320,11 @@ public function gudangIndex(Request $request)
             'tgl_po' => ['nullable', 'date'],
             'expected_date' => ['nullable', 'date'],
             'tanggal_disetujui_direksi' => ['nullable', 'date_format:Y-m-d\TH:i'],
+            'purchasing_status' => ['nullable', 'in:Menunggu,Diproses,Ditutup'],
+            'purchasing_note' => ['nullable', 'string', 'max:5000', 'required_if:purchasing_status,Ditutup'],
         ]);
+
+        $validated['purchasing_status'] = $validated['purchasing_status'] ?? 'Menunggu';
 
         DB::transaction(function () use ($request, $item, $validated) {
             $lockedItem = MaterialRequestItem::query()->with('materialRequest')->lockForUpdate()->findOrFail($item->id);
@@ -1318,6 +1335,10 @@ public function gudangIndex(Request $request)
             ])->validate();
 
             $nomorPo = isset($validated['nomor_po']) ? trim($validated['nomor_po']) : null;
+            $lockedItem->update([
+                'purchasing_status' => $validated['purchasing_status'],
+                'purchasing_note' => $validated['purchasing_note'] ?? null,
+            ]);
             $lockedItem->item_po_lines()->create([
                 'qty' => $validated['qty'],
                 'nomor_po' => $nomorPo !== '' ? $nomorPo : null,
@@ -1342,15 +1363,20 @@ public function gudangIndex(Request $request)
                 'id' => $item->id,
                 'item_code' => $item->item_code,
                 'item_name' => $item->item_name,
-                'mr_number' => $item->materialRequest?->mr_number,
-            ],
-            'line' => [
+'mr_number' => $item->materialRequest?->mr_number,
+                 'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
+                 'purchasing_note' => $item->purchasing_note,
+             ],
+             'line' => [
                 'id' => $poLine->id,
                 'nomor_po' => $poLine->nomor_po,
                 'tgl_po' => $poLine->tgl_po ? substr($poLine->tgl_po, 0, 10) : null,
                 'expected_date' => $poLine->expected_date ? substr($poLine->expected_date, 0, 10) : null,
-                'tanggal_disetujui_direksi' => $poLine->tanggal_disetujui_direksi ? substr(str_replace(' ', 'T', $poLine->tanggal_disetujui_direksi), 0, 16) : null,
-            ],
+'tanggal_disetujui_direksi' => $poLine->tanggal_disetujui_direksi ? substr(str_replace(' ', 'T', $poLine->tanggal_disetujui_direksi), 0, 16) : null,
+             ],
+             'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
+             'purchasing_note' => $item->purchasing_note,
+
             'remaining_qty' => null,
             'return_url' => route('monitoring.items', $this->monitoringItemFilters($request)),
         ]);
@@ -1364,6 +1390,7 @@ public function gudangIndex(Request $request)
             'jenis' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'string', 'max:255'],
             'type' => ['nullable', 'in:Lokal,Import'],
+            'purchasing_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
     }
@@ -1376,7 +1403,16 @@ public function gudangIndex(Request $request)
             'tgl_po' => ['nullable', 'date'],
             'expected_date' => ['nullable', 'date'],
             'tanggal_disetujui_direksi' => ['nullable', 'date_format:Y-m-d\TH:i'],
+            'purchasing_status' => ['nullable', 'in:Menunggu,Diproses,Ditutup'],
+            'purchasing_note' => ['nullable', 'string', 'max:5000', 'required_if:purchasing_status,Ditutup'],
         ]);
+
+        $validated['purchasing_status'] = $validated['purchasing_status'] ?? 'Menunggu';
+        $item->update([
+            'purchasing_status' => $validated['purchasing_status'],
+            'purchasing_note' => $validated['purchasing_note'] ?? null,
+        ]);
+        unset($validated['purchasing_status'], $validated['purchasing_note']);
 
         if (array_key_exists('nomor_po', $validated)) {
             $validated['nomor_po'] = trim($validated['nomor_po'] ?? '') ?: null;

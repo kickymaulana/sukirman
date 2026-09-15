@@ -19,6 +19,8 @@ interface Item {
     specification: string | null
     purpose: string | null
     qty: number
+    purchasing_status: string
+    purchasing_note: string | null
     remaining_qty: number
     qty_tersedia: number | null
     unit: string
@@ -37,8 +39,9 @@ interface Item {
 
 const props = defineProps<{
     items: { data: Item[]; links: any[]; from: number; to: number; total: number; prev_page_url: string|null; next_page_url: string|null }
-    filters?: { search?: string; factory?: string; jenis?: string; status?: string; type?: string }
+    filters?: { search?: string; factory?: string; jenis?: string; status?: string; type?: string; purchasing_user_id?: string | number }
     can_edit_po: boolean
+    allPoInputUsers: { id: number; name: string }[]
     allFactories: string[]
     allJenis: string[]
     allStatuses: string[]
@@ -50,6 +53,7 @@ const factoryVal = ref(props.filters?.factory || '')
 const jenisVal = ref(props.filters?.jenis || '')
 const statusVal = ref(props.filters?.status || '')
 const typeVal = ref(props.filters?.type || '')
+const purchasingUserIdVal = ref(String(props.filters?.purchasing_user_id || ''))
 
 const poPageParams = () => {
     const query = new URLSearchParams(window.location.search)
@@ -72,8 +76,9 @@ const applyFilters = () => {
         factory: factoryVal.value || undefined,
         jenis: jenisVal.value || undefined,
         status: statusVal.value || undefined,
-        type: typeVal.value || undefined,
-    }, { preserveState: true })
+         type: typeVal.value || undefined,
+         purchasing_user_id: purchasingUserIdVal.value || undefined,
+     }, { preserveState: true })
 }
 
 const openMr = (id: number | null) => {
@@ -110,7 +115,11 @@ const showPhoto = (id: number, name: string) => {
                     <var-option label="Semua Jenis" value="" />
                     <var-option v-for="j in allJenis" :key="j" :label="j" :value="j" />
                 </var-select>
-                <var-select v-model="typeVal" placeholder="Tipe Item" aria-label="Tipe Item" style="width:200px" @change="applyFilters">
+                 <var-select v-model="purchasingUserIdVal" placeholder="Input PO oleh" aria-label="Input PO oleh" style="width:200px" @change="applyFilters">
+                     <var-option label="Semua Input PO" value="" />
+                     <var-option v-for="user in allPoInputUsers" :key="user.id" :label="user.name" :value="String(user.id)" />
+                 </var-select>
+                 <var-select v-model="typeVal" placeholder="Tipe Item" aria-label="Tipe Item" style="width:200px" @change="applyFilters">
                     <var-option label="Semua" value="" />
                     <var-option label="Lokal" value="Lokal" />
                     <var-option label="Import" value="Import" />
@@ -139,7 +148,9 @@ const showPhoto = (id: number, name: string) => {
                 <div class="item-body">
                     <div class="item-info">
                         <span class="iname">{{ it.item_name }}</span>
-                        <span class="ispec">Tipe: {{ it.type }}</span>
+                         <span class="ispec">Tipe: {{ it.type }}</span>
+                         <div class="purchasing-status">Status Purchasing: <strong>{{ it.purchasing_status }}</strong></div>
+                         <div v-if="it.purchasing_note" class="purchasing-note">Keterangan: {{ it.purchasing_note }}</div>
                         <div v-for="po in it.po_lines" :key="po.id" class="ispec">
                             PO: {{ po.nomor_po?.trim() || 'Nomor belum diisi' }} · Purchasing: {{ po.purchasing }}
                             <var-button v-if="can_edit_po" size="mini" text type="primary" :aria-label="`Edit PO ${po.nomor_po?.trim() || po.id} untuk ${it.item_name}`" @click="editPo(it, po)">Edit PO</var-button>
@@ -194,6 +205,8 @@ const showPhoto = (id: number, name: string) => {
 .item-info { flex:1;display:flex;flex-direction:column;gap:2px; }
 .iname { font-size:14px;font-weight:700;color:#0f172a; }
 .ispec { font-size:12px;color:#64748b;font-style:italic; }
+.purchasing-status { font-size:12px;color:#0f766e; }
+.purchasing-note { font-size:12px;color:#475569;white-space:pre-wrap; }
 .ipurpose { font-size:11px;color:#94a3b8; }
 .iqty { font-size:12px;font-weight:700;color:#4f46e5; }
 .imeta { font-size:11px;color:#94a3b8; }
