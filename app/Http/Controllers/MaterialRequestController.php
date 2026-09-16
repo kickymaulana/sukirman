@@ -1235,6 +1235,7 @@ class MaterialRequestController extends Controller
                 $q->where(function ($w) use ($search) {
                     $w->where('item_name', 'like', "%{$search}%")
                         ->orWhere('item_code', 'like', "%{$search}%")
+                        ->orWhereHas('item_po_lines', fn ($po) => $po->where('nomor_po', 'like', "%{$search}%"))
                         ->orWhereHas('materialRequest', function ($m) use ($search) {
                             $m->where('mr_number', 'like', "%{$search}%")
                                 ->orWhereHas('user', function ($u) use ($search) {

@@ -106,7 +106,7 @@ const showPhoto = (id: number, name: string) => {
         </var-app-bar>
         <main class="content">
             <div class="filter-bar">
-                <var-input v-model="searchVal" placeholder="Cari item / kode / MR / nama / NIK..." clearable @keyup.enter="applyFilters" style="flex:1;max-width:320px" />
+                <var-input v-model="searchVal" placeholder="Cari item / kode / PO / MR / nama / NIK..." clearable @keyup.enter="applyFilters" style="flex:1;max-width:320px" />
                 <var-select v-model="factoryVal" placeholder="Semua Factory" style="width:200px" @change="applyFilters">
                     <var-option label="Semua Factory" value="" />
                     <var-option v-for="f in allFactories" :key="f" :label="f" :value="f" />

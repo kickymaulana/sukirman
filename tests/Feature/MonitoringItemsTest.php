@@ -41,11 +41,11 @@ class MonitoringItemsTest extends TestCase
                 $table->unsignedBigInteger('material_request_id')->nullable();
                 $table->string('item_name');
                 $table->string('item_code')->nullable();
-                 $table->string('type')->nullable();
-                 $table->string('item_status')->default('Normal');
-                 $table->string('purchasing_status')->default('Menunggu');
-                 $table->text('purchasing_note')->nullable();
-                 $table->integer('qty')->default(20);
+                $table->string('type')->nullable();
+                $table->string('item_status')->default('Normal');
+                $table->string('purchasing_status')->default('Menunggu');
+                $table->text('purchasing_note')->nullable();
+                $table->integer('qty')->default(20);
                 $table->string('unit')->default('PCS');
                 $table->timestamps();
             });
@@ -120,6 +120,13 @@ class MonitoringItemsTest extends TestCase
             $this->assertSame([5, 6, 7], array_column($items[3]['po_lines'], 'id'));
             $this->assertFalse($response->getData(true)['props']['can_edit_po']);
             $this->assertSame([], $items[4]['po_lines']);
+
+            $request = Request::create('/monitoring-items', 'GET', ['search' => 'PO-002']);
+            $request->headers->set('X-Inertia', 'true');
+            $response = app(MaterialRequestController::class)->monitoringItemsIndex($request)->toResponse($request);
+            $props = $response->getData(true)['props'];
+            $this->assertSame([1], array_column($props['items']['data'], 'id'));
+            $this->assertSame('PO-002', $props['filters']['search']);
 
             foreach (['' => [1, 2, 3, 4], 'Lokal' => [2], 'Import' => [1], 'invalid' => [1, 2, 3, 4]] as $type => $expectedIds) {
                 $request = Request::create('/monitoring-items', 'GET', ['type' => $type]);
