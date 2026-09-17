@@ -109,7 +109,7 @@ class MaterialRequestController extends Controller
     {
         $search = $request->input('search');
 
-        $query = MaterialRequest::with(['user', 'manager', 'fmGm', 'direksi', 'items'])
+        $query = MaterialRequest::with(['user.departemen', 'manager', 'fmGm', 'direksi', 'items'])
             ->where(function ($q) {
                 $q->where('user_id', auth()->id())
                     ->orWhere('manager_id', auth()->id())
@@ -153,6 +153,7 @@ class MaterialRequestController extends Controller
                     'status_workflow' => $mr->status_workflow,
                     'created_at' => $mr->created_at->format('d M Y'),
                     'pengaju' => $mr->user?->name,
+                    'departemen' => $mr->user?->departemen?->nama,
                     'peran_saya' => $roles,
                 ];
             });
@@ -1672,7 +1673,7 @@ class MaterialRequestController extends Controller
 
     public function show($id)
     {
-        $mr = MaterialRequest::with(['user', 'items', 'items.item_po_lines.user', 'approvalLogs.user', 'manager', 'direksi', 'fmGm'])->findOrFail($id);
+        $mr = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user', 'approvalLogs.user', 'manager', 'direksi', 'fmGm'])->findOrFail($id);
         $user = auth()->user();
         $role = $user->getRoleNames()->first();
 

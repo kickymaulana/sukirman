@@ -234,7 +234,7 @@ const doAction = (type: string) => {
             <!-- Info ringkas -->
             <div class="card">
                 <div class="info-grid">
-                    <span>Pengaju</span><span><strong>{{ mr.user?.name }}</strong> ({{ mr.user?.nik || '-' }})</span>
+                    <span>Pengaju</span><span><strong>{{ mr.user?.name }}</strong> ({{ mr.user?.nik || '-' }}){{ mr.user?.departemen?.nama ? ' — ' + mr.user.departemen.nama : '' }}</span>
                     <span>Factory</span><span>{{ mr.factory }}</span>
                     <span>Tipe / Jenis</span><span>{{ mr.type }} • {{ mr.jenis || 'UMUM' }}</span>
                     <span>Alokasi / Urgensi</span><span>{{ mr.allocation }} • {{ mr.status_pembelian }}</span>

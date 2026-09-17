@@ -10,6 +10,7 @@ interface MR {
     status_workflow: string
     created_at: string
     pengaju: string
+    departemen: string | null
     peran_saya: string[]
 }
 
@@ -58,7 +59,7 @@ const goBack = () => { router.get(route('dashboard')) }
                     <span class="mr-num">{{ mr.mr_number }}</span>
                     <var-chip :type="statusBadge(mr.status_workflow)" size="mini">{{ mr.status_workflow }}</var-chip>
                 </div>
-                <p><strong>{{ mr.pengaju }}</strong> • {{ mr.factory }} • Jenis: {{ mr.jenis }} • {{ mr.created_at }}</p>
+                <p><strong>{{ mr.pengaju }}</strong><template v-if="mr.departemen"> • {{ mr.departemen }}</template> • {{ mr.factory }} • Jenis: {{ mr.jenis }} • {{ mr.created_at }}</p>
                 <div class="role-chips">
                     <span v-for="r in mr.peran_saya" :key="r" class="role-chip">{{ r }}</span>
                 </div>
