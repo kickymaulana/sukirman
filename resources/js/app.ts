@@ -11,7 +11,6 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h, defineComponent, Transition } from 'vue';
 import Varlet, { Themes, StyleProvider } from '@varlet/ui';
 import { ZiggyVue } from 'ziggy-js';
-import AppInit from './AppInit.vue';
 
 StyleProvider(Themes.md3Light);
 
@@ -25,7 +24,6 @@ createInertiaApp({
                     name: 'slide',
                     mode: 'out-in',
                 }, () => h('div', { style: 'min-height:100vh' }, [
-                    h(AppInit),
                     h(App, props),
                 ]))
             }

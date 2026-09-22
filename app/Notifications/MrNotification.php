@@ -8,7 +8,9 @@ use Illuminate\Notifications\Notification;
 class MrNotification extends Notification
 {
     public MaterialRequest $materialRequest;
+
     public string $message;
+
     public string $action;
 
     public function __construct(MaterialRequest $mr, string $message, string $action = '')
@@ -20,7 +22,7 @@ class MrNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database', FcmChannel::class];
+        return ['database'];
     }
 
     public function toArray(object $notifiable): array
@@ -30,16 +32,6 @@ class MrNotification extends Notification
             'mr_number' => $this->materialRequest->mr_number,
             'message' => $this->message,
             'action' => $this->action,
-        ];
-    }
-
-    public function toFcm(object $notifiable): array
-    {
-        return [
-            'title' => 'SUKIRMAN',
-            'body' => $this->message,
-            'mr_id' => $this->materialRequest->id,
-            'url' => url('/material-requests/' . $this->materialRequest->id),
         ];
     }
 }

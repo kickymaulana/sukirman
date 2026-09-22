@@ -11,18 +11,17 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Support\Str;
 
-#[Fillable(['nik', 'name', 'email', 'password', 'is_approved', 'requested_role', 'departemen_id', 'fcm_token'])]
+#[Fillable(['nik', 'name', 'email', 'password', 'is_approved', 'requested_role', 'departemen_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     public function departemen()
     {
-        return $this->belongsTo(\App\Models\Departemen::class, 'departemen_id');
+        return $this->belongsTo(Departemen::class, 'departemen_id');
     }
 
     /**
