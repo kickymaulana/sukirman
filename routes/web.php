@@ -144,6 +144,7 @@ Route::middleware('auth')->group(function () {
     // Admin Panel
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/overview/{id}/edit', [AdminOverviewController::class, 'edit'])->name('overview.edit');
+        Route::post('/overview/{id}/target', [AdminOverviewController::class, 'updateTarget'])->name('overview.target');
         Route::post('/overview/{id}/update', [AdminOverviewController::class, 'update'])->name('overview.update');
         Route::delete('/overview/{id}', [AdminOverviewController::class, 'destroy'])->name('overview.destroy');
         Route::get('/users', [AdminUserController::class, 'index'])->name('users');

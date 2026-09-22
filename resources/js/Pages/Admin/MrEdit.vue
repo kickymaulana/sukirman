@@ -3,211 +3,247 @@ import { computed, ref } from 'vue'
 import { Head, router, useForm, usePage } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
 
-interface UserOpt { id: number; name: string; nik: string }
+interface Departemen { id: number; nama: string }
+interface RequestItem {
+    id: number | null
+    type: string
+    item_code: string
+    item_name: string
+    specification: string
+    departemen_id: string
+    qty: number
+    unit: string
+    item_status: string
+    monthly_usage: number
+    stock_on_hand: number
+    purpose: string
+    foto: File | null
+    remove_foto: boolean
+    preview: string | null
+}
 
 const props = defineProps<{
     mr: any
-    targetRole: string | null
-    managers: UserOpt[]
-    fmGms: UserOpt[]
-    direksis: UserOpt[]
-    allStatuses: string[]
+    departemens: Departemen[]
+    direksis: { id: number; name: string; nik: string }[]
+    hasPo: boolean
 }>()
 
 const baseUrl = (usePage().props as any).app_url || ''
+const showDelete = ref(false)
+const direksiId = ref(props.mr.direksi_id ? String(props.mr.direksi_id) : '')
+const changingDireksi = ref(false)
+const canChangeDireksi = computed(() => props.mr.status_workflow === 'Pending Direksi')
 
 const form = useForm({
     type: props.mr.type,
     factory: props.mr.factory,
     allocation: props.mr.allocation,
     status_pembelian: props.mr.status_pembelian,
-    status_workflow: props.mr.status_workflow,
-    manager_id: props.mr.manager_id ? String(props.mr.manager_id) : '',
-    fm_gm_id: props.mr.fm_gm_id ? String(props.mr.fm_gm_id) : '',
-    direksi_id: props.mr.direksi_id ? String(props.mr.direksi_id) : '',
+    items: props.mr.items.map((item: any) => ({
+        id: item.id,
+        type: item.type || '',
+        item_code: item.item_code || '',
+        item_name: item.item_name || '',
+        specification: item.specification || '',
+        departemen_id: item.departemen_id ? String(item.departemen_id) : '',
+        qty: item.qty,
+        unit: item.unit || '',
+        item_status: item.item_status || 'Normal',
+        monthly_usage: item.monthly_usage || 0,
+        stock_on_hand: item.stock_on_hand || 0,
+        purpose: item.purpose || '',
+        foto: null,
+        remove_foto: false,
+        preview: item.foto ? `${baseUrl}/item-foto/${item.id}` : null,
+    })) as RequestItem[],
 })
 
 const typeOptions = ['Lokal', 'Import']
 const factoryOptions = ['KIM', 'DALU 1', 'DALU 2']
 const allocationOptions = ['Project', 'Proses']
 const statusPembelianOptions = ['Normal', 'Urgent']
+const itemStatusOptions = ['Normal', 'Urgent', 'New', 'Replace']
+const canSubmit = computed(() => !props.hasPo && form.items.length > 0 && form.items.every(item => item.type && item.item_name && item.qty > 0 && item.unit))
 
-type TargetKey = 'manager_id' | 'fm_gm_id' | 'direksi_id'
-
-const targetOptions = computed<{ role: string; options: UserOpt[]; key: TargetKey } | null>(() => {
-    if (props.targetRole === 'Manager') return { role: 'Manager', options: props.managers, key: 'manager_id' }
-    if (props.targetRole === 'FM/GM') return { role: 'FM/GM', options: props.fmGms, key: 'fm_gm_id' }
-    if (props.targetRole === 'Direksi') return { role: 'Direksi', options: props.direksis, key: 'direksi_id' }
-    return null
-})
-
-const targetValue = computed({
-    get: () => (targetOptions.value ? String(form[targetOptions.value.key] || '') : ''),
-    set: (v: any) => { if (targetOptions.value) form[targetOptions.value.key] = String(v || '') },
-})
-
-const statusBadge = (s: string) => {
-    if (['Fully Approved'].includes(s)) return 'success'
-    if (['Rejected'].includes(s)) return 'danger'
-    if (['Pending Manager', 'Pending FM/GM', 'Pending Direksi'].includes(s)) return 'warning'
-    if (['Verifikasi Gudang', 'Purchasing'].includes(s)) return 'info'
-    return 'default'
-}
-
-const save = () => {
-    form.post(`${baseUrl}/admin/overview/${props.mr.id}/update`, {
-        onSuccess: () => Snackbar.success('MR berhasil diperbarui'),
+const addItem = () => {
+    form.items.push({
+        id: null,
+        type: props.mr.type || 'Lokal',
+        item_code: '',
+        item_name: '',
+        specification: '',
+        departemen_id: '',
+        qty: 1,
+        unit: 'PCS',
+        item_status: 'Normal',
+        monthly_usage: 0,
+        stock_on_hand: 0,
+        purpose: '',
+        foto: null,
+        remove_foto: false,
+        preview: null,
     })
 }
 
-// Hapus MR (batal) — dengan konfirmasi
-const showDelete = ref(false)
+const removeItem = (index: number) => {
+    if (form.items.length === 1) {
+        Snackbar.warning('MR harus memiliki minimal satu item')
+        return
+    }
+    form.items.splice(index, 1)
+}
+
+const handleFoto = (event: Event, index: number) => {
+    const input = event.target as HTMLInputElement
+    const file = input.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+        Snackbar.warning('File harus berupa gambar')
+        input.value = ''
+        return
+    }
+    form.items[index].foto = file
+    form.items[index].remove_foto = false
+    form.items[index].preview = URL.createObjectURL(file)
+}
+
+const removeFoto = (index: number) => {
+    form.items[index].foto = null
+    form.items[index].remove_foto = true
+    form.items[index].preview = null
+}
+
+const save = () => {
+    if (!canSubmit.value) return
+    form.post(`${baseUrl}/admin/overview/${props.mr.id}/update`, {
+        forceFormData: true,
+        onSuccess: () => Snackbar.success('MR berhasil dikoreksi tanpa mengubah status'),
+        onError: errors => Snackbar.error(String(Object.values(errors)[0] || 'Gagal menyimpan koreksi')),
+    })
+}
+
+const changeDireksi = () => {
+    if (!direksiId.value || direksiId.value === String(props.mr.direksi_id)) return
+    changingDireksi.value = true
+    router.post(`${baseUrl}/admin/overview/${props.mr.id}/target`, { user_id: direksiId.value }, {
+        preserveScroll: true,
+        onSuccess: () => Snackbar.success('Tujuan Direksi berhasil diubah'),
+        onError: errors => Snackbar.error(String(Object.values(errors)[0] || 'Gagal mengubah tujuan Direksi')),
+        onFinish: () => { changingDireksi.value = false },
+    })
+}
+
 const confirmDelete = () => {
     showDelete.value = false
     router.delete(`${baseUrl}/admin/overview/${props.mr.id}`, {
-        onSuccess: () => { Snackbar.success('MR dihapus'); window.location.href = `${baseUrl}/admin/overview` },
+        onSuccess: () => router.get(`${baseUrl}/admin/overview`),
     })
 }
 </script>
 
 <template>
-    <Head :title="'Edit MR ' + mr.mr_number" />
+    <Head :title="'Koreksi MR ' + mr.mr_number" />
     <div class="layout">
-        <var-app-bar :title="'Edit: ' + mr.mr_number" title-position="center">
+        <var-app-bar :title="'Koreksi: ' + mr.mr_number" title-position="center">
             <template #left><var-button round text @click="router.get(route('admin.overview'))"><var-icon name="arrow-left" :size="24" /></var-button></template>
         </var-app-bar>
 
         <main class="content">
-            <!-- Info -->
             <div class="card">
                 <div class="head-row">
                     <span class="mr-num">{{ mr.mr_number }}</span>
-                    <var-chip :type="statusBadge(mr.status_workflow)" size="small">{{ mr.status_workflow }}</var-chip>
+                    <var-chip type="warning" size="small">{{ mr.status_workflow }}</var-chip>
                 </div>
                 <div class="info-txt">
-                    <span>Diajukan oleh: <strong>{{ mr.user?.name }}</strong> ({{ mr.user?.nik }})</span>
-                    <span class="muted">{{ mr.created_at }} • {{ mr.items?.length || 0 }} item</span>
+                    <span>Pengaju: <strong>{{ mr.user?.name }}</strong> ({{ mr.user?.nik }})</span>
+                    <span class="muted">Status dan alur approval tidak akan berubah.</span>
                 </div>
-                <div class="link-row">
-                    <a :href="`${baseUrl}/material-requests/${mr.id}`" class="detail-link">Lihat Detail MR</a>
-                </div>
+                <var-alert v-if="hasPo" type="warning" title="MR sudah memiliki PO" message="Data dan item dikunci agar PO tidak rusak." class="alert" />
             </div>
 
-            <!-- Status & Identitas -->
             <div class="card">
-                <div class="lbl">Status & Identitas</div>
-                <div class="field">
-                    <label>Status Workflow</label>
-                    <var-select v-model="form.status_workflow" filterable>
-                        <var-option v-for="s in allStatuses" :key="s" :label="s" :value="s" />
-                    </var-select>
-                </div>
-                <div class="field">
-                    <label>Jenis Pembelian</label>
-                    <var-select v-model="form.type">
-                        <var-option v-for="o in typeOptions" :key="o" :label="o" :value="o" />
-                    </var-select>
-                </div>
-                <div class="field">
-                    <label>Pabrik</label>
-                    <var-select v-model="form.factory">
-                        <var-option v-for="o in factoryOptions" :key="o" :label="o" :value="o" />
-                    </var-select>
-                </div>
-                <div class="field">
-                    <label>Alokasi</label>
-                    <var-select v-model="form.allocation">
-                        <var-option v-for="o in allocationOptions" :key="o" :label="o" :value="o" />
-                    </var-select>
-                </div>
-                <div class="field">
-                    <label>Status Pembelian</label>
-                    <var-select v-model="form.status_pembelian">
-                        <var-option v-for="o in statusPembelianOptions" :key="o" :label="o" :value="o" />
-                    </var-select>
-                </div>
+                <div class="lbl">Tujuan Direksi</div>
+                <template v-if="canChangeDireksi">
+                    <p class="muted">Hanya tersedia saat MR menunggu persetujuan Direksi. Status tidak berubah.</p>
+                    <div class="target-row">
+                        <var-select v-model="direksiId" filterable placeholder="Pilih Direksi" class="target-select">
+                            <var-option v-for="direksi in direksis" :key="direksi.id" :label="`${direksi.name} (${direksi.nik})`" :value="String(direksi.id)" />
+                        </var-select>
+                        <var-button type="primary" :loading="changingDireksi" :disabled="direksiId === String(mr.direksi_id)" @click="changeDireksi">Ubah Tujuan</var-button>
+                    </div>
+                </template>
+                <p v-else class="muted">Tujuan Direksi terkunci karena MR tidak sedang berstatus Pending Direksi.</p>
             </div>
 
-            <!-- Tujuan -->
             <div class="card">
-                <div class="lbl">Tujuan Approval</div>
-                <p v-if="!targetOptions" class="hint-txt">
-                    MR ini tidak sedang menunggu approval (tujuan tidak relevan). Tujuan bisa diubah saat MR kembali ke status menunggu.
-                </p>
-                <div v-if="targetOptions" class="field">
-                    <label>Tujuan {{ targetOptions.role }} (relevan dengan status)</label>
-                    <var-select v-model="targetValue" filterable clearable placeholder="Pilih...">
-                        <var-option v-for="o in targetOptions.options" :key="o.id" :label="`${o.name} (${o.nik})`" :value="String(o.id)" />
-                    </var-select>
-                </div>
-
-                <div class="field">
-                    <label>Manager</label>
-                    <var-select v-model="form.manager_id" filterable clearable placeholder="Pilih Manager...">
-                        <var-option v-for="o in managers" :key="o.id" :label="`${o.name} (${o.nik})`" :value="String(o.id)" />
-                    </var-select>
-                </div>
-                <div class="field">
-                    <label>FM/GM</label>
-                    <var-select v-model="form.fm_gm_id" filterable clearable placeholder="Pilih FM/GM...">
-                        <var-option v-for="o in fmGms" :key="o.id" :label="`${o.name} (${o.nik})`" :value="String(o.id)" />
-                    </var-select>
-                </div>
-                <div class="field">
-                    <label>Direksi</label>
-                    <var-select v-model="form.direksi_id" filterable clearable placeholder="Pilih Direksi...">
-                        <var-option v-for="o in direksis" :key="o.id" :label="`${o.name} (${o.nik})`" :value="String(o.id)" />
-                    </var-select>
+                <div class="lbl">Informasi MR</div>
+                <div class="grid">
+                    <div class="field"><label>Jenis Pembelian</label><var-select v-model="form.type" :disabled="hasPo"><var-option v-for="o in typeOptions" :key="o" :label="o" :value="o" /></var-select></div>
+                    <div class="field"><label>Pabrik</label><var-select v-model="form.factory" :disabled="hasPo"><var-option v-for="o in factoryOptions" :key="o" :label="o" :value="o" /></var-select></div>
+                    <div class="field"><label>Alokasi</label><var-select v-model="form.allocation" :disabled="hasPo"><var-option v-for="o in allocationOptions" :key="o" :label="o" :value="o" /></var-select></div>
+                    <div class="field"><label>Prioritas</label><var-select v-model="form.status_pembelian" :disabled="hasPo"><var-option v-for="o in statusPembelianOptions" :key="o" :label="o" :value="o" /></var-select></div>
                 </div>
             </div>
 
-            <!-- Items (read only) -->
-            <div class="card">
-                <div class="lbl">Item Barang ({{ mr.items?.length || 0 }})</div>
-                <div v-for="(it, i) in mr.items" :key="i" class="item-row">
-                    <span class="item-name">{{ it.item_name }}</span>
-                    <span class="item-qty">{{ it.qty }} {{ it.unit }}</span>
-                </div>
-                <p v-if="!mr.items?.length" class="hint-txt">Tidak ada item.</p>
+            <div class="section-head">
+                <strong>Daftar Item ({{ form.items.length }})</strong>
+                <var-button type="primary" size="small" :disabled="hasPo" @click="addItem"><var-icon name="plus" /> Tambah Item</var-button>
             </div>
 
-            <var-button type="primary" block :loading="form.processing" @click="save">
-                Simpan Perubahan
-            </var-button>
+            <div v-for="(item, index) in form.items" :key="item.id ?? `new-${index}`" class="card item-card">
+                <div class="head-row">
+                    <strong>Item #{{ index + 1 }}</strong>
+                    <var-button text type="danger" size="small" :disabled="hasPo" @click="removeItem(index)"><var-icon name="trash-can-outline" /> Hapus</var-button>
+                </div>
+                <div class="grid">
+                    <var-input v-model="item.item_name" placeholder="Nama barang *" :disabled="hasPo" :error-message="form.errors[`items.${index}.item_name`]" />
+                    <var-select v-model="item.type" placeholder="Jenis *" :disabled="hasPo"><var-option v-for="o in typeOptions" :key="o" :label="o" :value="o" /></var-select>
+                    <var-input v-model="item.item_code" placeholder="Kode barang" :disabled="hasPo" />
+                    <var-select v-model="item.item_status" placeholder="Status item" :disabled="hasPo"><var-option v-for="o in itemStatusOptions" :key="o" :label="o" :value="o" /></var-select>
+                    <var-input v-model.number="item.qty" type="number" min="1" placeholder="Qty *" :disabled="hasPo" :error-message="form.errors[`items.${index}.qty`]" />
+                    <var-input v-model="item.unit" placeholder="Satuan *" :disabled="hasPo" :error-message="form.errors[`items.${index}.unit`]" />
+                    <var-input v-model.number="item.monthly_usage" type="number" min="0" placeholder="Pemakaian/bulan" :disabled="hasPo" />
+                    <var-input v-model.number="item.stock_on_hand" type="number" min="0" placeholder="Stock on hand" :disabled="hasPo" />
+                </div>
+                <var-input v-model="item.specification" textarea rows="2" placeholder="Spesifikasi/deskripsi" :disabled="hasPo" class="wide-field" />
+                <var-input v-model="item.purpose" textarea rows="2" placeholder="Tujuan/keperluan" :disabled="hasPo" class="wide-field" />
+                <var-select v-model="item.departemen_id" filterable clearable placeholder="Departemen item" :disabled="hasPo" class="wide-field"><var-option v-for="d in departemens" :key="d.id" :label="d.nama" :value="String(d.id)" /></var-select>
+                <div class="foto-row">
+                    <label class="foto-btn" :class="{ disabled: hasPo }">Pilih/Ganti Foto<input type="file" accept="image/*" :disabled="hasPo" @change="handleFoto($event, index)" /></label>
+                    <div v-if="item.preview" class="foto-preview"><img :src="item.preview" alt="Foto item" /><button type="button" :disabled="hasPo" @click="removeFoto(index)">Hapus foto</button></div>
+                </div>
+            </div>
 
-            <var-button type="danger" block text @click="showDelete = true" style="margin-top:8px;color:#ef4444">
-                🗑️ Hapus MR (Batal)
-            </var-button>
-
-            <var-dialog
-                :show="showDelete"
-                title="Hapus MR?"
-                message="MR akan dihapus permanen beserta semua item, riwayat approval, dan notifikasi terkait. Lanjutkan?"
-                confirm-button-text="Ya, Hapus"
-                cancel-button-text="Batal"
-                @confirm="confirmDelete"
-                @close="showDelete = false"
-                @cancel="showDelete = false"
-            />
+            <var-button type="primary" block :loading="form.processing" :disabled="!canSubmit" @click="save">Simpan Koreksi</var-button>
+            <var-button type="danger" block text @click="showDelete = true">Hapus MR</var-button>
+            <var-dialog :show="showDelete" title="Hapus MR?" message="MR akan dihapus permanen beserta item dan riwayatnya." confirm-button-text="Ya, Hapus" cancel-button-text="Batal" @confirm="confirmDelete" @close="showDelete = false" @cancel="showDelete = false" />
         </main>
     </div>
 </template>
 
 <style scoped>
-.layout { display:flex;flex-direction:column;min-height:100vh;background:#f8fafc;font-family:Roboto,sans-serif; }
-.content { flex:1;padding:16px 20px 80px;display:flex;flex-direction:column;gap:12px; }
-.card { background:#fff;border-radius:14px;padding:16px;border:1px solid #f1f5f9; }
-.head-row { display:flex;justify-content:space-between;align-items:center;margin-bottom:8px; }
-.mr-num { font-family:monospace;font-weight:800;font-size:15px;color:#0f172a; }
-.info-txt { display:flex;flex-direction:column;gap:2px;font-size:13px;color:#0f172a; }
-.info-txt .muted { color:#64748b;font-size:12px; }
-.link-row { margin-top:8px; }
-.detail-link { color:#4f46e5;font-size:13px;font-weight:600;text-decoration:none; }
-.lbl { font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px; }
-.field { margin-bottom:12px; }
-.field label { display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:6px; }
-.hint-txt { font-size:12px;color:#94a3b8;margin:0 0 10px; }
-.item-row { display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px; }
-.item-name { color:#0f172a;font-weight:500; }
-.item-qty { color:#4f46e5;font-weight:700;white-space:nowrap; }
+.layout { min-height:100vh;background:#f8fafc;font-family:Roboto,sans-serif; }
+.content { max-width:900px;margin:auto;padding:16px 20px 80px;display:flex;flex-direction:column;gap:12px; }
+.card { background:#fff;border-radius:14px;padding:16px;border:1px solid #e2e8f0; }
+.head-row,.section-head { display:flex;justify-content:space-between;align-items:center;gap:12px; }
+.mr-num { font-family:monospace;font-weight:800;font-size:15px; }
+.info-txt { display:flex;flex-direction:column;font-size:13px; }
+.muted { color:#64748b;font-size:13px; }
+.target-row { display:flex;gap:10px;align-items:center; }
+.target-select { flex:1; }
+.alert { margin-top:12px; }
+.lbl { font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:12px; }
+.grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }
+.field label { display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:5px; }
+.item-card { display:flex;flex-direction:column;gap:12px; }
+.wide-field { width:100%; }
+.foto-row { display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
+.foto-btn { padding:9px 12px;border:1px dashed #6366f1;border-radius:8px;color:#4f46e5;cursor:pointer;font-size:13px;font-weight:600; }
+.foto-btn.disabled { opacity:.5;cursor:not-allowed; }
+.foto-btn input { display:none; }
+.foto-preview { display:flex;align-items:center;gap:10px; }
+.foto-preview img { width:80px;height:80px;object-fit:cover;border-radius:8px; }
+.foto-preview button { border:0;background:none;color:#dc2626;cursor:pointer; }
+@media (max-width:640px) { .grid { grid-template-columns:1fr; } .target-row { align-items:stretch;flex-direction:column; } }
 </style>
