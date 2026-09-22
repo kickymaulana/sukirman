@@ -30,7 +30,7 @@ const items = ref<Row[]>((mr.items || []).map((it: any) => ({
         nomor_po: l.nomor_po || '',
         tgl_po: l.tgl_po || '',
         expected_date: l.expected_date || '',
-        tgl_setuju: l.tanggal_disetujui_direksi ? String(l.tanggal_disetujui_direksi).slice(0, 16) : '',
+        tgl_setuju: l.tanggal_disetujui_direksi ? String(l.tanggal_disetujui_direksi).replace(' ', 'T').slice(0, 16) : '',
     })),
 })))
 
