@@ -9,6 +9,7 @@ class ApprovalLog extends Model
     protected $fillable = [
         'material_request_id',
         'user_id',
+        'approval_cycle',
         'role',
         'action',
         'notes',

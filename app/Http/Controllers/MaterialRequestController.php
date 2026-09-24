@@ -197,6 +197,7 @@ class MaterialRequestController extends Controller
         ])->findOrFail($id);
 
         $logs = $mr->approvalLogs->sortByDesc('id');
+        $currentLogs = $logs->where('approval_cycle', $mr->approval_cycle);
 
         // Role departemen sesuai jenis MR
         $deptRole = match ($mr->jenis) {
@@ -207,9 +208,9 @@ class MaterialRequestController extends Controller
         };
 
         // Persetujuan hanya dihitung jika ada LOG approval (bukan sekadar ditugaskan)
-        $managerLog = $logs->where('role', 'Manager')->where('action', 'forward')->first();
-        $fmGmLog = $logs->where('role', 'FM/GM')->where('action', 'forward')->first();
-        $direksiLog = $logs->where('role', 'Direksi')->where('action', 'approve')->first();
+        $managerLog = $currentLogs->where('role', 'Manager')->where('action', 'forward')->first();
+        $fmGmLog = $currentLogs->where('role', 'FM/GM')->where('action', 'forward')->first();
+        $direksiLog = $currentLogs->where('role', 'Direksi')->where('action', 'approve')->first();
 
         $managerApproved = (bool) $managerLog;
         $fmGmApproved = (bool) $fmGmLog;
@@ -220,7 +221,7 @@ class MaterialRequestController extends Controller
         $direksiApproverName = $direksiLog?->user?->name;
 
         // MR tidak melewati FM/GM (skip langsung ke Direksi) — sembunyikan blok tanda tangan FM/GM
-        $hasFmGmLog = $logs->where('role', 'FM/GM')->isNotEmpty();
+        $hasFmGmLog = $currentLogs->where('role', 'FM/GM')->isNotEmpty();
         $skipFmGm = ! $hasFmGmLog
             && ! in_array($mr->status_workflow, [
                 'Pending Manager', 'Pending FM/GM',
@@ -231,7 +232,7 @@ class MaterialRequestController extends Controller
         $deptApproved = false;
         $deptApproverName = null;
         if ($deptRole) {
-            $deptLog = $logs->where('role', $deptRole)->where('action', 'approve')->first();
+            $deptLog = $currentLogs->where('role', $deptRole)->where('action', 'approve')->first();
             if ($deptLog) {
                 $deptApproved = true;
                 $deptApproverName = $deptLog->user?->name;
@@ -428,6 +429,7 @@ class MaterialRequestController extends Controller
                 'status_pembelian' => $validated['status_pembelian'],
                 'jenis' => $validated['jenis'],
                 'status_workflow' => 'Pending Manager',
+                'approval_cycle' => $mr->approval_cycle + 1,
                 'revision_notes' => null,
             ]);
 
@@ -500,6 +502,7 @@ class MaterialRequestController extends Controller
 
             ApprovalLog::create([
                 'material_request_id' => $mr->id,
+                'approval_cycle' => $mr->approval_cycle,
                 'user_id' => auth()->id(),
                 'role' => 'Manager',
                 'action' => 'reject',
@@ -524,6 +527,7 @@ class MaterialRequestController extends Controller
 
             ApprovalLog::create([
                 'material_request_id' => $mr->id,
+                'approval_cycle' => $mr->approval_cycle,
                 'user_id' => auth()->id(),
                 'role' => 'Manager',
                 'action' => 'forward',
@@ -561,6 +565,7 @@ class MaterialRequestController extends Controller
 
         ApprovalLog::create([
             'material_request_id' => $mr->id,
+            'approval_cycle' => $mr->approval_cycle,
             'user_id' => auth()->id(),
             'role' => 'Manager',
             'action' => 'forward',
@@ -622,6 +627,7 @@ class MaterialRequestController extends Controller
 
             ApprovalLog::create([
                 'material_request_id' => $mr->id,
+                'approval_cycle' => $mr->approval_cycle,
                 'user_id' => auth()->id(),
                 'role' => $deptRole,
                 'action' => 'reject',
@@ -637,6 +643,7 @@ class MaterialRequestController extends Controller
 
         ApprovalLog::create([
             'material_request_id' => $mr->id,
+            'approval_cycle' => $mr->approval_cycle,
             'user_id' => auth()->id(),
             'role' => $deptRole,
             'action' => 'approve',
@@ -679,6 +686,7 @@ class MaterialRequestController extends Controller
 
             ApprovalLog::create([
                 'material_request_id' => $mr->id,
+                'approval_cycle' => $mr->approval_cycle,
                 'user_id' => auth()->id(),
                 'role' => 'FM/GM',
                 'action' => 'reject',
@@ -697,6 +705,7 @@ class MaterialRequestController extends Controller
 
         ApprovalLog::create([
             'material_request_id' => $mr->id,
+            'approval_cycle' => $mr->approval_cycle,
             'user_id' => auth()->id(),
             'role' => 'FM/GM',
             'action' => 'forward',
@@ -742,6 +751,7 @@ class MaterialRequestController extends Controller
 
         ApprovalLog::create([
             'material_request_id' => $mr->id,
+            'approval_cycle' => $mr->approval_cycle,
             'user_id' => auth()->id(),
             'role' => 'Direksi',
             'action' => $request->action,
@@ -801,6 +811,7 @@ class MaterialRequestController extends Controller
 
         ApprovalLog::create([
             'material_request_id' => $mr->id,
+            'approval_cycle' => $mr->approval_cycle,
             'user_id' => auth()->id(),
             'role' => 'Direksi',
             'action' => 'revision',
@@ -925,6 +936,7 @@ class MaterialRequestController extends Controller
 
         ApprovalLog::create([
             'material_request_id' => $mr->id,
+            'approval_cycle' => $mr->approval_cycle,
             'user_id' => auth()->id(),
             'role' => 'Gudang',
             'action' => $request->action === 'tersedia' ? 'stock_available' : 'stock_unavailable',
@@ -1013,6 +1025,7 @@ class MaterialRequestController extends Controller
 
         ApprovalLog::create([
             'material_request_id' => $mr->id,
+            'approval_cycle' => $mr->approval_cycle,
             'user_id' => auth()->id(),
             'role' => 'Gudang',
             'action' => 'gudang_edit',
@@ -1665,7 +1678,11 @@ class MaterialRequestController extends Controller
                 }
             }
 
-            $mr->update(['status_workflow' => 'Pending Manager', 'revision_notes' => null]);
+            $mr->update([
+                'status_workflow' => 'Pending Manager',
+                'approval_cycle' => $mr->approval_cycle + 1,
+                'revision_notes' => null,
+            ]);
         });
 
         return redirect()->route('material-requests.index')->with('success', 'MR dikirim ulang');

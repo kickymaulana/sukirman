@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    VarAlert: typeof import('@varlet/ui')['_AlertComponent']
     VarAppBar: typeof import('@varlet/ui')['_AppBarComponent']
     VarAvatar: typeof import('@varlet/ui')['_AvatarComponent']
     VarBottomNavigation: typeof import('@varlet/ui')['_BottomNavigationComponent']

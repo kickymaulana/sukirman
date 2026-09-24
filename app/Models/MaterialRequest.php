@@ -35,6 +35,7 @@ class MaterialRequest extends Model
         'jenis',
         'input_accurate',
         'status_workflow',
+        'approval_cycle',
         'revision_notes',
     ];
 
