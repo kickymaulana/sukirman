@@ -19,7 +19,7 @@ interface MR {
 
 const props = defineProps<{
     requests: { data: MR[]; links: any[]; from: number; to: number; total: number; prev_page_url: string|null; next_page_url: string|null }
-    filters?: { search?: string; factory?: string; type?: string; po_status?: string }
+    filters?: { search?: string; factory?: string; type?: string; po_status?: string; accurate_sort?: 'asc' | 'desc' }
     allFactories: string[]
     topUsers?: { name: string; total: number }[]
 }>()
@@ -29,6 +29,7 @@ const searchVal = ref(props.filters?.search || '')
 const factoryVal = ref(props.filters?.factory || '')
 const typeVal = ref(props.filters?.type || '')
 const poStatusVal = ref(props.filters?.po_status || '')
+const accurateSortVal = ref(props.filters?.accurate_sort || 'desc')
 
 const poStatusOptions = [
     { label: 'Semua PO Status', value: '' },
@@ -51,6 +52,7 @@ const applyFilters = () => {
         factory: factoryVal.value || undefined,
         type: typeVal.value || undefined,
         po_status: poStatusVal.value || undefined,
+        accurate_sort: accurateSortVal.value,
     }, { preserveState: true })
 }
 
@@ -86,6 +88,10 @@ const goBack = () => router.get(route('dashboard'))
                 </var-select>
                 <var-select v-model="poStatusVal" placeholder="Semua PO Status" style="width:180px" @change="applyFilters">
                     <var-option v-for="p in poStatusOptions" :key="p.value" :label="p.label" :value="p.value" />
+                </var-select>
+                <var-select v-model="accurateSortVal" style="width:220px" @change="applyFilters">
+                    <var-option label="Accurate Terbaru" value="desc" />
+                    <var-option label="Accurate Terlama" value="asc" />
                 </var-select>
                 <var-button type="primary" @click="applyFilters"><var-icon name="magnify" :size="16" /></var-button>
             </div>

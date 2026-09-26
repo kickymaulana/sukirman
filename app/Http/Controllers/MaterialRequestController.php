@@ -1087,6 +1087,8 @@ class MaterialRequestController extends Controller
         $factory = $request->input('factory');
         $type = $request->input('type');
         $poStatus = $request->input('po_status');
+        $accurateSort = $request->input('accurate_sort', 'desc');
+        $accurateSort = in_array($accurateSort, ['asc', 'desc'], true) ? $accurateSort : 'desc';
 
         $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user'])
             ->where('status_workflow', 'Purchasing')
@@ -1113,7 +1115,9 @@ class MaterialRequestController extends Controller
                         $it->whereRaw('(SELECT COALESCE(SUM(qty), 0) FROM item_po_lines WHERE material_request_item_id = material_request_items.id) < material_request_items.qty');
                     });
             })
-            ->latest();
+            ->orderByRaw('accurate_input_at IS NULL')
+            ->orderBy('accurate_input_at', $accurateSort)
+            ->orderByDesc('id');
 
         $requests = $query->paginate(10)->withQueryString()
             ->through(function ($mr) {
@@ -1168,7 +1172,7 @@ class MaterialRequestController extends Controller
 
         return Inertia::render('Approval/Purchasing', [
             'requests' => $requests,
-            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'type' => $type ?? '', 'po_status' => $poStatus ?? ''],
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'type' => $type ?? '', 'po_status' => $poStatus ?? '', 'accurate_sort' => $accurateSort],
             'topUsers' => $topUsers,
             'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
         ]);
