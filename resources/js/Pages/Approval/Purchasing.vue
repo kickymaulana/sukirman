@@ -11,7 +11,7 @@ interface MR {
     po_status: string
     nomor_pos: string[]
     po_users: string[]
-    created_at: string
+    accurate_input_at: string | null
     pengaju: string
     departemen: string | null
     items_count: number
@@ -99,7 +99,7 @@ const goBack = () => router.get(route('dashboard'))
                             <th>Departemen</th>
                             <th>Factory</th>
                             <th>Tipe Pembelian</th>
-                            <th>Tanggal</th>
+                            <th>Tanggal Input Accurate</th>
                             <th>PO Status</th>
                             <th>Input PO</th>
                             <th>Aksi</th>
@@ -114,7 +114,7 @@ const goBack = () => router.get(route('dashboard'))
                             <td>{{ mr.departemen || '-' }}</td>
                             <td>{{ mr.factory }}</td>
                             <td>{{ mr.type }}</td>
-                            <td class="muted">{{ mr.created_at }}</td>
+                            <td class="muted">{{ mr.accurate_input_at || '-' }}</td>
                             <td>
                                 <var-chip :type="poBadge(mr.po_status)" size="mini">{{ mr.po_status === 'Sudah' ? '✅ PO' : mr.po_status }}</var-chip>
                                 <div v-for="np in mr.nomor_pos" :key="np" class="po-num">{{ np }}</div>

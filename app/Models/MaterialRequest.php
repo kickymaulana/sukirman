@@ -22,6 +22,10 @@ class MaterialRequest extends Model
         }
     }
 
+    protected $casts = [
+        'accurate_input_at' => 'datetime',
+    ];
+
     protected $fillable = [
         'mr_number',
         'user_id',
@@ -34,6 +38,7 @@ class MaterialRequest extends Model
         'status_pembelian',
         'jenis',
         'input_accurate',
+        'accurate_input_at',
         'status_workflow',
         'approval_cycle',
         'revision_notes',

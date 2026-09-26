@@ -1046,6 +1046,7 @@ class MaterialRequestController extends Controller
 
         $mr->update([
             'input_accurate' => $validated['value'],
+            'accurate_input_at' => $validated['value'] === 'Sudah' ? now() : null,
             'status_workflow' => $validated['value'] === 'Sudah' ? 'Purchasing' : 'Verifikasi Gudang',
         ]);
 
@@ -1150,7 +1151,7 @@ class MaterialRequestController extends Controller
                     'po_status' => $poStatus,
                     'nomor_pos' => $nomorPos->unique()->values(),
                     'po_users' => $poUsers->unique()->values(),
-                    'created_at' => $mr->created_at->format('d M Y'),
+                    'accurate_input_at' => $mr->accurate_input_at?->format('d M Y H:i'),
                     'pengaju' => $mr->user?->name,
                     'departemen' => $mr->user?->departemen?->nama,
                     'items_count' => $total,
