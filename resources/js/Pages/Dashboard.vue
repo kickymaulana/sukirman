@@ -47,7 +47,7 @@ const openDetail = (id: number) => {
 
 const goApproval = () => {
   const r = props.user?.role?.toLowerCase()
-  const routes: any = { manager: '/approval/manager', 'fm/gm': '/approval/fmgm', direksi: '/approval/direksi', gudang: '/approval/gudang', purchasing: '/approval/purchasing', mtc: '/approval/mtc', it: '/approval/it', hrd: '/approval/hrd', admin: '/approval/purchasing' }
+  const routes: any = { manager: '/approval/manager', 'fm/gm': '/approval/fmgm', direksi: '/approval/direksi', gudang: '/approval/gudang', purchasing: '/approval/purchasing', mtc: '/approval/mtc', it: '/approval/it', hrd: '/approval/hrd', qmr: '/approval/qmr', admin: '/approval/purchasing' }
   const path = routes[r]
   if (path) routerInertia.get(baseUrl + path)
 }
@@ -164,7 +164,7 @@ const handleTabChange = (index: number) => {
         </div>
 
         <!-- Approval Card (untuk approver) -->
-        <div v-if="user?.role && ['Manager','FM/GM','Direksi','Gudang','Purchasing','MTC','IT','HRD','admin'].includes(user.role)" class="menu-card approval" @click="goApproval()">
+        <div v-if="user?.role && ['Manager','FM/GM','Direksi','Gudang','Purchasing','MTC','IT','HRD','QMR','admin'].includes(user.role)" class="menu-card approval" @click="goApproval()">
           <span class="menu-icon">✅</span>
           <span class="menu-title">Approval {{ user.role }}</span>
           <span class="menu-desc">{{ pending_count ?? 0 }} MR menunggu</span>

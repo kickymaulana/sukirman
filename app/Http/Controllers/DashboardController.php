@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\MaterialRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\User;
 
 class DashboardController extends Controller
 {
@@ -24,11 +24,11 @@ class DashboardController extends Controller
                 $firstItem = $mr->items->first();
 
                 return [
-                    'id'       => $mr->id,
-                    'code'     => $mr->mr_number,
-                    'title'    => $firstItem ? $firstItem->item_name : 'Material Request',
-                    'date'     => $mr->created_at->format('d M Y'),
-                    'status'   => $mr->status_workflow,
+                    'id' => $mr->id,
+                    'code' => $mr->mr_number,
+                    'title' => $firstItem ? $firstItem->item_name : 'Material Request',
+                    'date' => $mr->created_at->format('d M Y'),
+                    'status' => $mr->status_workflow,
                 ];
             });
 
@@ -45,8 +45,8 @@ class DashboardController extends Controller
         } elseif (in_array($role, ['fm/gm', 'FM/GM'])) {
             $pendingCount = MaterialRequest::where('fm_gm_id', $user->id)
                 ->where('status_workflow', 'Pending FM/GM')->count();
-        } elseif (in_array($role, ['MTC', 'IT', 'HRD'])) {
-            $pendingCount = MaterialRequest::where('status_workflow', 'Pending ' . $role)->count();
+        } elseif (in_array($role, ['MTC', 'IT', 'HRD', 'QMR'])) {
+            $pendingCount = MaterialRequest::where('status_workflow', 'Pending '.$role)->count();
         } elseif (in_array($role, ['direksi', 'Direksi'])) {
             $pendingCount = MaterialRequest::where('direksi_id', $user->id)
                 ->where('status_workflow', 'Pending Direksi')->count();
@@ -58,9 +58,9 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'user' => [
-                'name'  => $user->name,
+                'name' => $user->name,
                 'email' => $user->email,
-                'role'  => $role,
+                'role' => $role,
             ],
             'pending_count' => $pendingCount,
             'recentRequests' => $recentRequests,

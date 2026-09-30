@@ -86,6 +86,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/approval/hrd', [MaterialRequestController::class, 'departmentIndex'])->name('approval.hrd');
         Route::post('/approval/hrd/{id}/decision', [MaterialRequestController::class, 'departmentDecision'])->name('approval.hrd.decision');
     });
+    Route::middleware('role:QMR')->group(function () {
+        Route::get('/approval/qmr', [MaterialRequestController::class, 'departmentIndex'])->name('approval.qmr');
+        Route::post('/approval/qmr/{id}/decision', [MaterialRequestController::class, 'departmentDecision'])->name('approval.qmr.decision');
+    });
 
     // Direksi: Decision
     Route::middleware('role:Direksi')->group(function () {

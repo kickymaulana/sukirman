@@ -162,7 +162,7 @@ class AdminOverviewController extends Controller
             'hasPo' => $mr->items->contains(fn ($item) => $item->item_po_lines->isNotEmpty()),
             'allStatuses' => [
                 'Pending Manager', 'Pending FM/GM', 'Pending Direksi',
-                'Pending MTC', 'Pending IT', 'Pending HRD',
+                'Pending MTC', 'Pending IT', 'Pending HRD', 'Pending QMR',
                 'Verifikasi Gudang', 'Fully Approved', 'Purchasing', 'Rejected', 'Revision',
             ],
         ]);
@@ -312,7 +312,7 @@ class AdminOverviewController extends Controller
         }
 
         // 3. Status departemen (Pending MTC/IT/HRD) → notifikasi semua user dengan role itu
-        if (in_array($status, ['Pending MTC', 'Pending IT', 'Pending HRD'])) {
+        if (in_array($status, ['Pending MTC', 'Pending IT', 'Pending HRD', 'Pending QMR'])) {
             $deptRole = str_replace('Pending ', '', $status);
             $deptUsers = User::role($deptRole)->get();
             Notification::send($deptUsers, new MrNotification($mr, "MR {$mr->mr_number} menunggu persetujuan {$deptRole}."));

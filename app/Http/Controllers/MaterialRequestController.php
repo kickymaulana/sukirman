@@ -64,7 +64,7 @@ class MaterialRequestController extends Controller
 
         abort_if($mr->user_id !== auth()->id(), 403, 'Anda bukan pengaju MR ini.');
 
-        $allowed = ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD', 'Revision'];
+        $allowed = ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD', 'Pending QMR', 'Revision'];
         abort_if(! in_array($mr->status_workflow, $allowed), 403, 'MR tidak bisa dihapus karena sudah diproses lebih lanjut.');
 
         DB::transaction(function () use ($mr, $id) {
@@ -204,6 +204,7 @@ class MaterialRequestController extends Controller
             'MTC' => 'MTC',
             'IT' => 'IT',
             'HRD' => 'HRD',
+            'QMR' => 'QMR',
             default => null,
         };
 
@@ -225,7 +226,7 @@ class MaterialRequestController extends Controller
         $skipFmGm = ! $hasFmGmLog
             && ! in_array($mr->status_workflow, [
                 'Pending Manager', 'Pending FM/GM',
-                'Pending MTC', 'Pending IT', 'Pending HRD',
+                'Pending MTC', 'Pending IT', 'Pending HRD', 'Pending QMR',
             ]);
 
         // Departemen: approve dari log departemen, ATAU skip otomatis jika manager sudah approve & punya role tsb
@@ -283,7 +284,7 @@ class MaterialRequestController extends Controller
             'factory' => ['required', 'in:KIM,DALU 1,DALU 2'],
             'allocation' => ['required', 'in:Project,Proses'],
             'status_pembelian' => ['required', 'in:Urgent,Normal'],
-            'jenis' => ['required', 'in:UMUM,MTC,IT,HRD'],
+            'jenis' => ['required', 'in:UMUM,MTC,IT,HRD,QMR'],
             'manager_id' => ['required', 'exists:users,id'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.item_code' => ['nullable', 'string', 'max:50'],
@@ -367,7 +368,7 @@ class MaterialRequestController extends Controller
     {
         $mr = MaterialRequest::with('items')->findOrFail($id);
 
-        $allowedStatuses = ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD'];
+        $allowedStatuses = ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD', 'Pending QMR'];
         abort_if(! in_array($mr->status_workflow, $allowedStatuses), 403, 'MR tidak bisa diedit pada status ini.');
         abort_if($mr->user_id !== auth()->id(), 403, 'Anda bukan pengaju MR ini.');
 
@@ -387,7 +388,7 @@ class MaterialRequestController extends Controller
     {
         $mr = MaterialRequest::findOrFail($id);
 
-        $allowedStatuses = ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD'];
+        $allowedStatuses = ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD', 'Pending QMR'];
         abort_if(! in_array($mr->status_workflow, $allowedStatuses), 403, 'MR tidak bisa diedit pada status ini.');
         abort_if($mr->user_id !== auth()->id(), 403, 'Anda bukan pengaju MR ini.');
 
@@ -396,7 +397,7 @@ class MaterialRequestController extends Controller
             'factory' => ['required', 'in:KIM,DALU 1,DALU 2'],
             'allocation' => ['required', 'in:Project,Proses'],
             'status_pembelian' => ['required', 'in:Urgent,Normal'],
-            'jenis' => ['required', 'in:UMUM,MTC,IT,HRD'],
+            'jenis' => ['required', 'in:UMUM,MTC,IT,HRD,QMR'],
             'manager_id' => ['required', 'exists:users,id'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.item_code' => ['nullable', 'string', 'max:50'],
@@ -547,6 +548,7 @@ class MaterialRequestController extends Controller
             'MTC' => 'MTC',
             'IT' => 'IT',
             'HRD' => 'HRD',
+            'QMR' => 'QMR',
             default => null,
         };
 
@@ -589,7 +591,7 @@ class MaterialRequestController extends Controller
 
     private function deptRoleUser(): ?string
     {
-        return collect(['MTC', 'IT', 'HRD'])->first(fn ($r) => auth()->user()->hasRole($r));
+        return collect(['MTC', 'IT', 'HRD', 'QMR'])->first(fn ($r) => auth()->user()->hasRole($r));
     }
 
     public function departmentIndex()
@@ -619,6 +621,7 @@ class MaterialRequestController extends Controller
             'MTC' => 'approval.mtc',
             'IT' => 'approval.it',
             'HRD' => 'approval.hrd',
+            'QMR' => 'approval.qmr',
             default => 'approval.manager',
         };
 
@@ -1223,7 +1226,7 @@ class MaterialRequestController extends Controller
             'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
             'allStatuses' => [
                 'Pending Manager', 'Pending FM/GM', 'Pending Direksi',
-                'Pending MTC', 'Pending IT', 'Pending HRD',
+                'Pending MTC', 'Pending IT', 'Pending HRD', 'Pending QMR',
                 'Verifikasi Gudang', 'Fully Approved', 'Purchasing', 'Rejected', 'Revision',
             ],
         ]);
@@ -1318,10 +1321,10 @@ class MaterialRequestController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
-            'allJenis' => ['UMUM', 'MTC', 'IT', 'HRD'],
+            'allJenis' => ['UMUM', 'MTC', 'IT', 'HRD', 'QMR'],
             'allStatuses' => [
                 'Pending Manager', 'Pending FM/GM', 'Pending Direksi',
-                'Pending MTC', 'Pending IT', 'Pending HRD',
+                'Pending MTC', 'Pending IT', 'Pending HRD', 'Pending QMR',
                 'Verifikasi Gudang', 'Fully Approved', 'Purchasing', 'Rejected', 'Revision',
             ],
         ]);
@@ -1700,7 +1703,7 @@ class MaterialRequestController extends Controller
         $role = $user->getRoleNames()->first();
 
         // Role departemen yang dimiliki user (MTC/IT/HRD) — untuk aksi approval departemen
-        $deptRole = collect(['MTC', 'IT', 'HRD'])->first(fn ($r) => $user->hasRole($r));
+        $deptRole = collect(['MTC', 'IT', 'HRD', 'QMR'])->first(fn ($r) => $user->hasRole($r));
 
         // Manager dengan permission bisa forward langsung ke Direksi (skip FM/GM)
         $canForwardDireksi = $user->hasPermissionTo('teruskan-ke-direksi');

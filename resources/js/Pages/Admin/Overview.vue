@@ -43,7 +43,7 @@ const statusVal = ref(props.filters?.status || '')
 const statusBadge = (s: string) => {
     if (['Fully Approved'].includes(s)) return 'success'
     if (['Rejected'].includes(s)) return 'danger'
-    if (['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD'].includes(s)) return 'warning'
+    if (['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD', 'Pending QMR'].includes(s)) return 'warning'
     if (['Verifikasi Gudang', 'Purchasing'].includes(s)) return 'info'
     return 'default'
 }

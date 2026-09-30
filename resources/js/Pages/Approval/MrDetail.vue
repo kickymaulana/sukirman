@@ -78,12 +78,12 @@ const openRevisionEdit = () => {
 // Hapus MR — hanya pengaju & status tertentu yang belum diproses lanjut
 const canDelete = computed(() =>
     mr.user_id === pp.auth?.user?.id &&
-    ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD', 'Revision'].includes(mr.status_workflow)
+    ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD', 'Pending QMR', 'Revision'].includes(mr.status_workflow)
 )
 
 const canEdit = computed(() =>
     mr.user_id === pp.auth?.user?.id &&
-    ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD'].includes(mr.status_workflow)
+    ['Pending Manager', 'Pending FM/GM', 'Pending Direksi', 'Pending MTC', 'Pending IT', 'Pending HRD', 'Pending QMR'].includes(mr.status_workflow)
 )
 
 const canRevisionEdit = computed(() =>

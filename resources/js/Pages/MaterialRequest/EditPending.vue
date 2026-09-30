@@ -120,7 +120,7 @@ const typeOptions = ['Lokal', 'Import']
 const factoryOptions = ['KIM', 'DALU 1', 'DALU 2']
 const allocationOptions = ['Project', 'Proses']
 const urgencyOptions = ['Normal', 'Urgent']
-const jenisOptions = ['UMUM', 'MTC', 'IT', 'HRD']
+const jenisOptions = ['UMUM', 'MTC', 'IT', 'HRD', 'QMR']
 const itemStatusOptions = ['Normal', 'Urgent', 'New', 'Replace']
 const canSubmit = computed(() => form.items.every(item => item.type === 'Lokal' || item.type === 'Import'))
 
@@ -264,7 +264,7 @@ const goBack = () => {
                 <var-select v-model="form.jenis" variant="outlined" placeholder="Pilih Jenis MR" :error-message="form.errors.jenis">
                   <var-option v-for="opt in jenisOptions" :key="opt" :label="opt" :value="opt" />
                 </var-select>
-                <p class="field-hint">UMUM = tanpa persetujuan departemen. MTC/IT/HRD = wajib persetujuan departemen terkait.</p>
+                <p class="field-hint">UMUM = tanpa persetujuan departemen. MTC/IT/HRD/QMR = wajib persetujuan departemen terkait.</p>
               </div>
 
               <div class="field-group">
