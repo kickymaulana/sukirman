@@ -1084,6 +1084,42 @@ class MaterialRequestController extends Controller
 
     // ============ PURCHASING: Export Excel ============
 
+    public function purchasingPrint(Request $request)
+    {
+        $query = MaterialRequest::with(['user.departemen', 'items.item_po_lines', 'approvalLogs'])
+            ->where('status_workflow', 'Purchasing')
+            ->when($request->input('search'), function ($q) use ($request) {
+                $search = $request->input('search');
+                $q->where(function ($w) use ($search) {
+                    $w->where('mr_number', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
+                            ->orWhere('nik', 'like', "%{$search}%"));
+                });
+            })
+            ->when($request->input('factory'), fn ($q) => $q->where('factory', $request->input('factory')))
+            ->when($request->input('type'), fn ($q) => $q->where('type', $request->input('type')))
+            ->when($request->input('po_status') === 'Belum', fn ($q) => $q->whereDoesntHave('items.item_po_lines'))
+            ->orderByDesc('created_at');
+
+        $requests = $query->get()->map(function ($mr) {
+            $approved = $mr->approvalLogs->where('role', 'Direksi')->where('action', 'approve')->sortByDesc('id')->first();
+            return [
+                'mr_number' => $mr->mr_number,
+                'pengaju' => $mr->user?->name,
+                'departemen' => $mr->user?->departemen?->nama,
+                'factory' => $mr->factory,
+                'type' => $mr->type,
+                'created_at' => $mr->created_at?->format('d M Y H:i'),
+                'direksi_approved_at' => $approved?->created_at?->format('d M Y H:i'),
+            ];
+        });
+
+        return Inertia::render('Approval/PurchasingPrint', [
+            'requests' => $requests,
+            'printedAt' => now()->format('d M Y H:i'),
+        ]);
+    }
+
     public function purchasingIndex(Request $request)
     {
         $search = $request->input('search');

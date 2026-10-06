@@ -112,6 +112,7 @@ Route::middleware('auth')->group(function () {
     // Purchasing: Export
     Route::middleware('role:Purchasing|admin')->group(function () {
         Route::get('/approval/purchasing', [MaterialRequestController::class, 'purchasingIndex'])->name('approval.purchasing');
+        Route::get('/approval/purchasing/print', [MaterialRequestController::class, 'purchasingPrint'])->name('approval.purchasing.print');
         Route::get('/approval/purchasing/export', [MaterialRequestController::class, 'exportXml'])->name('approval.export');
         Route::get('/approval/purchasing/check-xml', [MaterialRequestController::class, 'checkXmlSkips'])->name('approval.export-check');
         Route::get('/approval/purchasing/{id}/input', [MaterialRequestController::class, 'purchasingInput'])->name('purchasing.input');

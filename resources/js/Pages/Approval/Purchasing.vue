@@ -65,6 +65,12 @@ const poBadge = (s: string) => {
 }
 
 const goBack = () => router.get(route('dashboard'))
+const printList = () => window.open(baseUrl + '/approval/purchasing/print?' + new URLSearchParams({
+    search: searchVal.value,
+    factory: factoryVal.value,
+    type: typeVal.value,
+    po_status: poStatusVal.value,
+}).toString(), '_blank')
 </script>
 
 <template>
@@ -96,6 +102,7 @@ const goBack = () => router.get(route('dashboard'))
                     <var-option label="Accurate Terlama" value="asc" />
                 </var-select>
                 <var-button type="primary" @click="applyFilters"><var-icon name="magnify" :size="16" /></var-button>
+                <var-button type="success" @click="printList"><var-icon name="printer" :size="16" /></var-button>
             </div>
 
             <div class="table-wrap">
