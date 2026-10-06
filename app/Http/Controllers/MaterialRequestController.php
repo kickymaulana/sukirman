@@ -1086,7 +1086,7 @@ class MaterialRequestController extends Controller
 
     public function purchasingPrint(Request $request)
     {
-        $query = MaterialRequest::with(['user.departemen', 'items.item_po_lines', 'approvalLogs'])
+        $query = MaterialRequest::with(['user.departemen', 'direksi', 'items.item_po_lines', 'approvalLogs.user'])
             ->where('status_workflow', 'Purchasing')
             ->when($request->input('search'), function ($q) use ($request) {
                 $search = $request->input('search');
@@ -1109,7 +1109,9 @@ class MaterialRequestController extends Controller
                 'departemen' => $mr->user?->departemen?->nama,
                 'factory' => $mr->factory,
                 'type' => $mr->type,
+                'items_count' => $mr->items->count(),
                 'created_at' => $mr->created_at?->format('d M Y H:i'),
+                'direksi' => $approved?->user?->name ?? $mr->direksi?->name,
                 'direksi_approved_at' => $approved?->created_at?->format('d M Y H:i'),
             ];
         });
@@ -1129,7 +1131,7 @@ class MaterialRequestController extends Controller
         $accurateSort = $request->input('accurate_sort', 'desc');
         $accurateSort = in_array($accurateSort, ['asc', 'desc'], true) ? $accurateSort : 'desc';
 
-        $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user', 'approvalLogs'])
+        $query = MaterialRequest::with(['user.departemen', 'direksi', 'items', 'items.item_po_lines.user', 'approvalLogs.user'])
             ->where('status_workflow', 'Purchasing')
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
@@ -1184,11 +1186,11 @@ class MaterialRequestController extends Controller
                 }
 
                 $poStatus = $total === 0 ? 'Belum' : ($doneCount === $total ? 'Sudah' : ($hasPo ? 'Sebagian' : 'Belum'));
-                $direksiApprovedAt = $mr->approvalLogs
+                $direksiApproval = $mr->approvalLogs
                     ->where('role', 'Direksi')
                     ->where('action', 'approve')
                     ->sortByDesc('id')
-                    ->first()?->created_at;
+                    ->first();
 
                 return [
                     'id' => $mr->id,
@@ -1201,7 +1203,8 @@ class MaterialRequestController extends Controller
                     'po_users' => $poUsers->unique()->values(),
                     'accurate_input_at' => $mr->accurate_input_at?->format('d M Y H:i'),
                     'created_at' => $mr->created_at?->format('d M Y H:i'),
-                    'direksi_approved_at' => $direksiApprovedAt?->format('d M Y H:i'),
+                    'direksi' => $direksiApproval?->user?->name ?? $mr->direksi?->name,
+                    'direksi_approved_at' => $direksiApproval?->created_at?->format('d M Y H:i'),
                     'pengaju' => $mr->user?->name,
                     'departemen' => $mr->user?->departemen?->nama,
                     'items_count' => $total,

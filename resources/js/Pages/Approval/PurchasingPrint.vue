@@ -10,7 +10,9 @@ interface RequestRow {
     departemen: string | null
     factory: string
     type: string
+    items_count: number
     created_at: string | null
+    direksi: string | null
     direksi_approved_at: string | null
 }
 
@@ -36,7 +38,9 @@ defineProps<{
                     <th>Departemen</th>
                     <th>Factory</th>
                     <th>Tipe</th>
+                    <th>Jumlah Item</th>
                     <th>Tanggal Dibuat</th>
+                    <th>Direksi</th>
                     <th>Disetujui Direksi</th>
                 </tr>
             </thead>
@@ -48,11 +52,13 @@ defineProps<{
                     <td>{{ mr.departemen || '-' }}</td>
                     <td>{{ mr.factory }}</td>
                     <td>{{ mr.type }}</td>
+                    <td>{{ mr.items_count }} item</td>
                     <td>{{ mr.created_at || '-' }}</td>
+                    <td>{{ mr.direksi || '-' }}</td>
                     <td>{{ mr.direksi_approved_at || '-' }}</td>
                 </tr>
                 <tr v-if="!requests.length">
-                    <td colspan="8" class="empty">Tidak ada MR</td>
+                    <td colspan="10" class="empty">Tidak ada MR</td>
                 </tr>
             </tbody>
         </table>

@@ -13,6 +13,7 @@ interface MR {
     po_users: string[]
     accurate_input_at: string | null
     created_at: string | null
+    direksi: string | null
     direksi_approved_at: string | null
     pengaju: string
     departemen: string | null
@@ -114,7 +115,9 @@ const printList = () => window.open(baseUrl + '/approval/purchasing/print?' + ne
                             <th>Departemen</th>
                             <th>Factory</th>
                             <th>Tipe Pembelian</th>
+                            <th>Jumlah Item</th>
                             <th>Tanggal Dibuat</th>
+                            <th>Direksi</th>
                             <th>Disetujui Direksi</th>
                             <th>Tanggal Input Accurate</th>
                             <th>PO Status</th>
@@ -131,7 +134,9 @@ const printList = () => window.open(baseUrl + '/approval/purchasing/print?' + ne
                             <td>{{ mr.departemen || '-' }}</td>
                             <td>{{ mr.factory }}</td>
                             <td>{{ mr.type }}</td>
+                            <td>{{ mr.items_count }} item</td>
                             <td class="muted">{{ mr.created_at || '-' }}</td>
+                            <td>{{ mr.direksi || '-' }}</td>
                             <td class="muted">{{ mr.direksi_approved_at || '-' }}</td>
                             <td class="muted">{{ mr.accurate_input_at || '-' }}</td>
                             <td>
@@ -147,7 +152,7 @@ const printList = () => window.open(baseUrl + '/approval/purchasing/print?' + ne
                             </td>
                         </tr>
                         <tr v-if="!requests.data.length">
-                            <td colspan="11" class="empty">Tidak ada MR</td>
+                            <td colspan="13" class="empty">Tidak ada MR</td>
                         </tr>
                     </tbody>
                 </table>
