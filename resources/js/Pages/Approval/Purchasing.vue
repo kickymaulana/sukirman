@@ -12,6 +12,8 @@ interface MR {
     nomor_pos: string[]
     po_users: string[]
     accurate_input_at: string | null
+    created_at: string | null
+    direksi_approved_at: string | null
     pengaju: string
     departemen: string | null
     items_count: number
@@ -105,6 +107,8 @@ const goBack = () => router.get(route('dashboard'))
                             <th>Departemen</th>
                             <th>Factory</th>
                             <th>Tipe Pembelian</th>
+                            <th>Tanggal Dibuat</th>
+                            <th>Disetujui Direksi</th>
                             <th>Tanggal Input Accurate</th>
                             <th>PO Status</th>
                             <th>Input PO</th>
@@ -120,6 +124,8 @@ const goBack = () => router.get(route('dashboard'))
                             <td>{{ mr.departemen || '-' }}</td>
                             <td>{{ mr.factory }}</td>
                             <td>{{ mr.type }}</td>
+                            <td class="muted">{{ mr.created_at || '-' }}</td>
+                            <td class="muted">{{ mr.direksi_approved_at || '-' }}</td>
                             <td class="muted">{{ mr.accurate_input_at || '-' }}</td>
                             <td>
                                 <var-chip :type="poBadge(mr.po_status)" size="mini">{{ mr.po_status === 'Sudah' ? '✅ PO' : mr.po_status }}</var-chip>
@@ -134,7 +140,7 @@ const goBack = () => router.get(route('dashboard'))
                             </td>
                         </tr>
                         <tr v-if="!requests.data.length">
-                            <td colspan="9" class="empty">Tidak ada MR</td>
+                            <td colspan="11" class="empty">Tidak ada MR</td>
                         </tr>
                     </tbody>
                 </table>
