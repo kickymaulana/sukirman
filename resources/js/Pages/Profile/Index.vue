@@ -22,7 +22,10 @@ const confirmLogout = () => {
     })
 }
 
-const back = () => { window.location.href = baseUrl + '/dashboard' }
+const back = () => {
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(route('dashboard'))
+}
 </script>
 
 <template>
@@ -38,7 +41,7 @@ const back = () => { window.location.href = baseUrl + '/dashboard' }
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
             </button>
             <h1>Profil</h1>
-            <div style="width:40px"></div>
+            <var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button>
         </div>
 
         <div class="content">

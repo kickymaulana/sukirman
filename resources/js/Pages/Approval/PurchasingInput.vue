@@ -1,6 +1,6 @@
 ﻿<script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Head, usePage } from '@inertiajs/vue3'
+import { Head, router, usePage } from '@inertiajs/vue3'
 import { Snackbar } from '@varlet/ui'
 import { Transition } from 'vue'
 
@@ -107,7 +107,10 @@ const save = async () => {
     } catch { saving.value = false; Snackbar.error('Gagal') }
 }
 
-const goBack = () => window.location.href = baseUrl + '/approval/purchasing'
+const goBack = () => {
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(route('approval.purchasing'))
+}
 
 // Photo viewer
 const showPhotoViewer = ref(false)
@@ -130,6 +133,7 @@ const closePhotoViewer = () => {
     <div class="layout">
         <var-app-bar title="[PO] Input MR menjadi PO" title-position="center">
             <template #left><var-button round text @click="goBack"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
             <div class="head-card">

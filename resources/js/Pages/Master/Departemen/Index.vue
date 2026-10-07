@@ -56,8 +56,8 @@ const confirmDelete = (d: Dept) => {
     <Head title="Kelola Departemen - SUKIRMAN" />
     <div class="layout">
         <var-app-bar title="🏷️ Kelola Departemen" title-position="center">
-            <template #left><var-button round text @click="router.get(route('dashboard'))"><var-icon name="arrow-left" :size="24" /></var-button></template>
-            <template #right><var-button round text @click="openAdd"><var-icon name="plus" :size="22" color="#22c55e" /></var-button></template>
+            <template #left><var-button round text @click="document.referrer.startsWith(window.location.origin) ? window.history.back() : router.get(route('dashboard'))"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text @click="openAdd"><var-icon name="plus" :size="22" color="#22c55e" /></var-button><var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
             <div class="search-row">

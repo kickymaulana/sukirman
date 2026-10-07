@@ -28,7 +28,8 @@ const submitted = ref(false)
     <div class="layout">
         <Head :title="'Revisi ' + mr.mr_number" />
         <var-app-bar title="Revisi MR (Per Item)" title-position="center">
-            <template #left><var-button round text @click="router.get(route('approval.direksi'))"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #left><var-button round text @click="document.referrer.startsWith(window.location.origin) ? window.history.back() : router.get(route('material-requests.show', mr.id))"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
             <div class="info-card">

@@ -149,6 +149,7 @@ const openDetail = (id: number) => {
 }
 
 const goBack = () => {
+  if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
   router.get(route('dashboard'))
 }
 
@@ -171,6 +172,9 @@ const goToCreate = () => {
       <template #right>
         <var-button round text @click="enableSearch">
           <var-icon name="magnify" :size="24" />
+        </var-button>
+        <var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))">
+          <var-icon name="home-outline" :size="24" />
         </var-button>
       </template>
     </var-app-bar>

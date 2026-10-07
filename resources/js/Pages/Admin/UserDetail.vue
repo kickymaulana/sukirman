@@ -60,6 +60,11 @@ const toggleRole = (r: string) => {
     else selectedRoles.value.push(r)
 }
 
+const goBack = () => {
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(route('admin.users'))
+}
+
 const approve = async () => {
     const res = await fetch(`${baseUrl}/admin/users/${props.user.id}/approve`, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf } })
     if (res.ok) { Snackbar.success('User diaktifkan'); window.location.reload() }
@@ -82,7 +87,8 @@ const saveRole = async () => {
     <Head :title="'User: ' + user.name" />
     <div class="layout">
         <var-app-bar title="Detail User" title-position="center">
-            <template #left><var-button round text @click="router.get(route('admin.users'))"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #left><var-button round text @click="goBack"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
             <!-- Status -->

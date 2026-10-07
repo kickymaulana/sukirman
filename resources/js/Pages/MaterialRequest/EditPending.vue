@@ -222,6 +222,7 @@ const handleSubmit = () => {
 }
 
 const goBack = () => {
+  if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
   router.get(route('material-requests.show', props.mr.id))
 }
 </script>
@@ -233,6 +234,11 @@ const goBack = () => {
       <template #left>
         <var-button round text @click="goBack">
           <var-icon name="arrow-left" :size="24" />
+        </var-button>
+      </template>
+      <template #right>
+        <var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))">
+          <var-icon name="home-outline" :size="24" />
         </var-button>
       </template>
     </var-app-bar>

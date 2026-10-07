@@ -65,7 +65,10 @@ const poBadge = (s: string) => {
     return 'default'
 }
 
-const goBack = () => router.get(route('dashboard'))
+const goBack = () => {
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(route('dashboard'))
+}
 const printList = () => window.open(baseUrl + '/approval/purchasing/print?' + new URLSearchParams({
     search: searchVal.value,
     factory: factoryVal.value,
@@ -81,6 +84,7 @@ const printList = () => window.open(baseUrl + '/approval/purchasing/print?' + ne
             <template #left><var-button round text @click="goBack"><var-icon name="arrow-left" :size="24" /></var-button></template>
             <template #right>
                 <a :href="baseUrl + '/approval/purchasing/export'"><var-button round text><var-icon name="file-download" :size="22" color="#22c55e" /></var-button></a>
+                <var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button>
             </template>
         </var-app-bar>
         <main class="content">

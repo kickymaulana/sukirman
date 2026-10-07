@@ -29,7 +29,14 @@ const showFmGm = ref(false); const selectedFmGm = ref('')
 const showDirectDireksi = ref(false)
 const showAction = ref(false); const actionType = ref(''); const actionNotes = ref('')
 
-const back = () => router.get(route('dashboard'))
+const back = () => {
+    if (document.referrer.startsWith(window.location.origin)) {
+        window.history.back()
+        return
+    }
+
+    router.get(route('dashboard'))
+}
 
 const openEdit = () => {
     window.location.href = `${baseUrl}/material-requests/${mr.id}/edit`
@@ -212,6 +219,7 @@ const doAction = (type: string) => {
     <div class="layout">
         <var-app-bar :title="mr.mr_number" title-position="center">
             <template #left><var-button round text @click="back"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
             <!-- Ringkas: nomor + status + aksi -->

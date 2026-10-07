@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 
 const props = defineProps<{
     mr: any
@@ -42,7 +42,10 @@ const formatFull = (val: string) => {
 const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 
 const doPrint = () => window.print()
-const goBack = () => window.history.back()
+const goBack = () => {
+  if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+  router.get(route('material-requests.show', mr.id))
+}
 </script>
 
 <template>
@@ -51,6 +54,7 @@ const goBack = () => window.history.back()
   <div class="print-page">
     <div class="toolbar no-print">
       <button class="btn-back" @click="goBack">← Kembali</button>
+      <button class="btn-back" aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="18" /></button>
       <button class="btn-print" @click="doPrint">🖨️ Cetak / Simpan PDF</button>
     </div>
 

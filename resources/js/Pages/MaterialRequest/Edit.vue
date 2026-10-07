@@ -72,6 +72,11 @@ const removeItem = (i: number) => {
     })
 }
 
+const goBack = () => {
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(route('material-requests.show', props.mr.id))
+}
+
 const submit = async () => {
     const toSubmit = submitItems()
     if (toSubmit.some(i => !i.item_name || !i.unit)) { Snackbar.warning('Nama barang & satuan wajib diisi'); return }
@@ -88,7 +93,8 @@ const submit = async () => {
     <Head :title="'Edit ' + mr.mr_number" />
     <div class="layout">
         <var-app-bar :title="'Edit: ' + mr.mr_number" title-position="center">
-            <template #left><var-button round text @click="router.get(route('material-requests.index'))"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #left><var-button round text @click="goBack"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
             <div v-if="mr.revision_notes" class="revision-box">

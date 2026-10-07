@@ -134,6 +134,11 @@ const changeDireksi = () => {
     })
 }
 
+const goBack = () => {
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(route('admin.overview'))
+}
+
 const confirmDelete = () => {
     showDelete.value = false
     router.delete(`${baseUrl}/admin/overview/${props.mr.id}`, {
@@ -146,7 +151,8 @@ const confirmDelete = () => {
     <Head :title="'Koreksi MR ' + mr.mr_number" />
     <div class="layout">
         <var-app-bar :title="'Koreksi: ' + mr.mr_number" title-position="center">
-            <template #left><var-button round text @click="router.get(route('admin.overview'))"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #left><var-button round text @click="goBack"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
 
         <main class="content">

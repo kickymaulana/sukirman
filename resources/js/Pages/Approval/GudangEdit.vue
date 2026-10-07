@@ -34,6 +34,11 @@ const removeItem = (i: number) => {
     })
 }
 
+const goBack = () => {
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(route('approval.gudang'))
+}
+
 const save = () => {
     if (items.value.some(it => !it.item_name.trim() || !it.unit.trim())) { Snackbar.warning('Nama barang & satuan wajib diisi'); return }
     form.items = items.value
@@ -80,7 +85,8 @@ const hideSuggestions = (index: number) => {
     <Head :title="'Edit MR ' + mr.mr_number" />
     <div class="layout">
         <var-app-bar :title="'Edit: ' + mr.mr_number" title-position="center">
-            <template #left><var-button round text @click="router.get(route('approval.gudang'))"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #left><var-button round text @click="goBack"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
 
         <main class="content">

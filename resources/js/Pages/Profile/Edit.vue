@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Head, usePage } from '@inertiajs/vue3'
+import { Head, router, usePage } from '@inertiajs/vue3'
 
 const page = usePage()
 const pp = page.props as any
@@ -36,7 +36,10 @@ const save = async () => {
     } catch { saving.value = false; errorMsg.value = 'Gagal menyimpan profil' }
 }
 
-const back = () => { window.location.href = baseUrl + '/profile' }
+const back = () => {
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(route('profile.index'))
+}
 </script>
 
 <template>
@@ -47,7 +50,7 @@ const back = () => { window.location.href = baseUrl + '/profile' }
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
             </button>
             <h1>Edit Profil</h1>
-            <div style="width:40px"></div>
+            <var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button>
         </div>
 
         <div class="content">

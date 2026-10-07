@@ -19,7 +19,10 @@ const markRead = async (id: string, mrId: number | null) => {
     }
 }
 
-const goBack = () => router.get(route('dashboard'))
+const goBack = () => {
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(route('dashboard'))
+}
 </script>
 
 <template>
@@ -31,6 +34,7 @@ const goBack = () => router.get(route('dashboard'))
                 <var-button round text @click="() => { fetch(baseUrl + '/notifications/read-all', { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf } }).then(() => window.location.reload()) }">
                     <var-icon name="check-all" :size="20" color="#4f46e5" />
                 </var-button>
+                <var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button>
             </template>
         </var-app-bar>
         <main class="content">

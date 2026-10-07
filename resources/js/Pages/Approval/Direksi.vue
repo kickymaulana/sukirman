@@ -12,7 +12,8 @@ const openDetail = (id: number) => { window.location.href = baseUrl + '/material
     <Head title="Direksi - SUKIRMAN" />
     <div class="layout">
         <var-app-bar title="Approval Direksi" title-position="center">
-            <template #left><var-button round text @click="router.get(route('dashboard'))"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #left><var-button round text @click="document.referrer.startsWith(window.location.origin) ? window.history.back() : router.get(route('dashboard'))"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
             <div v-if="!requests.data.length" class="empty">Tidak ada MR</div>

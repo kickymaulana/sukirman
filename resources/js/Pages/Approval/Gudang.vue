@@ -50,7 +50,10 @@ const poBadge = (s: string) => {
     if (s === 'Sebagian') return 'warning'
     return 'default'
 }
-const goBack = () => router.get(route('dashboard'))
+const goBack = () => {
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(route('dashboard'))
+}
 </script>
 
 <template>
@@ -58,6 +61,7 @@ const goBack = () => router.get(route('dashboard'))
     <div class="layout">
         <var-app-bar title="🏭 Gudang" title-position="center">
             <template #left><var-button round text @click="goBack"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
             <div class="filter-bar">

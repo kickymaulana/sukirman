@@ -35,25 +35,23 @@ class DashboardController extends Controller
         $user = auth()->user();
         $roles = $user->getRoleNames();
 
-        $pendingCount = null;
         $role = $roles->first();
-        if (in_array($role, ['admin', 'Admin'])) {
-            $pendingCount = User::where('is_approved', false)->count();
-        } elseif (in_array($role, ['manager', 'Manager'])) {
-            $pendingCount = MaterialRequest::where('manager_id', $user->id)
-                ->where('status_workflow', 'Pending Manager')->count();
-        } elseif (in_array($role, ['fm/gm', 'FM/GM'])) {
-            $pendingCount = MaterialRequest::where('fm_gm_id', $user->id)
-                ->where('status_workflow', 'Pending FM/GM')->count();
-        } elseif (in_array($role, ['MTC', 'IT', 'HRD', 'QMR'])) {
-            $pendingCount = MaterialRequest::where('status_workflow', 'Pending '.$role)->count();
-        } elseif (in_array($role, ['direksi', 'Direksi'])) {
-            $pendingCount = MaterialRequest::where('direksi_id', $user->id)
-                ->where('status_workflow', 'Pending Direksi')->count();
-        } elseif (in_array($role, ['gudang', 'Gudang'])) {
-            $pendingCount = MaterialRequest::where('status_workflow', 'Verifikasi Gudang')->count();
-        } elseif (in_array($role, ['purchasing', 'Purchasing'])) {
-            $pendingCount = MaterialRequest::whereIn('status_workflow', ['Fully Approved', 'Purchasing'])->count();
+        $pendingCounts = [];
+
+        foreach ($roles as $userRole) {
+            $pendingCounts[$userRole] = match ($userRole) {
+                'admin', 'Admin' => User::where('is_approved', false)->count(),
+                'manager', 'Manager' => MaterialRequest::where('manager_id', $user->id)
+                    ->where('status_workflow', 'Pending Manager')->count(),
+                'fm/gm', 'FM/GM' => MaterialRequest::where('fm_gm_id', $user->id)
+                    ->where('status_workflow', 'Pending FM/GM')->count(),
+                'MTC', 'IT', 'HRD', 'QMR' => MaterialRequest::where('status_workflow', 'Pending '.$userRole)->count(),
+                'direksi', 'Direksi' => MaterialRequest::where('direksi_id', $user->id)
+                    ->where('status_workflow', 'Pending Direksi')->count(),
+                'gudang', 'Gudang' => MaterialRequest::where('status_workflow', 'Verifikasi Gudang')->count(),
+                'purchasing', 'Purchasing' => MaterialRequest::whereIn('status_workflow', ['Fully Approved', 'Purchasing'])->count(),
+                default => 0,
+            };
         }
 
         return Inertia::render('Dashboard', [
@@ -61,8 +59,9 @@ class DashboardController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $role,
+                'roles' => $roles->values(),
             ],
-            'pending_count' => $pendingCount,
+            'pending_counts' => $pendingCounts,
             'recentRequests' => $recentRequests,
         ]);
     }

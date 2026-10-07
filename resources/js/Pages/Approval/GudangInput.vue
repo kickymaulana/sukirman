@@ -49,7 +49,10 @@ const markMr = async (value: 'Belum' | 'Sudah') => {
     } catch { markingMr.value = false; Snackbar.error('Gagal') }
 }
 
-const goBack = () => window.location.href = baseUrl + '/approval/gudang'
+const goBack = () => {
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(route('approval.gudang'))
+}
 
 // Photo viewer
 const showPhotoViewer = ref(false)
@@ -72,6 +75,7 @@ const closePhotoViewer = () => {
     <div class="layout">
         <var-app-bar title="🗂️ Input ke Permintaan Barang (Accurate)" title-position="center">
             <template #left><var-button round text @click="goBack"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
             <div class="head-card">

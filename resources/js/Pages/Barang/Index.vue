@@ -89,9 +89,10 @@ const handleFile = async (e: Event) => {
     <Head title="Manajemen Barang - SUKIRMAN" />
     <div class="layout">
         <var-app-bar title="📦 Manajemen Barang" title-position="center">
-            <template #left><var-button round text @click="router.get(route('dashboard'))"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #left><var-button round text @click="document.referrer.startsWith(window.location.origin) ? window.history.back() : router.get(route('dashboard'))"><var-icon name="arrow-left" :size="24" /></var-button></template>
             <template #right>
                 <var-button round text @click="showImport = true"><var-icon name="upload" :size="22" color="#22c55e" /></var-button>
+                <var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button>
             </template>
         </var-app-bar>
 

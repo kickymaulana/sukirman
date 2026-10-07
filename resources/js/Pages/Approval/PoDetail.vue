@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Head, usePage } from '@inertiajs/vue3'
+import { Head, router, usePage } from '@inertiajs/vue3'
 
 const props = defineProps<{ mr: any }>()
 const baseUrl = (usePage().props as any).app_url || ''
@@ -18,7 +18,10 @@ const poStatus = computed(() => {
 })
 const poBadgeType = computed(() => poStatus.value === 'Sudah' ? 'success' : poStatus.value === 'Sebagian' ? 'warning' : 'default')
 
-const goBack = () => window.history.back()
+const goBack = () => {
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(route('approval.gudang'))
+}
 </script>
 
 <template>
@@ -26,6 +29,7 @@ const goBack = () => window.history.back()
     <div class="layout">
         <var-app-bar title="🧾 Detail PO MR" title-position="center">
             <template #left><var-button round text @click="goBack"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
             <div class="head-card">

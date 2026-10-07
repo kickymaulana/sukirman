@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 
 interface RecentRequest {
@@ -17,8 +17,9 @@ const props = defineProps<{
     name: string
     email?: string
     role?: string
+    roles?: string[]
   }
-  pending_count?: number | null
+  pending_counts?: Record<string, number>
   recentRequests?: RecentRequest[]
 }>()
 
@@ -45,12 +46,12 @@ const openDetail = (id: number) => {
   routerInertia.get(baseUrl + '/material-requests/' + id)
 }
 
-const goApproval = () => {
-  const r = props.user?.role?.toLowerCase()
-  const routes: any = { manager: '/approval/manager', 'fm/gm': '/approval/fmgm', direksi: '/approval/direksi', gudang: '/approval/gudang', purchasing: '/approval/purchasing', mtc: '/approval/mtc', it: '/approval/it', hrd: '/approval/hrd', qmr: '/approval/qmr', admin: '/approval/purchasing' }
-  const path = routes[r]
-  if (path) routerInertia.get(baseUrl + path)
-}
+const roles = computed(() => props.user?.roles ?? (props.user?.role ? [props.user.role] : []))
+const hasRole = (...allowedRoles: string[]) => roles.value.some((role) => allowedRoles.includes(role))
+const approvalRoutes: Record<string, string> = { Manager: '/approval/manager', 'FM/GM': '/approval/fmgm', Direksi: '/approval/direksi', Gudang: '/approval/gudang', Purchasing: '/approval/purchasing', MTC: '/approval/mtc', IT: '/approval/it', HRD: '/approval/hrd', QMR: '/approval/qmr' }
+const approvalRoles = computed(() => roles.value.filter((role) => approvalRoutes[role]))
+const goApproval = (role: string) => routerInertia.get(baseUrl + approvalRoutes[role])
+const pendingCount = (role: string) => props.pending_counts?.[role] ?? 0
 const notifList = ref((usePage().props as any).notifications || [])
 const unreadCount = ref((usePage().props as any).unread_count || 0)
 
@@ -60,19 +61,6 @@ const handleLogout = () => {
 
 const handleAddRequest = () => {
   router.get(route('material-requests.create'))
-}
-
-const approvalRoute = () => {
-  const r = props.user?.role?.toLowerCase()
-  if (r === 'manager') return '/approval/manager'
-  if (r === 'fm/gm') return '/approval/fmgm'
-  if (r === 'direksi') return '/approval/direksi'
-  if (r === 'gudang') return '/approval/gudang'
-  if (r === 'purchasing') return '/approval/purchasing'
-  if (r === 'mtc') return '/approval/mtc'
-  if (r === 'it') return '/approval/it'
-  if (r === 'hrd') return '/approval/hrd'
-  return '#'
 }
 
 const handleTabChange = (index: number) => {
@@ -123,7 +111,7 @@ const handleTabChange = (index: number) => {
         </div>
 
         <!-- Dashboard Admin (khusus admin: edit MR & tujuan) -->
-        <div v-if="user?.role === 'admin'" class="menu-card" @click="router.get(baseUrl + '/admin/overview')">
+        <div v-if="hasRole('admin', 'Admin')" class="menu-card" @click="router.get(baseUrl + '/admin/overview')">
           <span class="menu-icon">⚙️</span>
           <span class="menu-title">Dashboard Admin</span>
           <span class="menu-desc">Pantau MR & ubah tujuan approval</span>
@@ -137,62 +125,62 @@ const handleTabChange = (index: number) => {
         </div>
 
          <!-- Statistik Purchasing (admin, Purchasing) -->
-         <div v-if="user?.role && ['admin','Purchasing'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/statistik-purchasing')">
+         <div v-if="hasRole('admin', 'Admin', 'Purchasing')" class="menu-card" @click="router.get(baseUrl + '/statistik-purchasing')">
            <span class="menu-icon">🛒</span>
            <span class="menu-title">Statistik Purchasing</span>
            <span class="menu-desc">Lihat jumlah item yang di-PO per Purchasing</span>
          </div>
 
          <!-- Statistik Direksi (admin, Purchasing) -->
-         <div v-if="user?.role && ['admin','Purchasing'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/statistik-direksi')">
+         <div v-if="hasRole('admin', 'Admin', 'Purchasing')" class="menu-card" @click="router.get(baseUrl + '/statistik-direksi')">
           <span class="menu-icon">👁️</span>
           <span class="menu-title">Statistik Direksi</span>
           <span class="menu-desc">Lihat MR Pending Direksi per direksi</span>
         </div>
 
-        <div v-if="user?.role === 'admin'" class="menu-card" @click="router.get(baseUrl + '/admin/users')">
+        <div v-if="hasRole('admin', 'Admin')" class="menu-card" @click="router.get(baseUrl + '/admin/users')">
           <span class="menu-icon">👥</span>
           <span class="menu-title">Kelola User</span>
-          <span class="menu-desc">{{ pending_count ?? 0 }} user baru menunggu</span>
+          <span class="menu-desc">{{ pendingCount('admin') || pendingCount('Admin') }} user baru menunggu</span>
         </div>
 
         <!-- Kelola Departemen (khusus admin) -->
-        <div v-if="user?.role === 'admin'" class="menu-card" @click="router.get(baseUrl + '/admin/master/departemens')">
+        <div v-if="hasRole('admin', 'Admin')" class="menu-card" @click="router.get(baseUrl + '/admin/master/departemens')">
           <span class="menu-icon">🏷️</span>
           <span class="menu-title">Kelola Departemen</span>
           <span class="menu-desc">Tambah/ubah daftar departemen</span>
         </div>
 
-        <!-- Approval Card (untuk approver) -->
-        <div v-if="user?.role && ['Manager','FM/GM','Direksi','Gudang','Purchasing','MTC','IT','HRD','QMR','admin'].includes(user.role)" class="menu-card approval" @click="goApproval()">
+        <!-- Approval Card (untuk setiap role approver) -->
+        <div v-for="approvalRole in approvalRoles" :key="approvalRole" class="menu-card approval" @click="goApproval(approvalRole)">
           <span class="menu-icon">✅</span>
-          <span class="menu-title">Approval {{ user.role }}</span>
-          <span class="menu-desc">{{ pending_count ?? 0 }} MR menunggu</span>
+          <span class="menu-title">Approval {{ approvalRole }}</span>
+          <span class="menu-desc">{{ pendingCount(approvalRole) }} MR menunggu</span>
         </div>
 
         <!-- Monitoring MR (Gudang, Purchasing, admin) -->
-        <div v-if="user?.role && ['Gudang','Purchasing','admin','FM/GM'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/monitoring-mr')">
+        <div v-if="hasRole('Gudang', 'Purchasing', 'admin', 'Admin', 'FM/GM')" class="menu-card" @click="router.get(baseUrl + '/monitoring-mr')">
           <span class="menu-icon">📋</span>
           <span class="menu-title">Monitoring MR</span>
           <span class="menu-desc">Lihat semua MR (non-Purchasing)</span>
         </div>
 
         <!-- Monitoring Item (Gudang, Purchasing, admin) -->
-        <div v-if="user?.role && ['Gudang','Purchasing','admin','FM/GM'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/monitoring-items')">
+        <div v-if="hasRole('Gudang', 'Purchasing', 'admin', 'Admin', 'FM/GM')" class="menu-card" @click="router.get(baseUrl + '/monitoring-items')">
           <span class="menu-icon">🏷️</span>
           <span class="menu-title">Monitoring Item</span>
           <span class="menu-desc">Lihat semua item & foto dari semua MR</span>
         </div>
 
         <!-- Manajemen Barang (Gudang, Purchasing, admin) -->
-        <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/barangs')">
+        <div v-if="hasRole('Gudang', 'Purchasing', 'admin', 'Admin')" class="menu-card" @click="router.get(baseUrl + '/barangs')">
           <span class="menu-icon">📦</span>
           <span class="menu-title">Manajemen Barang</span>
           <span class="menu-desc">Kelola data barang</span>
         </div>
 
         <!-- Pengaturan (Gudang, Purchasing, admin) -->
-        <div v-if="user?.role && ['Gudang','Purchasing','admin'].includes(user.role)" class="menu-card" @click="router.get(baseUrl + '/settings')">
+        <div v-if="hasRole('Gudang', 'Purchasing', 'admin', 'Admin')" class="menu-card" @click="router.get(baseUrl + '/settings')">
           <span class="menu-icon">⚙️</span>
           <span class="menu-title">Pengaturan</span>
           <span class="menu-desc">Set ID Cabang Accurate</span>

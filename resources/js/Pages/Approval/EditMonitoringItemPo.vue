@@ -38,7 +38,9 @@ const fields = [
     { key: 'tanggal_disetujui_direksi', label: 'Tanggal Disetujui Direksi', type: 'datetime-local' },
 ] as const
 const goBack = () => {
-    if (!saving.value) router.get(props.return_url)
+    if (saving.value) return
+    if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
+    router.get(props.return_url)
 }
 const save = async () => {
     if (saving.value) return
@@ -78,6 +80,7 @@ const save = async () => {
     <div class="layout">
         <var-app-bar :title="`${isCreate ? 'Isi' : 'Edit'} PO`" title-position="center">
             <template #left><var-button round text :disabled="saving" aria-label="Kembali ke monitoring item" @click="goBack"><var-icon name="arrow-left" :size="24" /></var-button></template>
+            <template #right><var-button round text :disabled="saving" aria-label="Ke beranda" @click="router.get(route('dashboard'))"><var-icon name="home-outline" :size="24" /></var-button></template>
         </var-app-bar>
         <main class="content">
             <form class="po-card" :aria-busy="saving" @submit.prevent="save">
