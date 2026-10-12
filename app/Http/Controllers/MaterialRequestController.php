@@ -1103,6 +1103,7 @@ class MaterialRequestController extends Controller
 
         $requests = $query->get()->map(function ($mr) {
             $approved = $mr->approvalLogs->where('role', 'Direksi')->where('action', 'approve')->sortByDesc('id')->first();
+
             return [
                 'mr_number' => $mr->mr_number,
                 'pengaju' => $mr->user?->name,
@@ -1201,10 +1202,10 @@ class MaterialRequestController extends Controller
                     'po_status' => $poStatus,
                     'nomor_pos' => $nomorPos->unique()->values(),
                     'po_users' => $poUsers->unique()->values(),
-                    'accurate_input_at' => $mr->accurate_input_at?->format('d M Y H:i'),
-                    'created_at' => $mr->created_at?->format('d M Y H:i'),
+                    'accurate_input_at' => $mr->accurate_input_at?->timezone('Asia/Jakarta')->format('d M Y h:i A'),
+                    'created_at' => $mr->created_at?->timezone('Asia/Jakarta')->format('d M Y h:i A'),
                     'direksi' => $direksiApproval?->user?->name ?? $mr->direksi?->name,
-                    'direksi_approved_at' => $direksiApproval?->created_at?->format('d M Y H:i'),
+                    'direksi_approved_at' => $direksiApproval?->created_at?->timezone('Asia/Jakarta')->format('d M Y h:i A'),
                     'pengaju' => $mr->user?->name,
                     'departemen' => $mr->user?->departemen?->nama,
                     'items_count' => $total,
