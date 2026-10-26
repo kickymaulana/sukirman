@@ -1533,10 +1533,34 @@ class MaterialRequestController extends Controller
         ]);
     }
 
-    public function statistikPurchasing()
+    public function statistikPurchasing(Request $request)
     {
-        $rows = ItemPoLine::query()
+        $period = in_array($request->input('period'), ['all', 'week', 'month', 'custom'], true)
+            ? $request->input('period')
+            : 'all';
+        $startDate = null;
+        $endDate = null;
+
+        if ($period === 'week') {
+            $startDate = now()->startOfWeek()->toDateString();
+            $endDate = now()->endOfWeek()->toDateString();
+        } elseif ($period === 'month') {
+            $startDate = now()->startOfMonth()->toDateString();
+            $endDate = now()->endOfMonth()->toDateString();
+        } elseif ($period === 'custom') {
+            $validated = $request->validate([
+                'start_date' => ['required', 'date'],
+                'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            ]);
+            $startDate = $validated['start_date'];
+            $endDate = $validated['end_date'];
+        }
+
+        $query = ItemPoLine::query()
             ->whereNotNull('user_id')
+            ->when($startDate && $endDate, fn ($q) => $q->whereBetween('tgl_po', [$startDate, $endDate]));
+
+        $rows = (clone $query)
             ->selectRaw('user_id, count(distinct material_request_item_id) as total')
             ->with('user:id,name,nik')
             ->groupBy('user_id')
@@ -1552,7 +1576,12 @@ class MaterialRequestController extends Controller
 
         return Inertia::render('StatistikPurchasing', [
             'purchasings' => $rows,
-            'total_all' => ItemPoLine::query()->whereNotNull('user_id')->distinct('material_request_item_id')->count('material_request_item_id'),
+            'total_all' => (clone $query)->distinct('material_request_item_id')->count('material_request_item_id'),
+            'filters' => [
+                'period' => $period,
+                'start_date' => $startDate ?? '',
+                'end_date' => $endDate ?? '',
+            ],
         ]);
     }
 

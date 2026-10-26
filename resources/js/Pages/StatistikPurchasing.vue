@@ -1,10 +1,21 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 
 interface Purchasing { id: number; name: string; nik: string | null; total: number }
+interface Filters { period: 'all' | 'week' | 'month' | 'custom'; start_date: string; end_date: string }
 
-const props = defineProps<{ purchasings: Purchasing[]; total_all: number }>()
+const props = defineProps<{ purchasings: Purchasing[]; total_all: number; filters: Filters }>()
 const baseUrl = (usePage().props as any).app_url || ''
+const period = ref<Filters['period']>(props.filters.period)
+const startDate = ref(props.filters.start_date)
+const endDate = ref(props.filters.end_date)
+const applyFilter = () => {
+    router.get(route('statistik-purchasing'), {
+        period: period.value,
+        ...(period.value === 'custom' ? { start_date: startDate.value, end_date: endDate.value } : {}),
+    }, { preserveState: true, replace: true })
+}
 const openPurchasing = (id: number) => {
     window.location.href = `${baseUrl}/monitoring-items?purchasing_user_id=${id}`
 }
@@ -25,7 +36,23 @@ const goBack = () => {
             <div class="head-bar">
                 <div>
                     <h2 class="title">Item yang Di-PO</h2>
-                    <p class="sub">{{ total_all }} item sudah memiliki PO. Klik nama untuk melihat detail.</p>
+                    <p class="sub">{{ total_all }} item sudah memiliki PO berdasarkan tanggal PO.</p>
+                </div>
+            </div>
+            <div class="filter-card">
+                <label class="filter-label" for="period">Periode tanggal PO</label>
+                <div class="filter-line">
+                    <select id="period" v-model="period" class="filter-select">
+                        <option value="all">Semua tanggal</option>
+                        <option value="week">Minggu ini</option>
+                        <option value="month">Bulan ini</option>
+                        <option value="custom">Rentang tanggal</option>
+                    </select>
+                    <button class="apply-button" type="button" @click="applyFilter">Terapkan</button>
+                </div>
+                <div v-if="period === 'custom'" class="date-line">
+                    <label>Dari <input v-model="startDate" type="date" class="date-input" /></label>
+                    <label>Sampai <input v-model="endDate" type="date" class="date-input" /></label>
                 </div>
             </div>
             <div class="list">
@@ -49,6 +76,13 @@ const goBack = () => {
 .content { flex:1;padding:16px 24px 60px;display:flex;flex-direction:column;gap:14px;max-width:840px;margin:0 auto;width:100%; }
 .title { margin:0;font-size:20px;font-weight:800;color:#0f172a; }
 .sub { margin:4px 0 0;font-size:13px;color:#64748b; }
+.filter-card { background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px; }
+.filter-label { display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:8px; }
+.filter-line { display:flex;gap:8px; }
+.filter-select,.date-input { flex:1;border:1px solid #cbd5e1;border-radius:8px;padding:9px;background:#fff;color:#0f172a;font:inherit; }
+.apply-button { border:0;border-radius:8px;padding:9px 16px;background:#4f46e5;color:#fff;font-weight:700;cursor:pointer; }
+.date-line { display:flex;gap:12px;margin-top:10px;font-size:12px;color:#475569; }
+.date-input { display:block;margin-top:4px; }
 .list { display:flex;flex-direction:column;gap:8px; }
 .row { display:flex;align-items:center;gap:14px;padding:12px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;cursor:pointer;font-family:inherit;width:100%;text-align:left; }
 .row:hover { background:#eef2ff;border-color:#c7d2fe; }
