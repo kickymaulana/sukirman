@@ -1289,6 +1289,7 @@ class MaterialRequestController extends Controller
         $jenis = $request->input('jenis');
         $status = $request->input('status');
         $type = in_array($request->query('type'), ['Lokal', 'Import'], true) ? $request->query('type') : '';
+        $expectedDate = in_array($request->query('expected_date'), ['filled', 'missing'], true) ? $request->query('expected_date') : '';
         $purchasingUserId = $request->validate([
             'purchasing_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ])['purchasing_user_id'] ?? null;
@@ -1319,6 +1320,8 @@ class MaterialRequestController extends Controller
             ->when($jenis, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('jenis', $jenis)))
             ->when($status, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('status_workflow', $status)))
             ->when($purchasingUserId, fn ($q) => $q->whereHas('item_po_lines', fn ($po) => $po->where('user_id', $purchasingUserId)))
+            ->when($expectedDate === 'filled', fn ($q) => $q->whereHas('item_po_lines', fn ($po) => $po->whereNotNull('expected_date')))
+            ->when($expectedDate === 'missing', fn ($q) => $q->whereHas('item_po_lines', fn ($po) => $po->whereNull('expected_date')))
             ->latest();
 
         $items = $query->paginate(10)->withQueryString()
@@ -1362,7 +1365,7 @@ class MaterialRequestController extends Controller
         return Inertia::render('Approval/MonitoringItems', [
             'can_edit_po' => $request->user()?->hasAnyRole('Purchasing|admin') ?? false,
             'items' => $items,
-            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'jenis' => $jenis ?? '', 'status' => $status ?? '', 'type' => $type, 'purchasing_user_id' => $purchasingUserId ?? ''],
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'jenis' => $jenis ?? '', 'status' => $status ?? '', 'type' => $type, 'expected_date' => $expectedDate, 'purchasing_user_id' => $purchasingUserId ?? ''],
             'allPoInputUsers' => User::query()
                 ->whereIn('id', ItemPoLine::query()->whereNotNull('user_id')->select('user_id'))
                 ->orderBy('name')

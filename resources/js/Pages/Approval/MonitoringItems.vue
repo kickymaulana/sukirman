@@ -39,7 +39,7 @@ interface Item {
 
 const props = defineProps<{
     items: { data: Item[]; links: any[]; from: number; to: number; total: number; prev_page_url: string|null; next_page_url: string|null }
-    filters?: { search?: string; factory?: string; jenis?: string; status?: string; type?: string; purchasing_user_id?: string | number }
+    filters?: { search?: string; factory?: string; jenis?: string; status?: string; type?: string; expected_date?: string; purchasing_user_id?: string | number }
     can_edit_po: boolean
     allPoInputUsers: { id: number; name: string }[]
     allFactories: string[]
@@ -53,6 +53,7 @@ const factoryVal = ref(props.filters?.factory || '')
 const jenisVal = ref(props.filters?.jenis || '')
 const statusVal = ref(props.filters?.status || '')
 const typeVal = ref(props.filters?.type || '')
+const expectedDateVal = ref(props.filters?.expected_date || '')
 const purchasingUserIdVal = ref(String(props.filters?.purchasing_user_id || ''))
 
 const poPageParams = () => {
@@ -77,6 +78,7 @@ const applyFilters = () => {
         jenis: jenisVal.value || undefined,
         status: statusVal.value || undefined,
          type: typeVal.value || undefined,
+         expected_date: expectedDateVal.value || undefined,
          purchasing_user_id: purchasingUserIdVal.value || undefined,
      }, { preserveState: true })
 }
@@ -128,7 +130,12 @@ const showPhoto = (id: number, name: string) => {
                     <var-option label="Lokal" value="Lokal" />
                     <var-option label="Import" value="Import" />
                 </var-select>
-                <var-select v-model="statusVal" placeholder="Semua Status" style="width:200px" @change="applyFilters">
+                 <var-select v-model="expectedDateVal" placeholder="Expected date" aria-label="Expected date" style="width:200px" @change="applyFilters">
+                     <var-option label="Semua Expected date" value="" />
+                     <var-option label="Sudah diisi" value="filled" />
+                     <var-option label="Belum diisi" value="missing" />
+                 </var-select>
+                 <var-select v-model="statusVal" placeholder="Semua Status" style="width:200px" @change="applyFilters">
                     <var-option label="Semua Status" value="" />
                     <var-option v-for="s in allStatuses" :key="s" :label="s" :value="s" />
                 </var-select>
@@ -156,7 +163,7 @@ const showPhoto = (id: number, name: string) => {
                          <div class="purchasing-status">Status Purchasing: <strong>{{ it.purchasing_status }}</strong></div>
                          <div v-if="it.purchasing_note" class="purchasing-note">Keterangan: {{ it.purchasing_note }}</div>
                         <div v-for="po in it.po_lines" :key="po.id" class="ispec">
-                            PO: {{ po.nomor_po?.trim() || 'Nomor belum diisi' }} · Purchasing: {{ po.purchasing }}
+                             PO: {{ po.nomor_po?.trim() || 'Nomor belum diisi' }} · Purchasing: {{ po.purchasing }} · Expected tiba: {{ po.expected_date || 'Belum diisi' }}
                             <var-button v-if="can_edit_po" size="mini" text type="primary" :aria-label="`Edit PO ${po.nomor_po?.trim() || po.id} untuk ${it.item_name}`" @click="editPo(it, po)">Edit PO</var-button>
                         </div>
                         <span v-if="!it.po_lines.length" class="ispec">Belum ada PO</span>

@@ -128,6 +128,13 @@ class MonitoringItemsTest extends TestCase
             $this->assertSame([1], array_column($props['items']['data'], 'id'));
             $this->assertSame('PO-002', $props['filters']['search']);
 
+            $request = Request::create('/monitoring-items', 'GET', ['expected_date' => 'missing']);
+            $request->headers->set('X-Inertia', 'true');
+            $response = app(MaterialRequestController::class)->monitoringItemsIndex($request)->toResponse($request);
+            $props = $response->getData(true)['props'];
+            $this->assertSame([1, 2, 3], array_column($props['items']['data'], 'id'));
+            $this->assertSame('missing', $props['filters']['expected_date']);
+
             foreach (['' => [1, 2, 3, 4], 'Lokal' => [2], 'Import' => [1], 'invalid' => [1, 2, 3, 4]] as $type => $expectedIds) {
                 $request = Request::create('/monitoring-items', 'GET', ['type' => $type]);
                 $request->headers->set('X-Inertia', 'true');
