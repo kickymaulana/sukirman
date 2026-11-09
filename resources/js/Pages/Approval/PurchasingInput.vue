@@ -13,8 +13,18 @@ const mr = props.mr
 
 interface Line { qty: string; nomor_po: string; tgl_po: string; expected_date: string; tgl_setuju: string }
 interface Row {
-    id: number; kode: string; nama: string; qty: number; unit: string; dept: string; foto: string | null
+    id: number; kode: string; nama: string; qty: number; unit: string; type: string; dept: string; foto: string | null
     lines: Line[]
+}
+
+const calculateExpectedDate = (approvedAt: string, type: string) => {
+    const datePart = approvedAt.slice(0, 10)
+    if (!datePart) return ''
+    const [year, month, day] = datePart.split('-').map(Number)
+    if (!year || !month || !day) return ''
+    const date = new Date(Date.UTC(year, month - 1, day))
+    date.setUTCDate(date.getUTCDate() + (type === 'Import' ? 45 : 3))
+    return date.toISOString().slice(0, 10)
 }
 
 const items = ref<Row[]>((mr.items || []).map((it: any) => ({
@@ -23,13 +33,14 @@ const items = ref<Row[]>((mr.items || []).map((it: any) => ({
     nama: it.item_name,
     qty: it.qty,
     unit: it.unit,
+    type: it.type || 'Lokal',
     dept: it.departemen?.nama || '',
     foto: it.foto || null,
     lines: (it.item_po_lines || []).map((l: any) => ({
         qty: String(l.qty),
         nomor_po: l.nomor_po || '',
         tgl_po: l.tgl_po || '',
-        expected_date: l.expected_date || '',
+        expected_date: l.expected_date || calculateExpectedDate(l.tanggal_disetujui_direksi ? String(l.tanggal_disetujui_direksi).replace(' ', 'T').slice(0, 16) : '', it.type || 'Lokal'),
         tgl_setuju: l.tanggal_disetujui_direksi ? String(l.tanggal_disetujui_direksi).replace(' ', 'T').slice(0, 16) : '',
     })),
 })))
@@ -47,6 +58,10 @@ const copyText = async (text: string) => {
 const covered = (r: Row) => r.lines.reduce((s, l) => s + (Number(l.qty) || 0), 0)
 const remaining = (r: Row) => r.qty - covered(r)
 
+const updateExpectedDate = (line: Line, type: string) => {
+    line.expected_date = calculateExpectedDate(line.tgl_setuju, type)
+}
+
 const addLine = (r: Row) => {
     r.lines.push({ qty: String(r.qty - covered(r)), nomor_po: bulkPo.value.trim(), tgl_po: '', expected_date: '', tgl_setuju: '' })
 }
@@ -62,7 +77,7 @@ const applyBulk = () => {
                 qty: String(sisa),
                 nomor_po: bulkPo.value.trim(),
                 tgl_po: bulkTglPo.value,
-                expected_date: bulkExpected.value,
+                expected_date: bulkExpected.value || calculateExpectedDate(bulkTanggalSetuju.value, r.type),
                 tgl_setuju: bulkTanggalSetuju.value,
             })
             added++
@@ -198,7 +213,7 @@ const closePhotoViewer = () => {
                             <td><input v-model="l.nomor_po" type="text" placeholder="Nomor PO..." class="po-input" /></td>
                             <td><input v-model="l.tgl_po" type="date" class="po-input" /></td>
                             <td><input v-model="l.expected_date" type="date" class="po-input" /></td>
-                            <td><input v-model="l.tgl_setuju" type="datetime-local" class="po-input" /></td>
+                            <td><input v-model="l.tgl_setuju" type="datetime-local" class="po-input" @change="updateExpectedDate(l, r.type)" /></td>
                             <td><button class="btn-x" @click="removeLine(r, li)">X</button></td>
                         </tr>
                         <tr v-if="!r.lines.length"><td colspan="6" class="minor">Belum ada baris PO. Klik "+ Tambah Baris".</td></tr>

@@ -1392,6 +1392,7 @@ class MaterialRequestController extends Controller
                 'id' => $item->id,
                 'item_code' => $item->item_code,
                 'item_name' => $item->item_name,
+                'type' => $item->type,
                 'mr_number' => $item->materialRequest?->mr_number,
                 'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
                 'purchasing_note' => $item->purchasing_note,
@@ -1400,6 +1401,17 @@ class MaterialRequestController extends Controller
             'remaining_qty' => $remainingQty,
             'return_url' => route('monitoring.items', $this->monitoringItemFilters($request)),
         ]);
+    }
+
+    private function calculateExpectedDate(?string $approvedAt, ?string $type): ?string
+    {
+        if (! $approvedAt) {
+            return null;
+        }
+
+        $date = new \DateTimeImmutable(substr(str_replace('T', ' ', $approvedAt), 0, 10));
+
+        return $date->modify($type === 'Import' ? '+45 days' : '+3 days')->format('Y-m-d');
     }
 
     public function storeMonitoringItemPo(Request $request, MaterialRequestItem $item)
@@ -1433,7 +1445,7 @@ class MaterialRequestController extends Controller
                 'qty' => $validated['qty'],
                 'nomor_po' => $nomorPo !== '' ? $nomorPo : null,
                 'tgl_po' => $validated['tgl_po'] ?? null,
-                'expected_date' => $validated['expected_date'] ?? null,
+                'expected_date' => $validated['expected_date'] ?? $this->calculateExpectedDate($validated['tanggal_disetujui_direksi'] ?? null, $lockedItem->type),
                 'tanggal_disetujui_direksi' => isset($validated['tanggal_disetujui_direksi'])
                     ? str_replace('T', ' ', $validated['tanggal_disetujui_direksi'])
                     : null,
@@ -1453,6 +1465,7 @@ class MaterialRequestController extends Controller
                 'id' => $item->id,
                 'item_code' => $item->item_code,
                 'item_name' => $item->item_name,
+                'type' => $item->type,
                 'mr_number' => $item->materialRequest?->mr_number,
                 'purchasing_status' => $item->purchasing_status ?: 'Menunggu',
                 'purchasing_note' => $item->purchasing_note,
@@ -1687,7 +1700,9 @@ class MaterialRequestController extends Controller
                     'qty' => (int) $line['qty'],
                     'nomor_po' => ! empty($line['nomor_po']) ? $line['nomor_po'] : null,
                     'tgl_po' => ! empty($line['tgl_po']) ? $line['tgl_po'] : null,
-                    'expected_date' => ! empty($line['expected_date']) ? $line['expected_date'] : null,
+                    'expected_date' => ! empty($line['expected_date'])
+                        ? $line['expected_date']
+                        : $this->calculateExpectedDate($tglSetuju, $mrItem->type),
                     'tanggal_disetujui_direksi' => $tglSetuju,
                     'user_id' => auth()->id(),
                 ]);

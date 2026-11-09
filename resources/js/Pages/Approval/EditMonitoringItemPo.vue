@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { Head, router, usePage } from '@inertiajs/vue3'
 
 interface PoLine {
@@ -11,7 +11,7 @@ interface PoLine {
 }
 
 const props = defineProps<{
-    item: { id: number; item_code: string | null; item_name: string; mr_number: string | null; purchasing_status: string; purchasing_note: string | null }
+    item: { id: number; item_code: string | null; item_name: string; type: string | null; mr_number: string | null; purchasing_status: string; purchasing_note: string | null }
     line: PoLine | null
     remaining_qty: number | null
     return_url: string
@@ -31,6 +31,20 @@ const form = ref({
      purchasing_status: props.item.purchasing_status || 'Menunggu',
      purchasing_note: props.item.purchasing_note || '',
 })
+const calculateExpectedDate = (approvedAt: string, type: string | null) => {
+    const datePart = approvedAt.slice(0, 10)
+    if (!datePart) return ''
+    const [year, month, day] = datePart.split('-').map(Number)
+    if (!year || !month || !day) return ''
+    const date = new Date(Date.UTC(year, month - 1, day))
+    date.setUTCDate(date.getUTCDate() + (type === 'Import' ? 45 : 3))
+    return date.toISOString().slice(0, 10)
+}
+
+watch(() => form.value.tanggal_disetujui_direksi, (approvedAt) => {
+    form.value.expected_date = calculateExpectedDate(approvedAt, props.item.type)
+})
+
 const fields = [
     { key: 'nomor_po', label: 'Nomor PO', type: 'text' },
     { key: 'tgl_po', label: 'Tanggal PO', type: 'date' },
