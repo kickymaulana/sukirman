@@ -149,7 +149,7 @@ class MonitoringItemsTest extends TestCase
                 'id' => 1, 'mr_number' => 'MR-001', 'factory' => 'KIM', 'jenis' => 'IT', 'status_workflow' => 'Purchasing',
             ]);
             DB::table('material_request_items')->whereIn('id', [1, 2])->update(['material_request_id' => 1]);
-            $filters = ['type' => 'Lokal', 'search' => 'item', 'factory' => 'KIM', 'jenis' => 'IT', 'status' => 'Purchasing'];
+            $filters = ['type' => 'Lokal', 'search' => 'item', 'factory' => 'KIM', 'jenis' => 'IT'];
             $request = Request::create('/monitoring-items', 'GET', $filters);
             $request->headers->set('X-Inertia', 'true');
             $this->app->instance('request', $request);

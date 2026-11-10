@@ -1287,7 +1287,6 @@ class MaterialRequestController extends Controller
         $search = $request->input('search');
         $factory = $request->input('factory');
         $jenis = $request->input('jenis');
-        $status = $request->input('status');
         $type = in_array($request->query('type'), ['Lokal', 'Import'], true) ? $request->query('type') : '';
         $expectedDate = in_array($request->query('expected_date'), ['filled', 'missing'], true) ? $request->query('expected_date') : '';
         $purchasingUserId = $request->validate([
@@ -1318,7 +1317,6 @@ class MaterialRequestController extends Controller
             ->when($factory, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('factory', $factory)))
             ->when($type, fn ($q) => $q->where('type', $type))
             ->when($jenis, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('jenis', $jenis)))
-            ->when($status, fn ($q) => $q->whereHas('materialRequest', fn ($m) => $m->where('status_workflow', $status)))
             ->when($purchasingUserId, fn ($q) => $q->whereHas('item_po_lines', fn ($po) => $po->where('user_id', $purchasingUserId)))
             ->when($expectedDate === 'filled', fn ($q) => $q->whereHas('item_po_lines', fn ($po) => $po->whereNotNull('expected_date')))
             ->when($expectedDate === 'missing', fn ($q) => $q->whereHas('item_po_lines', fn ($po) => $po->whereNull('expected_date')))
@@ -1365,18 +1363,13 @@ class MaterialRequestController extends Controller
         return Inertia::render('Approval/MonitoringItems', [
             'can_edit_po' => $request->user()?->hasAnyRole('Purchasing|admin') ?? false,
             'items' => $items,
-            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'jenis' => $jenis ?? '', 'status' => $status ?? '', 'type' => $type, 'expected_date' => $expectedDate, 'purchasing_user_id' => $purchasingUserId ?? ''],
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'jenis' => $jenis ?? '', 'type' => $type, 'expected_date' => $expectedDate, 'purchasing_user_id' => $purchasingUserId ?? ''],
             'allPoInputUsers' => User::query()
                 ->whereIn('id', ItemPoLine::query()->whereNotNull('user_id')->select('user_id'))
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
             'allJenis' => ['UMUM', 'MTC', 'IT', 'HRD', 'QMR'],
-            'allStatuses' => [
-                'Pending Manager', 'Pending FM/GM', 'Pending Direksi',
-                'Pending MTC', 'Pending IT', 'Pending HRD', 'Pending QMR',
-                'Verifikasi Gudang', 'Fully Approved', 'Purchasing', 'Rejected', 'Revision',
-            ],
         ]);
     }
 

@@ -39,19 +39,17 @@ interface Item {
 
 const props = defineProps<{
     items: { data: Item[]; links: any[]; from: number; to: number; total: number; prev_page_url: string|null; next_page_url: string|null }
-    filters?: { search?: string; factory?: string; jenis?: string; status?: string; type?: string; expected_date?: string; purchasing_user_id?: string | number }
+    filters?: { search?: string; factory?: string; jenis?: string; type?: string; expected_date?: string; purchasing_user_id?: string | number }
     can_edit_po: boolean
     allPoInputUsers: { id: number; name: string }[]
     allFactories: string[]
     allJenis: string[]
-    allStatuses: string[]
 }>()
 
 const baseUrl = (usePage().props as any).app_url || ''
 const searchVal = ref(props.filters?.search || '')
 const factoryVal = ref(props.filters?.factory || '')
 const jenisVal = ref(props.filters?.jenis || '')
-const statusVal = ref(props.filters?.status || '')
 const typeVal = ref(props.filters?.type || '')
 const expectedDateVal = ref(props.filters?.expected_date || '')
 const purchasingUserIdVal = ref(String(props.filters?.purchasing_user_id || ''))
@@ -76,7 +74,6 @@ const applyFilters = () => {
         search: searchVal.value || undefined,
         factory: factoryVal.value || undefined,
         jenis: jenisVal.value || undefined,
-        status: statusVal.value || undefined,
          type: typeVal.value || undefined,
          expected_date: expectedDateVal.value || undefined,
          purchasing_user_id: purchasingUserIdVal.value || undefined,
@@ -112,7 +109,7 @@ const showPhoto = (id: number, name: string) => {
         </var-app-bar>
         <main class="content">
             <div class="filter-bar">
-                <var-input v-model="searchVal" placeholder="Cari item / kode / PO / MR / nama / NIK..." clearable @keyup.enter="applyFilters" style="flex:1;max-width:320px" />
+                <var-input v-model="searchVal" placeholder="Cari item / kode / PO / MR / nama / NIK..." clearable @keyup.enter="applyFilters" style="flex:1;min-width:320px" />
                 <var-select v-model="factoryVal" placeholder="Semua Factory" style="width:200px" @change="applyFilters">
                     <var-option label="Semua Factory" value="" />
                     <var-option v-for="f in allFactories" :key="f" :label="f" :value="f" />
@@ -130,16 +127,12 @@ const showPhoto = (id: number, name: string) => {
                     <var-option label="Lokal" value="Lokal" />
                     <var-option label="Import" value="Import" />
                 </var-select>
-                 <var-select v-model="expectedDateVal" placeholder="Expected date" aria-label="Expected date" style="width:200px" @change="applyFilters">
-                     <var-option label="Semua Expected date" value="" />
-                     <var-option label="Sudah diisi" value="filled" />
-                     <var-option label="Belum diisi" value="missing" />
-                 </var-select>
-                 <var-select v-model="statusVal" placeholder="Semua Status" style="width:200px" @change="applyFilters">
-                    <var-option label="Semua Status" value="" />
-                    <var-option v-for="s in allStatuses" :key="s" :label="s" :value="s" />
-                </var-select>
-                <var-button type="primary" @click="applyFilters"><var-icon name="magnify" :size="16" /></var-button>
+                  <var-select v-model="expectedDateVal" placeholder="Expected date" aria-label="Expected date" style="width:200px" @change="applyFilters">
+                      <var-option label="Semua Expected date" value="" />
+                      <var-option label="Sudah diisi" value="filled" />
+                      <var-option label="Belum diisi" value="missing" />
+                  </var-select>
+                 <var-button type="primary" @click="applyFilters"><var-icon name="magnify" :size="16" /></var-button>
             </div>
 
             <div class="info-bar">Menampilkan {{ items.from }}–{{ items.to }} dari {{ items.total }} item</div>
