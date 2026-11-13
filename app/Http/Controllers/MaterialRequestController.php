@@ -8,6 +8,7 @@ use App\Models\Departemen;
 use App\Models\ItemPoLine;
 use App\Models\MaterialRequest;
 use App\Models\MaterialRequestItem;
+use App\Models\MaterialRequestPrint;
 use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\MrNotification;
@@ -258,6 +259,25 @@ class MaterialRequestController extends Controller
             'skipFmGm' => $skipFmGm,
             'direksiApproved' => $direksiApproved,
             'direksiApproverName' => $direksiApproverName,
+            'canRecordPurchasingPrint' => auth()->user()?->hasRole('Purchasing') ?? false,
+        ]);
+    }
+
+    public function recordPurchasingPrint(Request $request, $id)
+    {
+        $user = $request->user();
+        $materialRequest = MaterialRequest::findOrFail($id);
+
+        abort_unless($user?->hasRole('Purchasing'), 403);
+
+        $print = MaterialRequestPrint::create([
+            'material_request_id' => $materialRequest->id,
+            'user_id' => $user->id,
+        ]);
+
+        return response()->json([
+            'printed_by' => $user->name,
+            'printed_at' => $print->created_at?->timezone('Asia/Jakarta')->format('d M Y H:i'),
         ]);
     }
 
@@ -1129,10 +1149,11 @@ class MaterialRequestController extends Controller
         $factory = $request->input('factory');
         $type = $request->input('type');
         $poStatus = $request->input('po_status');
+        $printStatus = in_array($request->input('print_status'), ['printed', 'unprinted'], true) ? $request->input('print_status') : '';
         $accurateSort = $request->input('accurate_sort', 'desc');
         $accurateSort = in_array($accurateSort, ['asc', 'desc'], true) ? $accurateSort : 'desc';
 
-        $query = MaterialRequest::with(['user.departemen', 'direksi', 'items', 'items.item_po_lines.user', 'approvalLogs.user'])
+        $query = MaterialRequest::with(['user.departemen', 'direksi', 'items', 'items.item_po_lines.user', 'approvalLogs.user', 'latestPurchasingPrint.user'])
             ->where('status_workflow', 'Purchasing')
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
@@ -1157,6 +1178,8 @@ class MaterialRequestController extends Controller
                         $it->whereRaw('(SELECT COALESCE(SUM(qty), 0) FROM item_po_lines WHERE material_request_item_id = material_request_items.id) < material_request_items.qty');
                     });
             })
+            ->when($printStatus === 'printed', fn ($q) => $q->whereHas('printEvents'))
+            ->when($printStatus === 'unprinted', fn ($q) => $q->whereDoesntHave('printEvents'))
             ->orderByRaw('accurate_input_at IS NULL')
             ->orderBy('accurate_input_at', $accurateSort)
             ->orderByDesc('id');
@@ -1209,6 +1232,8 @@ class MaterialRequestController extends Controller
                     'pengaju' => $mr->user?->name,
                     'departemen' => $mr->user?->departemen?->nama,
                     'items_count' => $total,
+                    'purchasing_printed_by' => $mr->latestPurchasingPrint?->user?->name,
+                    'purchasing_printed_at' => $mr->latestPurchasingPrint?->created_at?->timezone('Asia/Jakarta')->format('d M Y H:i'),
                 ];
             });
 
@@ -1222,7 +1247,7 @@ class MaterialRequestController extends Controller
 
         return Inertia::render('Approval/Purchasing', [
             'requests' => $requests,
-            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'type' => $type ?? '', 'po_status' => $poStatus ?? '', 'accurate_sort' => $accurateSort],
+            'filters' => ['search' => $search ?? '', 'factory' => $factory ?? '', 'type' => $type ?? '', 'po_status' => $poStatus ?? '', 'print_status' => $printStatus, 'accurate_sort' => $accurateSort],
             'topUsers' => $topUsers,
             'allFactories' => ['KIM', 'DALU 1', 'DALU 2'],
         ]);
@@ -1785,7 +1810,9 @@ class MaterialRequestController extends Controller
 
     public function show($id)
     {
-        $mr = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user', 'approvalLogs.user', 'manager', 'direksi', 'fmGm'])->findOrFail($id);
+        $mr = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user', 'approvalLogs.user', 'printEvents.user', 'manager', 'direksi', 'fmGm'])->findOrFail($id);
+        $mr->setRelation('printEvents', $mr->printEvents->sortByDesc('id')->values());
+        $mr->printEvents->each(fn ($print) => $print->setAttribute('created_at', $print->created_at?->timezone('Asia/Jakarta')->format('d M Y H:i')));
         $user = auth()->user();
         $role = $user->getRoleNames()->first();
 

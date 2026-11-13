@@ -45,6 +45,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/po-detail/{id}', 'poDetail')->name('material-requests.po-detail');
         Route::get('/item-foto/{id}', 'itemFoto')->name('material-requests.item-foto');
         Route::get('/material-requests/{id}/print', 'print')->name('material-requests.print');
+        Route::post('/material-requests/{id}/purchasing-print', 'recordPurchasingPrint')->name('material-requests.purchasing-print');
         Route::get('/material-requests/{id}/xml', 'downloadXml')->name('material-requests.xml-download');
         Route::get('/material-requests/{id}/check-xml', 'checkXmlSkips')->name('material-requests.xml-check');
         Route::get('/material-requests/{id}/edit-revision', 'revisionEdit')->name('material-requests.revision-edit');

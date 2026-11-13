@@ -73,4 +73,14 @@ class MaterialRequest extends Model
     {
         return $this->hasMany(ApprovalLog::class);
     }
+
+    public function printEvents()
+    {
+        return $this->hasMany(MaterialRequestPrint::class);
+    }
+
+    public function latestPurchasingPrint()
+    {
+        return $this->hasOne(MaterialRequestPrint::class)->latestOfMany();
+    }
 }

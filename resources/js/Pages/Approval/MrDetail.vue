@@ -295,14 +295,24 @@ const doAction = (type: string) => {
 
             <!-- Riwayat -->
             <div class="card">
-                <div class="lbl">Riwayat</div>
-                <div v-for="log in mr.approval_logs" :key="log.id" class="log-row">
-                    <span class="lr">{{ log.role }}</span>
-                    <span class="la">{{ logLabel(log.action) }}</span>
-                    <span class="lu">{{ log.user?.name }}</span>
-                </div>
-                <div v-if="!mr.approval_logs?.length" class="empty">Belum ada riwayat</div>
-            </div>
+                 <div class="lbl">Riwayat Approval</div>
+                 <div v-for="log in mr.approval_logs" :key="log.id" class="log-row">
+                     <span class="lr">{{ log.role }}</span>
+                     <span class="la">{{ logLabel(log.action) }}</span>
+                     <span class="lu">{{ log.user?.name }}</span>
+                 </div>
+                 <div v-if="!mr.approval_logs?.length" class="empty">Belum ada riwayat approval</div>
+             </div>
+
+             <div class="card">
+                 <div class="lbl">Riwayat Cetak Purchasing</div>
+                 <div v-for="print in mr.print_events" :key="print.id" class="log-row">
+                     <span class="lr">Dicetak</span>
+                     <span class="la">{{ print.user?.name }}</span>
+                     <span class="lu">{{ print.created_at }}</span>
+                 </div>
+                 <div v-if="!mr.print_events?.length" class="empty">Belum pernah dicetak oleh Purchasing</div>
+             </div>
         </main>
 
         <!-- Forward Dialog (FM/GM ke Direksi) -->

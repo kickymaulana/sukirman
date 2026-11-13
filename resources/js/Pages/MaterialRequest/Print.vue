@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3'
+import { Head, router, usePage } from '@inertiajs/vue3'
 
 const props = defineProps<{
     mr: any
@@ -13,6 +13,7 @@ const props = defineProps<{
     skipFmGm?: boolean
     direksiApproved?: boolean
     direksiApproverName?: string | null
+    canRecordPurchasingPrint?: boolean
 }>()
 
 const mr = props.mr
@@ -40,8 +41,25 @@ const formatFull = (val: string) => {
 }
 
 const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+const page = usePage()
+const baseUrl = (page.props as any).app_url || ''
+const isPurchasing = props.canRecordPurchasingPrint === true
 
-const doPrint = () => window.print()
+const doPrint = async () => {
+  if (isPurchasing) {
+    const response = await fetch(`${baseUrl}/material-requests/${mr.id}/purchasing-print`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': String((page.props as any).csrf_token || ''),
+      },
+    })
+
+    if (!response.ok) return
+  }
+
+  window.print()
+}
 const goBack = () => {
   if (document.referrer.startsWith(window.location.origin)) { window.history.back(); return }
   router.get(route('material-requests.show', mr.id))

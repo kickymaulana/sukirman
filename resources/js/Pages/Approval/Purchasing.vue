@@ -18,11 +18,13 @@ interface MR {
     pengaju: string
     departemen: string | null
     items_count: number
+    purchasing_printed_by: string | null
+    purchasing_printed_at: string | null
 }
 
 const props = defineProps<{
     requests: { data: MR[]; links: any[]; from: number; to: number; total: number; prev_page_url: string|null; next_page_url: string|null }
-    filters?: { search?: string; factory?: string; type?: string; po_status?: string; accurate_sort?: 'asc' | 'desc' }
+    filters?: { search?: string; factory?: string; type?: string; po_status?: string; print_status?: string; accurate_sort?: 'asc' | 'desc' }
     allFactories: string[]
     topUsers?: { name: string; total: number }[]
 }>()
@@ -32,6 +34,7 @@ const searchVal = ref(props.filters?.search || '')
 const factoryVal = ref(props.filters?.factory || '')
 const typeVal = ref(props.filters?.type || '')
 const poStatusVal = ref(props.filters?.po_status || '')
+const printStatusVal = ref(props.filters?.print_status || '')
 const accurateSortVal = ref(props.filters?.accurate_sort || 'desc')
 
 const poStatusOptions = [
@@ -55,6 +58,7 @@ const applyFilters = () => {
         factory: factoryVal.value || undefined,
         type: typeVal.value || undefined,
         po_status: poStatusVal.value || undefined,
+        print_status: printStatusVal.value || undefined,
         accurate_sort: accurateSortVal.value,
     }, { preserveState: true })
 }
@@ -102,6 +106,11 @@ const printList = () => window.open(baseUrl + '/approval/purchasing/print?' + ne
                 <var-select v-model="poStatusVal" placeholder="Semua PO Status" style="width:180px" @change="applyFilters">
                     <var-option v-for="p in poStatusOptions" :key="p.value" :label="p.label" :value="p.value" />
                 </var-select>
+                <var-select v-model="printStatusVal" placeholder="Semua Status Cetak" style="width:190px" @change="applyFilters">
+                    <var-option label="Semua Status Cetak" value="" />
+                    <var-option label="Belum dicetak" value="unprinted" />
+                    <var-option label="Sudah dicetak" value="printed" />
+                </var-select>
                 <var-select v-model="accurateSortVal" style="width:220px" @change="applyFilters">
                     <var-option label="Accurate Terbaru" value="desc" />
                     <var-option label="Accurate Terlama" value="asc" />
@@ -125,6 +134,7 @@ const printList = () => window.open(baseUrl + '/approval/purchasing/print?' + ne
                             <th>Disetujui Direksi</th>
                             <th>Tanggal Input Accurate</th>
                             <th>PO Status</th>
+                            <th>Status Cetak</th>
                             <th>Input PO</th>
                             <th>Aksi</th>
                         </tr>
@@ -148,6 +158,11 @@ const printList = () => window.open(baseUrl + '/approval/purchasing/print?' + ne
                                 <div v-for="np in mr.nomor_pos" :key="np" class="po-num">{{ np }}</div>
                             </td>
                             <td>
+                                <span v-if="mr.purchasing_printed_by" class="print-status">Sudah dicetak</span>
+                                <span v-if="mr.purchasing_printed_by" class="print-meta">{{ mr.purchasing_printed_by }} · {{ mr.purchasing_printed_at }}</span>
+                                <span v-else class="print-status none">Belum dicetak</span>
+                            </td>
+                            <td>
                                 <span v-if="mr.po_users && mr.po_users.length" class="po-users">{{ mr.po_users.join(', ') }}</span>
                                 <span v-else class="po-users none">-</span>
                             </td>
@@ -156,7 +171,7 @@ const printList = () => window.open(baseUrl + '/approval/purchasing/print?' + ne
                             </td>
                         </tr>
                         <tr v-if="!requests.data.length">
-                            <td colspan="13" class="empty">Tidak ada MR</td>
+                            <td colspan="14" class="empty">Tidak ada MR</td>
                         </tr>
                     </tbody>
                 </table>
@@ -188,6 +203,9 @@ const printList = () => window.open(baseUrl + '/approval/purchasing/print?' + ne
 .po-date { font-size:10px;color:#64748b;margin-top:2px; }
 .po-users { font-size:11px;color:#334155; }
 .po-users.none { color:#94a3b8; }
+.print-status { display:block;font-size:11px;color:#166534;font-weight:700; }
+.print-status.none { color:#94a3b8; }
+.print-meta { display:block;font-size:10px;color:#64748b;margin-top:2px; }
 .empty { text-align:center;color:#94a3b8;padding:40px; }
 .btn-kerja { background:#4f46e5;color:#fff;padding:6px 14px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600;display:inline-block; }
 .btn-kerja:hover { background:#4338ca; }
