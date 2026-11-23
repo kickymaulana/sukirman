@@ -853,7 +853,7 @@ class MaterialRequestController extends Controller
         $search = $request->input('search');
         $factory = $request->input('factory');
 
-        $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user'])
+        $query = MaterialRequest::with(['user.departemen', 'items', 'items.item_po_lines.user', 'approvalLogs'])
             ->where('status_workflow', 'Verifikasi Gudang')
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
@@ -881,6 +881,12 @@ class MaterialRequestController extends Controller
                     }
                 }
                 $poStatus = $nomorPos->count() > 0 ? ($nomorPos->count() === $total ? 'Sudah' : 'Sebagian') : 'Belum';
+                $direksiApproval = $mr->approvalLogs
+                    ->where('approval_cycle', $mr->approval_cycle)
+                    ->where('role', 'Direksi')
+                    ->where('action', 'approve')
+                    ->sortByDesc('id')
+                    ->first();
 
                 return [
                     'id' => $mr->id,
@@ -893,6 +899,7 @@ class MaterialRequestController extends Controller
                     'nomor_pos' => $nomorPos->unique()->values(),
                     'po_users' => $poUsers->unique()->values(),
                     'created_at' => $mr->created_at->format('d M Y'),
+                    'direksi_approved_at' => $direksiApproval?->created_at?->timezone('Asia/Jakarta')->format('d M Y H:i'),
                     'pengaju' => $mr->user?->name,
                     'departemen' => $mr->user?->departemen?->nama,
                     'items_count' => $total,

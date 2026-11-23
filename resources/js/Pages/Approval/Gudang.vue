@@ -13,6 +13,7 @@ interface MR {
     nomor_pos: string[]
     po_users: string[]
     created_at: string
+    direksi_approved_at: string | null
     pengaju: string
     departemen: string | null
     items_count: number
@@ -83,6 +84,7 @@ const goBack = () => {
                             <th>Factory</th>
                             <th>Jenis</th>
                             <th>Tanggal</th>
+                            <th>Disetujui Direksi (WIB)</th>
                             <th>Accurate</th>
                             <th>PO</th>
                             <th>Aksi</th>
@@ -98,6 +100,7 @@ const goBack = () => {
                             <td>{{ mr.factory }}</td>
                             <td>{{ mr.jenis }}</td>
                             <td class="muted">{{ mr.created_at }}</td>
+                            <td class="muted">{{ mr.direksi_approved_at || '-' }}</td>
                             <td>
                                 <var-chip :type="mr.input_accurate === 'Sudah' ? 'success' : 'default'" size="mini">{{ mr.input_accurate === 'Sudah' ? '✅ Sudah' : 'Belum' }}</var-chip>
                             </td>
@@ -113,7 +116,7 @@ const goBack = () => {
                             </td>
                         </tr>
                         <tr v-if="!requests.data.length">
-                            <td colspan="9" class="empty">Tidak ada MR</td>
+                            <td colspan="10" class="empty">Tidak ada MR</td>
                         </tr>
                     </tbody>
                 </table>
