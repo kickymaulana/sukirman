@@ -309,6 +309,8 @@ const goBack = () => {
                 </div>
               </div>
 
+              <p class="field-hint">Jika diperlukan, tuliskan spesifikasi, merek, atau ukuran sekaligus pada nama barang. Contoh: Laptop Lenovo RAM 16 GB SSD 512 GB.</p>
+
               <var-select v-model="item.type" variant="outlined" placeholder="Pilih Jenis" :error-message="form.errors[`items.${index}.type`]">
                 <var-option label="Pilih Jenis" value="" />
                 <var-option label="Lokal" value="Lokal" />
@@ -369,15 +371,6 @@ const goBack = () => {
                   :min="0"
                 />
               </div>
-
-              <var-input
-                v-model="item.specification"
-                variant="outlined"
-                textarea
-                rows="2"
-                placeholder="Spesifikasi Teknik / Detail Merk"
-                @update:modelValue="(v: any) => item.specification = String(v).toUpperCase()"
-              />
 
               <var-input
                 v-model="item.purpose"
